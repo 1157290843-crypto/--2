@@ -1,0 +1,39 @@
+# macOS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Environment variables and credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+*service-account*.json
+secrets.*
+secret.*
+
+# Temporary files and application caches
+*.tmp
+*.temp
+*.log
+*.bak
+*.autosave
+*.blend1
+*.blend2
+.cache/
+Cache/
+Media Cache/
+Adobe After Effects Auto-Save/
+Adobe Premiere Pro Auto-Save/
+
+# Web-based animation tools and generated output
+node_modules/
+dist/
+build/
+coverage/
