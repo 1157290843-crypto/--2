@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>打点计时器三维互动实验 · 电磁式 vs 电火花式</title>
+<title>打点计时器：结构与工作原理</title>
 <style>
   :root{
     --bg:#f7f4ed;--panel:#f7f4ed;--panel2:#fffdf8;--line:#d8d6cf;
@@ -194,23 +194,6 @@
   }
   .trend-box.is-warn{border-color:#eec4cb;background:#fdf3f4;color:#a8404f}
   .trend-box.is-ok{border-color:#bfe0cd;background:#f1f9f4;color:#237049}
-  /* 纸带展开 */
-  #tapeCard{border-top:3px solid var(--orange)}
-  #tapeCv{width:100%;height:96px;display:block;border:1px solid var(--line);border-radius:8px;background:#fffdf8}
-  table.live{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:8px}
-  table.live td{padding:3.5px 2px;border-bottom:1px solid var(--line);vertical-align:middle;line-height:1.45}
-  table.live td:first-child{color:var(--dim);width:52%}
-  table.live td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
-  table.cmp{width:100%;border-collapse:collapse;font-size:10px;margin-top:4px}
-  table.cmp th,table.cmp td{padding:4.5px 3px;text-align:center;border-bottom:1px solid var(--line);line-height:1.45}
-  table.cmp th{color:var(--dim);font-weight:600;font-size:9.5px}
-  table.cmp td:first-child,table.cmp th:first-child{text-align:left;color:var(--dim)}
-  table.cmp .em{color:var(--cyan);font-weight:700}
-  table.cmp .sp{color:var(--orange);font-weight:700}
-  .insight{
-    margin-top:9px;padding:8px 10px;border-radius:9px;font-size:11.5px;line-height:1.7;
-    background:#fff4e7;border:1px solid #f0c79c;color:#8d5517;
-  }
   /* ---------- 响应式 ---------- */
   .mobile-tabs{display:none}
   @media (min-width:960px) and (max-width:1180px){
@@ -314,6 +297,58 @@
 
   table th,.result-strip,.pt-body{font-size:var(--type-11)!important}
 </style>
+<style id="principle-lesson-ui">
+  #experimentLayout[data-layout-lock="three-column"]{
+    display:grid;grid-template-columns:clamp(240px,21vw,260px) minmax(0,1fr) clamp(240px,21vw,260px);
+    grid-template-rows:minmax(0,1fr);overflow:hidden;
+  }
+  .control-panel,.observe-panel{min-height:0;overflow-y:auto}
+  .stage{min-width:0;min-height:0}
+  .mode-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .mode-switch button{min-width:0;min-height:44px;padding:6px 3px;white-space:normal;font-size:var(--type-11);border:1px solid var(--border);background:var(--surface-raised)}
+  .mode-switch button.active{background:var(--action);border-color:var(--action);color:var(--on-action)}
+  .next-principle,.power-toggle{width:100%;min-height:44px;margin-top:7px;background:var(--action);color:var(--on-action)}
+  .power-toggle[aria-pressed="true"]{background:var(--safe)}
+  .principle-equation{margin-top:9px;padding:9px;border-radius:9px;background:var(--warning-soft);color:var(--warning);font-size:var(--type-14);font-weight:800;text-align:center}
+  .view-preset-bar{position:absolute;z-index:6;top:76px;left:50%;transform:translateX(-50%);display:flex;gap:5px;padding:5px;border:1px solid rgba(121,145,183,.32);border-radius:11px;background:rgba(11,20,36,.86);backdrop-filter:blur(12px)}
+  .view-preset-bar button{min-height:40px;padding:0 9px;border:1px solid #31425d;background:#15233a;color:#cbd7e9;font-size:var(--type-11)}
+  .view-preset-bar button.active{background:var(--action);border-color:#6685ea;color:#fff}
+  .stage-toolbar{min-height:58px}
+  .stage-toolbar button{height:44px;min-height:44px}
+  .stage-toolbar .toolbar-play{width:78px;min-width:78px}
+  .stage-toolbar .toolbar-reset{width:44px;min-width:44px}
+  .speed-control{height:44px;padding:3px}
+  .speed-control button{flex:0 0 38px;width:38px;height:36px;min-height:36px;font-size:var(--type-11)}
+  .focus-copy{padding:9px;border:1px solid var(--border);border-radius:9px;background:#fff;line-height:1.55}
+  .focus-copy span{display:block;margin-bottom:4px;color:var(--text-muted);font-size:var(--type-11)}
+  .focus-copy strong{display:block;font-size:var(--type-12)}
+  .focus-parts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .focus-parts span{padding:5px 8px;border-radius:999px;background:var(--warning-soft);color:var(--warning);font-size:var(--type-11);font-weight:800}
+  .chain-row{display:grid;grid-template-columns:1fr;gap:5px;margin-top:7px;padding:9px;border-radius:9px;font-size:var(--type-11);line-height:1.45}
+  .chain-row span{display:block;padding:5px 7px;border-radius:7px;background:rgba(255,255,255,.72)}
+  .chain-row i{text-align:center;font-style:normal;font-weight:900}
+  .em-chain{background:#eaf0ff;color:#24499e}.spark-chain{background:#fff0e7;color:#a84d19}
+  .shared-result{margin-top:9px;padding:10px;border:1px solid #bfe0cd;border-radius:9px;background:var(--safe-soft);color:var(--safe)}
+  .shared-result span,.shared-result strong{display:block}.shared-result span{font-size:var(--type-11);margin-bottom:3px}.shared-result strong{font-size:var(--type-13)}
+  .selected-part{padding:8px 10px;border-radius:9px;background:var(--text-strong);color:#fff;font-weight:800}
+  .part-card p{margin:8px 0 0;font-size:var(--type-12);line-height:1.6}
+  #partTip{font-size:var(--type-11);line-height:1.5}#partTip b{font-size:var(--type-12)}
+  @media (min-width:961px) and (max-width:1180px){
+    #experimentLayout[data-layout-lock="three-column"]{grid-template-columns:232px minmax(0,1fr) 224px}
+  }
+  @media (orientation:landscape) and (max-width:960px){
+    #experimentLayout[data-layout-lock="three-column"]{display:grid;grid-template-columns:216px minmax(0,1fr) 216px;grid-template-rows:minmax(0,1fr)}
+    #experimentLayout[data-layout-lock="three-column"] .control-panel{display:flex;grid-area:1/1;width:auto;order:initial;border-right:1px solid var(--border);border-top:0;padding:6px}
+    #experimentLayout[data-layout-lock="three-column"] .stage{display:block;grid-area:1/2;order:initial;min-width:0;min-height:0;margin:6px;flex:none}
+    #experimentLayout[data-layout-lock="three-column"] .observe-panel{display:flex;grid-area:1/3;width:auto;order:initial;border-left:1px solid var(--border);border-top:0;padding:6px}
+    .view-preset-bar{top:68px;gap:3px;padding:4px}.view-preset-bar button{padding:0 5px}
+    .stage-hud{left:7px;top:7px}.hud-phase{min-width:112px}.hud-metrics>div{min-width:72px}.hud-metrics>div:nth-child(3){display:none}
+    .stage-toolbar{left:5px;right:5px;bottom:5px;transform:none;gap:3px;padding:4px}
+    .stage-toolbar .toolbar-play{width:66px;min-width:66px}.stage-toolbar button{padding:0 6px}
+    .speed-control button{flex-basis:34px;width:34px}
+    .legend,.drag-tip{display:none}
+  }
+</style>
 </head>
 <body>
 <header class="topbar template-header">
@@ -322,158 +357,124 @@
     <div class="brand-mark" aria-hidden="true">罗</div>
     <div class="brand-copy">
       <p class="eyebrow">老罗物理 · 探究实验</p>
-      <h1>打点计时器：结构、原理与使用</h1>
+      <h1>打点计时器：结构与工作原理</h1>
     </div>
   </div>
 </header>
-<main id="experimentLayout" class="show-controls">
-  <div class="mobile-tabs" role="tablist" aria-label="切换参数与数据面板">
-    <button type="button" id="tabControls" role="tab" aria-selected="true">操作面板</button>
-    <button type="button" id="tabData" role="tab" aria-selected="false">观察数据</button>
-  </div>
+<main id="experimentLayout" data-layout-lock="three-column">
   <section class="stage" id="stage">
-    <canvas id="cv" tabindex="0" aria-label="打点计时器三维模型，可用鼠标拖拽旋转、滚轮缩放"></canvas>
-    <div id="toast" role="status" aria-live="polite"><span id="toastText"></span><span id="toastMath" class="formula-math" role="math" aria-label="电源频率改变，打点间隔 T 等于一除以 f" aria-hidden="true" hidden><span id="toastMathVisual" aria-hidden="true"></span></span></div>
+    <canvas id="cv" tabindex="0" aria-label="打点计时器三维内部结构，可有限旋转、缩放并点击部件"></canvas>
+    <div id="toast" role="status" aria-live="polite"><span id="toastText"></span></div>
     <div id="partTip"></div>
     <div class="stage-hud" aria-hidden="true">
       <div class="hud-phase"><span>当前机型</span><strong id="hudMachine">电磁打点计时器</strong></div>
       <div class="hud-metrics">
         <div><span>工作电源</span><b id="hudPower">4~6 V 交流</b></div>
-        <div><span>打点间隔 T</span><b id="hudT">0.02 s</b></div>
-        <div><span>已打点数</span><b id="hudDots">0</b></div>
+        <div><span>固定频率</span><b>50 Hz</b></div>
+        <div><span>打点间隔</span><b id="hudT">0.02 s</b></div>
       </div>
     </div>
-    <div class="legend">
-      <div><i data-viz="circular"></i>电磁式部件　<i data-viz="transfer"></i>电火花式部件</div>
-      <div><i data-viz="velocity"></i>纸带与限位孔　<i data-viz="gravity"></i>当前高亮部件</div>
-      <div>拖拽旋转 · 滚轮缩放 · 点击部件看说明</div>
+    <div class="view-preset-bar" role="group" aria-label="教学视角">
+      <button type="button" id="standardView" class="active" data-view="standard" aria-label="标准视角">标准视角</button>
+      <button type="button" id="emSectionView" data-view="emSection">电磁剖面</button>
+      <button type="button" id="sparkSectionView" data-view="sparkSection">电火花剖面</button>
+      <button type="button" id="tapeAxisView" data-view="tapeAxis">沿纸带方向</button>
     </div>
-    <div class="drag-tip">按住拖动可 360° 观察，滚轮缩放</div>
+    <div class="legend">
+      <div><i data-viz="circular"></i>电磁部件　<i data-viz="transfer"></i>放电部件</div>
+      <div><i data-viz="velocity"></i>纸带通道　<i data-viz="gravity"></i>本步焦点</div>
+    </div>
+    <div class="drag-tip">拖动有限旋转 · 双指或滚轮缩放 · 点击部件查看作用</div>
     <div class="stage-toolbar" aria-label="动画控制">
-      <button type="button" id="playPause" class="toolbar-play is-playing" aria-pressed="true">
+      <button type="button" id="playPause" class="toolbar-play is-playing" aria-label="播放、暂停" aria-pressed="true">
         <span class="playback-icon" aria-hidden="true"></span><span id="playPauseLabel">暂停</span>
       </button>
       <div class="speed-control" role="group" aria-label="播放倍速">
-        <button type="button" data-speed="0.1" aria-pressed="false">0.1×</button>
-        <button type="button" data-speed="0.3" aria-pressed="false">0.3×</button>
+        <button type="button" data-speed="0.25" aria-pressed="false">0.25×</button>
+        <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
         <button type="button" data-speed="1" class="active" aria-pressed="true">1×</button>
+        <button type="button" data-speed="2" aria-pressed="false">2×</button>
       </div>
-      <button type="button" id="cutToggle">剖面透视</button>
-      <button type="button" id="labelToggle" class="on">部件标注</button>
-      <button type="button" id="reset" class="toolbar-reset" title="重置">↺</button>
+      <button type="button" id="cutToggle">剖面</button>
+      <button type="button" id="labelToggle" class="on">标注</button>
+      <button type="button" id="reset" class="toolbar-reset" aria-label="重置结构课">↺</button>
     </div>
   </section>
 
   <aside class="control-panel" id="controlPanel">
     <div class="card">
-      <p class="hint template-intro">三维模型可拖拽旋转、剖面观察，纸带会自动展开并计算速度与加速度。</p>
-      <h3><span>选择计时器</span><span class="kicker">STEP 1</span></h3>
+      <p class="hint template-intro">唯一任务：看清两种结构怎样把 50 Hz 电源节拍变成每隔 0.02 s 的点迹。</p>
+      <h3><span>学习模式</span><span class="kicker">MODE</span></h3>
+      <div class="mode-switch" role="group" aria-label="学习模式">
+        <button type="button" id="modeAuto" data-mode="auto" aria-pressed="false">自动演示</button>
+        <button type="button" id="modeGuided" data-mode="guided" class="active" aria-pressed="true">分步引导</button>
+        <button type="button" id="modeExplore" data-mode="explore" aria-pressed="false">自由探索</button>
+      </div>
+    </div>
+
+    <div class="card" id="machineSelect">
+      <h3><span>机型选择</span><span class="kicker">STRUCTURE</span></h3>
       <div class="machine-switch" role="group" aria-label="机型选择">
-        <button type="button" data-m="em" class="active" aria-pressed="true">电磁打点计时器<small>振针打点 · 复写纸</small></button>
-        <button type="button" data-m="spark" aria-pressed="false">电火花计时器<small>火花放电 · 墨粉纸盘</small></button>
+        <button type="button" data-m="em" class="active" aria-pressed="true">电磁打点计时器<small>振针 · 复写纸</small></button>
+        <button type="button" data-m="spark" aria-pressed="false">电火花计时器<small>放电针 · 墨粉纸盘</small></button>
       </div>
       <div class="spec-grid">
         <div><span>工作电压</span><b id="sPower">4~6 V 交流</b></div>
         <div><span>电源频率</span><b id="sFreq">50 Hz</b></div>
         <div><span>打点间隔</span><b id="sT">0.02 s</b></div>
-        <div><span>纸带阻力</span><b id="sFric">较大（振针压紧）</b></div>
+        <div><span>形成方式</span><b id="sMarking">振针与复写纸</b></div>
       </div>
-      <div class="hint" id="machineHint">
-        振针周期性下压，把复写纸的痕迹打在纸带上。<b>纸带受到的摩擦阻力较大</b>，测出的加速度会略偏小。
-      </div>
+      <div class="hint" id="machineHint">交流电使电磁状态周期变化，振片带动振针通过复写纸留下点迹。</div>
     </div>
 
     <div class="card">
-      <h3><span>操作步骤</span><span class="kicker">STEP 2</span></h3>
-      <div class="steps" id="stepList">
-        <button type="button" class="step active" data-step="0"><i class="n">1</i><span><b>固定计时器</b>用铁夹把计时器竖直固定在长木板末端</span></button>
-        <button type="button" class="step" data-step="1"><i class="n">2</i><span><b>穿纸带</b>纸带穿过限位孔，复写纸片压在纸带上方</span></button>
-        <button type="button" class="step" data-step="2"><i class="n">3</i><span><b>先接通电源</b>听到连续打点声、点迹稳定后再动小车</span></button>
-        <button type="button" class="step" data-step="3"><i class="n">4</i><span><b>后释放小车</b>小车拖着纸带做匀加速运动</span></button>
-        <button type="button" class="step" data-step="4"><i class="n">5</i><span><b>先断电再取带</b>小车停下立刻断电，然后取下纸带</span></button>
+      <h3><span>五步原理</span><span class="kicker">FOCUS</span></h3>
+      <div class="steps" id="principleSteps">
+        <button type="button" class="step active" data-principle-step="1"><i class="n">1</i><span><b>纸带通道</b>找到纸带与打点位置</span></button>
+        <button type="button" class="step" data-principle-step="2"><i class="n">2</i><span><b>电磁驱动</b>线圈怎样驱动振片</span></button>
+        <button type="button" class="step" data-principle-step="3"><i class="n">3</i><span><b>振针留点</b>一次下压形成一个点</span></button>
+        <button type="button" class="step" data-principle-step="4"><i class="n">4</i><span><b>脉冲放电</b>放电怎样形成点迹</span></button>
+        <button type="button" class="step" data-principle-step="5"><i class="n">5</i><span><b>共同节拍</b>结构不同，时间间隔相同</span></button>
       </div>
       <div class="action-stack">
-        <button type="button" class="secondary" id="prevStep">上一步</button>
-        <button type="button" class="confirm" id="nextStep">下一步</button>
+        <button type="button" class="secondary" id="prevPrinciple">上一步</button>
+        <button type="button" class="confirm" id="confirmObservation">我已观察</button>
       </div>
-      <label class="chk"><input type="checkbox" id="autoRun" checked>播放到本步的动画演示</label>
-      <div class="hint">口诀：<b>先通电后放车，先断电后取带</b>。顺序颠倒会丢掉起始点迹或空打浪费纸带。</div>
+      <button type="button" class="next-principle" id="nextPrinciple">进入下一步</button>
     </div>
 
-    <div class="card">
-      <h3><span>小车运动参数</span><span class="kicker">STEP 3</span></h3>
-      <label class="rng" for="acc">加速度 a <span id="accVal">2.00 m/s²</span></label>
-      <input type="range" id="acc" min="0" max="6" step="0.05" value="2">
-      <label class="rng" for="v0">初速度 v₀ <span id="v0Val">0.00 m/s</span></label>
-      <input type="range" id="v0" min="0" max="1.5" step="0.01" value="0">
-      <div class="rng">固定电源频率 f <span>50 Hz</span></div>
-      <div class="hint">打点间隔 <b class="formula-math" role="math" aria-label="T 等于一除以 f"><span aria-hidden="true">T = <span class="frac"><span class="num">1</span><span class="den">f</span></span></span></b>。频率 50 Hz 时 T = 0.02 s，这是纸带能当"计时尺"用的根本原因。</div>
+    <div class="card power-card">
+      <h3><span>周期打点</span><span class="kicker">50 Hz</span></h3>
+      <button type="button" class="power-toggle" id="powerToggle" aria-pressed="false">接通电源，观察周期打点</button>
+      <div class="principle-equation" role="math" aria-label="T 等于一除以 f，等于零点零二秒">T = 1 / f = 0.02 s</div>
+      <div class="hint">倍速只改变观看快慢，不改变每个点对应的物理时刻。</div>
     </div>
 
-    <details class="card">
-      <summary>⚠ 错误操作演示</summary>
-      <div class="body">
-        <div class="btnrow two">
-          <button type="button" class="err" data-err="lateOn">先放车后通电</button>
-          <button type="button" class="err" data-err="lateOff">先取带后断电</button>
-          <button type="button" class="err" data-err="noHole">纸带没穿限位孔</button>
-          <button type="button" class="err" data-err="carbonFlip">复写纸装反</button>
-        </div>
-        <div class="hint" id="errHint">点一个按钮，模型会演示后果并说明为什么。</div>
-      </div>
-    </details>
-
-    <details class="card">
-      <summary>📖 知识要点</summary>
-      <div class="body">
-        <b>1. 本质：</b>打点计时器是<span class="f">计时仪器</span>，每隔 T 等于频率的倒数 打一个点。50 Hz 交流电 → <span class="f">T=0.02 s</span>。<br>
-        <b>2. 电磁式：</b>4~6 V <b>交流</b>电源，线圈使振针上下振动，靠<b>复写纸</b>打点；纸带阻力大。<br>
-        <b>3. 电火花式：</b>220 V <b>交流</b>电源，脉冲高压在放电针与纸盘间放电，<b>墨粉纸盘</b>留点；<b>阻力小、点迹清晰、误差更小</b>。<br>
-        <b>4. 计算：</b>取相邻计数点，<span class="f formula-math" role="math" aria-label="v n 等于 s n 加 s n 加一的和除以二 T"><span aria-hidden="true">v<sub>n</sub> = <span class="frac"><span class="num">s<sub>n</sub>+s<sub>n+1</sub></span><span class="den">2T</span></span></span></span>（中间时刻速度）；<span class="f formula-math" role="math" aria-label="a 等于 delta s 除以 T 的平方"><span aria-hidden="true">a = <span class="frac"><span class="num">Δs</span><span class="den">T²</span></span></span></span>，Δs 为连续相等时间内位移之差。<br>
-        <b>5. 每 5 个间隔取一个计数点</b>时，计时单位变为 <span id="countPointIntervalLaw" role="math" aria-label="T 撇等于五乘零点零二秒，等于零点一秒"><span aria-hidden="true">T' = 5×0.02 = 0.1 s</span></span>，公式里的 T 要换成 T'。<br>
-        <b>口诀：</b>先通电后放车，先断电后取带；电火花更准，电磁更常见。
-      </div>
-    </details>
   </aside>
   <aside class="observe-panel" id="observePanel">
-    <div class="card judgement-card">
-      <h3><span>实时状态</span><span class="kicker">LIVE</span></h3>
-      <div class="phase-banner" id="dPhase">等待固定计时器</div>
-      <div class="decision-grid">
-        <div><span>小车位移 x</span><b id="dX">0.00 m</b></div>
-        <div><span>小车速度 v</span><b id="dV">0.00 m/s</b></div>
-        <div><span>运动时间 t</span><b id="dTime">0.00 s</b></div>
-        <div><span>纸带点数</span><b id="dDots">0</b></div>
+    <div class="card judgement-card" id="focusCard">
+      <h3><span>当前观察焦点</span><span class="kicker" id="stepKicker">STEP 1 / 5</span></h3>
+      <div class="phase-banner" id="focusTitle">找到纸带通道和打点位置</div>
+      <div class="focus-copy">
+        <span>重点观察</span>
+        <strong id="focusObserve">纸带经过限位孔，并从打点位置正下方穿过。</strong>
       </div>
-      <div class="trend-box" id="dTrend">按"先通电后放车"的顺序开始实验。</div>
+      <div class="focus-parts" id="focusParts" aria-label="当前高亮部件"></div>
+      <div class="trend-box" id="observationState">观察后点击“我已观察”，再进入下一步。</div>
     </div>
 
-    <div class="card" id="tapeCard">
-      <h3><span>纸带展开</span><span class="kicker">TAPE</span></h3>
-      <canvas id="tapeCv" width="480" height="192" aria-label="打出的纸带展开视图，标出计数点与间隔"></canvas>
-      <label class="chk"><input type="checkbox" id="everyFive" checked>每 5 个间隔取一个计数点（<span id="countPointRelation" role="math" aria-label="T 撇等于五 T"><span aria-hidden="true">T′=5T</span></span>）</label>
-      <table class="live">
-        <tr><td>计时单位 T′</td><td id="tT">0.10 s</td></tr>
-        <tr><td>s₁ 与 s₂</td><td id="tS12">—；—</td></tr>
-        <tr><td><span id="deltaDisplacementLaw" role="math" aria-label="delta s 等于 s 二减 s 一"><span aria-hidden="true">Δs = s₂−s₁</span></span></td><td id="tDs">—</td></tr>
-        <tr><td role="math" aria-label="v 等于 s 一加 s 二的和除以二 T 撇"><span aria-hidden="true">v = <span class="frac"><span class="num">s₁+s₂</span><span class="den">2T′</span></span></span></td><td id="tV">—</td></tr>
-        <tr><td role="math" aria-label="a 等于 delta s 除以 T 撇的平方"><span aria-hidden="true">a = <span class="frac"><span class="num">Δs</span><span class="den">T′²</span></span></span></td><td id="tA">—</td></tr>
-      </table>
-      <div class="hint">测得的 a 与设定值的偏差来自<b>纸带摩擦阻力</b>；电火花计时器阻力小，偏差明显更小。</div>
+    <div class="card" id="principleChain">
+      <h3><span>工作原理链</span><span class="kicker">WHY</span></h3>
+      <div class="chain-row em-chain"><b>电磁式</b><span>50 Hz 交流</span><i>→</i><span>线圈磁性变化</span><i>→</i><span>振针留点</span></div>
+      <div class="chain-row spark-chain"><b>电火花式</b><span>50 Hz 交流</span><i>→</i><span>脉冲高压</span><i>→</i><span>放电留点</span></div>
+      <div class="shared-result"><span>共同时间基准</span><strong>每隔 0.02 s 形成一个点</strong></div>
     </div>
 
-    <div class="card">
-      <h3><span>两种计时器对比</span><span class="kicker">对比</span></h3>
-      <table class="cmp">
-        <tr><th>项目</th><th class="em">电磁式</th><th class="sp">电火花式</th></tr>
-        <tr><td>电源</td><td>4~6 V 交流</td><td>220 V 交流</td></tr>
-        <tr><td>打点方式</td><td>振针+复写纸</td><td>放电+墨粉纸盘</td></tr>
-        <tr><td>纸带阻力</td><td>较大</td><td>很小</td></tr>
-        <tr><td>点迹</td><td>较粗</td><td>清晰细小</td></tr>
-        <tr><td>误差</td><td>偏大</td><td>较小</td></tr>
-        <tr><td>耗材</td><td>复写纸</td><td>墨粉纸盘</td></tr>
-      </table>
-      <div class="insight" id="cmpInsight">两者打点间隔都由电源频率决定：50 Hz 下同为 0.02 s。差别只在打点方式和阻力，不在计时精度的时间基准。</div>
+    <div class="card part-card">
+      <h3><span>部件与作用</span><span class="kicker">PART</span></h3>
+      <div class="selected-part" id="selectedPartName">纸带</div>
+      <p id="selectedPartRole">纸带从打点位置通过，承接周期形成的点迹。</p>
+      <div class="hint">可直接点击三维部件查看；引导模式每步只突出 1–2 个核心部件。</div>
     </div>
   </aside>
 </main>
@@ -502,6 +503,87 @@
   window.TimerPrincipleCore = Object.freeze({ MACHINES, intervalForFrequency, dotTimesBetween, advancePhase });
 })();
 </script>
+<script data-principle-lesson-core>
+(function () {
+  const PLAYBACK_SPEEDS = Object.freeze([0.25, 0.5, 1, 2]);
+  const CAMERA_PRESETS = Object.freeze({
+    standard: Object.freeze({ yaw: -0.58, pitch: 0.38, dist: 5.8, cut: false }),
+    emSection: Object.freeze({ yaw: -0.18, pitch: 0.24, dist: 4.7, cut: true, machine: 'em' }),
+    sparkSection: Object.freeze({ yaw: -0.12, pitch: 0.28, dist: 4.9, cut: true, machine: 'spark' }),
+    tapeAxis: Object.freeze({ yaw: -1.48, pitch: 0.12, dist: 6.2, cut: false })
+  });
+  const CAMERA_LIMITS = Object.freeze({ pitchMin: 0.04, pitchMax: 1.24, yawSpan: Math.PI * 0.72 });
+  function createClockState() {
+    return { physicalTime: 0, phase: 0, dotTimes: [] };
+  }
+  function advanceClock(state, viewingSeconds, speed, powered) {
+    if (!PLAYBACK_SPEEDS.includes(speed)) throw new RangeError('unsupported playback speed');
+    if (!Number.isFinite(viewingSeconds) || viewingSeconds < 0) throw new RangeError('viewingSeconds must not be negative');
+    if (!powered) return { physicalTime: state.physicalTime, phase: state.phase, dotTimes: [] };
+    const elapsed = viewingSeconds * speed;
+    const nextTime = state.physicalTime + elapsed;
+    return {
+      physicalTime: nextTime,
+      phase: window.TimerPrincipleCore.advancePhase(state.phase, elapsed, 50),
+      dotTimes: window.TimerPrincipleCore.dotTimesBetween(state.physicalTime, nextTime, 50)
+    };
+  }
+  function viewForPreset(view, id) {
+    const preset = CAMERA_PRESETS[id];
+    if (!preset) return null;
+    return {
+      yaw: preset.yaw,
+      pitch: Math.max(CAMERA_LIMITS.pitchMin, Math.min(CAMERA_LIMITS.pitchMax, preset.pitch)),
+      dist: preset.dist,
+      cut: preset.cut,
+      machine: preset.machine || view.machine
+    };
+  }
+  function layoutForViewport(width, height) {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) throw new RangeError('viewport must be positive');
+    if (width <= 960 && height <= 540) return { kind: 'three-column', columns: [216, width - 432, 216] };
+    if (width <= 1024) return { kind: 'three-column', columns: [232, width - 456, 224] };
+    const side = Math.min(260, Math.max(240, Math.round(width * 0.21)));
+    return { kind: 'three-column', columns: [side, width - side * 2, side] };
+  }
+  window.TimerPrincipleLesson = Object.freeze({ PLAYBACK_SPEEDS, CAMERA_PRESETS, CAMERA_LIMITS, createClockState, advanceClock, viewForPreset, layoutForViewport });
+})();
+</script>
+<script data-principle-teaching-core>
+(function () {
+  const PRINCIPLE_STEPS = Object.freeze([
+    Object.freeze({ id: 1, task: '找到纸带通道和打点位置', observe: '纸带经过限位孔，并从打点位置正下方穿过。', machine: 'em', camera: 'standard', focusParts: ['tape', 'hole'] }),
+    Object.freeze({ id: 2, task: '观察电磁式内部结构', observe: '线圈的电磁状态变化，驱动振片周期振动。', machine: 'em', camera: 'emSection', focusParts: ['coil', 'reed'] }),
+    Object.freeze({ id: 3, task: '慢放一次振针打点', observe: '振针每完成一次下压，便通过复写纸形成一个点。', machine: 'em', camera: 'emSection', focusParts: ['reed', 'carbon'] }),
+    Object.freeze({ id: 4, task: '观察电火花式放电', observe: '放电针通过墨粉纸盘放电，在纸带上形成点迹。', machine: 'spark', camera: 'sparkSection', focusParts: ['spark', 'disc'] }),
+    Object.freeze({ id: 5, task: '比较两种打点方式', observe: '结构不同，但 50 Hz 时都每隔 0.02 s 形成一个点。', machine: 'both', camera: 'standard', focusParts: ['reed', 'spark'] })
+  ]);
+  function createTeachingState(mode) {
+    const nextMode = mode || 'guided';
+    return { mode: nextMode, step: 1, observationConfirmed: false, completed: [], running: nextMode === 'auto' };
+  }
+  function principleReducer(state, action) {
+    if (action.type === 'CONFIRM_OBSERVATION') return { ...state, observationConfirmed: true };
+    if (action.type === 'NEXT' && state.observationConfirmed && state.step < PRINCIPLE_STEPS.length) {
+      return { ...state, step: state.step + 1, observationConfirmed: false, completed: [...state.completed, state.step] };
+    }
+    if (action.type === 'PREVIOUS' && state.step > 1) return { ...state, step: state.step - 1, observationConfirmed: false };
+    if (action.type === 'SET_MODE') return { ...state, mode: action.mode, running: action.mode === 'auto' };
+    if (action.type === 'SET_RUNNING') return { ...state, running: Boolean(action.running) };
+    if (action.type === 'SELECT_STEP' && state.mode === 'explore' && action.step >= 1 && action.step <= PRINCIPLE_STEPS.length) {
+      return { ...state, step: action.step, observationConfirmed: false };
+    }
+    if (action.type === 'AUTO_TICK' && state.mode === 'auto' && state.running) {
+      if (!state.observationConfirmed) return { ...state, observationConfirmed: true };
+      if (state.step < PRINCIPLE_STEPS.length) return principleReducer(state, { type: 'NEXT' });
+      return { ...state, running: false };
+    }
+    if (action.type === 'RESET') return createTeachingState(state.mode);
+    return state;
+  }
+  window.TimerPrincipleTeaching = Object.freeze({ PRINCIPLE_STEPS, createTeachingState, principleReducer });
+})();
+</script>
 <script>
 (function(){
 "use strict";
@@ -527,9 +609,10 @@ function lerp(a,b,t){return a+(b-a)*t;}
 
 /* ---------- 相机 ---------- */
 /* 注意：eye.y = target.y + sin(pitch)*dist，故 pitch 为正才是俯视 */
-var cam={yaw:-0.72,pitch:0.34,dist:8.0,target:v3(0.55,-0.16,0),fov:620};
-var camDefault={yaw:-0.72,pitch:0.34,dist:8.0};
-var PITCH_MIN=0.04, PITCH_MAX=1.24;   // 始终保持在桌面之上
+var cam={yaw:-0.58,pitch:0.38,dist:5.8,target:v3(-1.95,0.04,0),fov:620};
+var camDefault={yaw:-0.58,pitch:0.38,dist:5.8};
+var PITCH_MIN=TimerPrincipleLesson.CAMERA_LIMITS.pitchMin, PITCH_MAX=TimerPrincipleLesson.CAMERA_LIMITS.pitchMax;
+var YAW_CENTER=-0.55, YAW_MIN=YAW_CENTER-TimerPrincipleLesson.CAMERA_LIMITS.yawSpan/2, YAW_MAX=YAW_CENTER+TimerPrincipleLesson.CAMERA_LIMITS.yawSpan/2;
 
 function camBasis(){
   var cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw);
@@ -639,7 +722,7 @@ function pushShadow(F,y,x0,x1,z0,z1,a,lay0){
   }
 }
 /* 面片着色：Lambert 主光 + 补光 + 天光环境 + Blinn 高光 */
-function litColor(f,ctr,hi){
+function litColor(f,ctr,hi,dim){
   if(f.flat) return 'rgb('+f.rgb[0]+','+f.rgb[1]+','+f.rgb[2]+')';
   var m=MAT[f.mat]||MAT.plastic, n=f.n;
   var V=norm(sub(B.eye,ctr));
@@ -651,125 +734,55 @@ function litColor(f,ctr,hi){
   var sp=Math.pow(Math.max(0,dot(n,Hh)),m.shin)*m.gloss;
   var r=f.rgb[0]*k+sp*255, g=f.rgb[1]*k+sp*252, b=f.rgb[2]*k+sp*240;
   if(hi){ r=r*0.55+255*0.45; g=g*0.55+206*0.45; b=b*0.55+96*0.45; }
+  if(dim){var gray=(r+g+b)/3;r=r*.38+gray*.62;g=g*.38+gray*.62;b=b*.38+gray*.62;}
   return 'rgb('+(clamp(r,0,255)|0)+','+(clamp(g,0,255)|0)+','+(clamp(b,0,255)|0)+')';
 }
 
 /* ---------- 部件说明（点击/悬停显示） ---------- */
 var PARTS={
-  base:{n:'底座与固定夹',d:'用铁夹把计时器竖直固定在长木板末端，保证纸带水平通过。'},
-  coil:{n:'线圈（电磁铁）',d:'接 4~6 V 交流电。电流方向每 1/100 s 改变一次，线圈磁性随之变化。'},
-  magnet:{n:'永久磁铁',d:'与线圈配合，使振片被交替吸引和释放，从而周期性振动。'},
-  reed:{n:'振片与振针',d:'振片带动振针上下振动，每振动一次打一个点。50 Hz 下每 0.02 s 打一点。'},
-  carbon:{n:'复写纸片',d:'必须放在纸带上方、有墨的一面朝下对着纸带。装反则打不出点迹。'},
-  tape:{n:'纸带',d:'穿过限位孔并压在复写纸下方。纸带上的点迹记录了时间与位移。'},
-  hole:{n:'限位孔',d:'约束纸带只能沿直线滑动，防止跑偏、卡带。纸带必须穿过它。'},
-  plug:{n:'接线柱',d:'电磁式接 4~6 V 低压交流电源，绝不能接直流或 220 V。'},
-  spark:{n:'放电针',d:'脉冲高压在放电针与墨粉纸盘之间放电，火花在纸带上烧出细小墨点。'},
-  disc:{n:'墨粉纸盘',d:'套在中心轴上，随纸带转动。火花使墨粉转印到纸带，点迹清晰。'},
-  hv:{n:'脉冲高压电源',d:'220 V 交流经内部电路产生脉冲高压，每 0.02 s 放电一次。使用时注意安全。'},
-  body:{n:'外壳',d:'保护内部结构。开启剖面透视可以看到里面的工作部件。'},
-  car:{n:'小车',d:'拖着纸带做匀加速运动，纸带上间隔越来越大的点迹就是它的运动记录。'},
-  board:{n:'长木板',d:'实验平台。计时器固定在末端，板面贴有刻度尺，小车在板上运动。'},
-  table:{n:'实验台',d:'实验桌面。长木板放在桌面上，注意木板要水平，否则会引入额外的分力。'}
+  base:{n:'底座',d:'承托并固定两种计时器的完整结构。'},
+  coil:{n:'线圈（电磁铁）',d:'4~6 V 交流使线圈的电磁状态周期变化。'},
+  magnet:{n:'永久磁铁',d:'与线圈共同作用，使振片周期振动。'},
+  reed:{n:'振片与振针',d:'振片带动振针周期下压，每次下压通过复写纸形成一个点。'},
+  carbon:{n:'复写纸片',d:'位于振针与纸带之间，把振针的下压转化为点迹。'},
+  tape:{n:'纸带',d:'从打点位置通过，承接周期形成的点迹。'},
+  hole:{n:'限位孔',d:'限定纸带通道，使纸带经过准确的打点位置。'},
+  plug:{n:'接线柱',d:'把 4~6 V 交流电接入电磁式计时器。'},
+  spark:{n:'放电针',d:'脉冲高压在放电针与墨粉纸盘之间放电，形成一个点。'},
+  disc:{n:'墨粉纸盘',d:'把放电产生的墨粉痕迹转印到纸带。'},
+  hv:{n:'脉冲高压电源',d:'把 220 V 交流转换为周期脉冲高压。'},
+  body:{n:'外壳',d:'保护内部结构；剖面视角会弱化外壳以展示内部部件。'}
 };
 
 /* ---------- 全局状态 ---------- */
 var S={
-  machine:'em',        // 'em' 电磁式 | 'spark' 电火花式
-  step:0,              // 0..4
+  machine:'em',
   playing:true,
   speed:1,
-  cut:false,           // 剖面透视
+  cut:false,
   labels:true,
-  acc:2, v0:0,
-  t:0,                 // 小车运动时间
-  running:false,       // 小车是否在跑
-  powered:false,       // 是否通电
-  dots:[],             // 纸带点迹位置(m)
+  powered:false,
+  dots:[],
   vibPhase:0,
   sparkFlash:0,
   hover:null, picked:null,
-  err:null, errT:0,
-  everyFive:true,
-  tapeDone:false,
-  msgTimer:0
+  focusParts:new Set(['tape','hole']),
+  pulseCount:0,
+  tapeTravel:0
 };
-var TAPE_LEN=1.1;      // 三维里纸带可见长度参考
 var TICK_FREQUENCY=50;
 /* ---------- 场景常量 ---------- */
 var TABLE_Y=-0.58;     // 桌面高度
 var BOARD_Y=-0.15;     // 长木板上表面
 var TAPE_Y=0.075;      // 纸带所在高度（贴着计时器底板通过）
 var TIMER_X=-1.95;     // 计时器中心 x
-var CAR_X0=0.55;       // 小车初始 x（三维单位）
-var PX_PER_M=1.85;     // 1 m 对应三维单位
-var CAR_STOP=4.55;     // 小车到达木板末端
-
-function carX(){ return CAR_X0 + (S.v0*S.t + 0.5*S.acc*S.t*S.t)*PX_PER_M; }
-
 function buildScene(){
-  var F=[],cxx=carX();
-  buildTable(F);
-  pushShadow(F,TABLE_Y+0.008,-3.10,5.22,-0.80,1.16,0.40,3);              // 木板落在桌面
-  buildBoard(F);
-  pushShadow(F,BOARD_Y+0.014,TIMER_X-0.98,TIMER_X+1.04,-0.60,0.86,0.34,8); // 计时器落在木板
-  pushShadow(F,BOARD_Y+0.022,cxx-0.48,cxx+0.54,-0.34,0.52,0.32,8);       // 小车落在木板
-  if(S.step>=1) pushShadow(F,BOARD_Y+0.030,-3.20,cxx-0.52,-0.12,0.26,0.16,9); // 纸带落在木板
+  var F=[];
+  pushBox(F,TIMER_X,BOARD_Y-0.16,0,3.4,0.30,2.20,'#6d5c48','base',{mat:'wood',layer:4});
+  pushShadow(F,BOARD_Y+0.008,TIMER_X-1.25,TIMER_X+1.25,-0.82,0.82,0.34,8);
   buildTimer(F);
   buildTape(F);
-  buildCar(F);
   return F;
-}
-
-/* ---------- 实验台桌面 ---------- */
-function buildTable(F){
-  var x0=-4.05,x1=5.85,z0=-1.75,z1=1.75,NS=28;
-  pushBox(F,(x0+x1)/2,TABLE_Y-0.11,(z0+z1)/2, x1-x0,0.22,z1-z0,'#6d5c48','table',{mat:'wood',skip:[4],layer:1});
-  for(var s=0;s<NS;s++){                       // 桌面沿 x 细分，保证深度排序正确
-    var xa=lerp(x0,x1,s/NS), xb=lerp(x0,x1,(s+1)/NS);
-    pushQuad(F,v3(xa,TABLE_Y,z0),v3(xb,TABLE_Y,z0),v3(xb,TABLE_Y,z1),v3(xa,TABLE_Y,z1),
-             '#6d5c48','table',{mat:'wood',outline:false,layer:1});
-  }
-  for(var i=0;i<6;i++){                        // 桌面木纹（分段，避免长面片破坏深度排序）
-    var z=z0+0.24+i*0.55;
-    for(var s2=0;s2<NS;s2++){
-      var ga=lerp(x0,x1,s2/NS), gb=lerp(x0,x1,(s2+1)/NS);
-      pushQuad(F,v3(ga,TABLE_Y+0.004,z),v3(gb,TABLE_Y+0.004,z),
-                 v3(gb,TABLE_Y+0.004,z+0.055),v3(ga,TABLE_Y+0.004,z+0.055),'#63523f','table',{mat:'wood',outline:false,layer:2});
-    }
-  }
-}
-
-/* ---------- 长木板（带刻度尺） ---------- */
-function buildBoard(F){
-  var x0=-3.30,x1=5.10,cy=BOARD_Y-0.11,NS=28;
-  // 侧面与底面用整块盒子；顶面沿 x 细分，避免大面片在画家算法里盖住上方的纸带
-  pushBox(F,(x0+x1)/2,cy,0, x1-x0,0.22,1.92,'#ab8253','board',{mat:'wood',skip:[4],layer:4});
-  for(var s=0;s<NS;s++){
-    var xa=lerp(x0,x1,s/NS), xb=lerp(x0,x1,(s+1)/NS);
-    pushQuad(F,v3(xa,BOARD_Y,-0.96),v3(xb,BOARD_Y,-0.96),
-               v3(xb,BOARD_Y,0.96),v3(xa,BOARD_Y,0.96),'#ab8253','board',{mat:'wood',outline:false,layer:4});
-  }
-  // 板面顺纹
-  for(var i=0;i<9;i++){
-    var x=x0+0.20+i*0.92;
-    pushQuad(F,v3(x,BOARD_Y+0.002,-0.86),v3(x+0.06,BOARD_Y+0.002,-0.86),
-               v3(x+0.06,BOARD_Y+0.002,0.86),v3(x,BOARD_Y+0.002,0.86),'#9a7343','board',{mat:'wood',layer:5});
-  }
-  // 贴在板面上的刻度尺（同样沿 x 细分）
-  var y=BOARD_Y+0.006, rx0=x0+0.10, rx1=x1-0.24;
-  for(var s2=0;s2<NS;s2++){
-    var ra=lerp(rx0,rx1,s2/NS), rb=lerp(rx0,rx1,(s2+1)/NS);
-    pushQuad(F,v3(ra,y,-0.92),v3(rb,y,-0.92),v3(rb,y,-0.68),v3(ra,y,-0.68),
-             '#ece6d6','board',{mat:'paper',outline:false,layer:6});
-  }
-  for(var k=0;k<=40;k++){
-    var xx=rx0+k*0.2015, big=(k%5===0);
-    pushQuad(F,v3(xx,y+0.003,-0.92),v3(xx+0.018,y+0.003,-0.92),
-               v3(xx+0.018,y+0.003,big?-0.74:-0.83),v3(xx,y+0.003,big?-0.74:-0.83),'#39404b','board',{mat:'paper',layer:7});
-  }
-  // 末端挡板（立体件，回到常规深度排序）
-  pushBox(F,x1+0.08,BOARD_Y+0.11,0, 0.16,0.30,1.92,'#916c3e','board',{mat:'wood'});
 }
 
 /* ---------- 计时器主体 ---------- */
@@ -812,8 +825,7 @@ function buildTimer(F){
     pushCyl(F,cx+0.66,0.365+vy,0, 0.022,0.34,'y','#dfe5ee','reed',{mat:'metal',seg:12});
     pushCyl(F,cx+0.66,0.185+vy,0, 0.012,0.05,'y','#e8c46a','reed',{mat:'brass',seg:10});
     /* 复写纸片：圆片压在纸带【上方】，有墨的一面朝下 */
-    var flip = S.err==='carbonFlip';
-    pushDisc(F,cx+0.66,TAPE_Y+0.032,0, 0.22, flip?'#e6e1d4':'#2c2536','carbon',0.4,'felt');
+    pushDisc(F,cx+0.66,TAPE_Y+0.032,0, 0.22,'#2c2536','carbon',0.4,'felt');
     pushCyl(F,cx+0.66,TAPE_Y+0.076,0, 0.030,0.05,'y','#8b95a3','carbon',{mat:'metal',seg:10});
     /* 接线柱：红黑两个，接 4~6V 交流 */
     var pz=[-0.46,0.46],pc=['#b8352f','#26262c'];
@@ -846,7 +858,7 @@ function buildTimer(F){
                v3(cx-0.04,0.055,0.31),v3(cx-0.88,0.055,0.31),accent,'body',{mat:'paper'});
     /* 墨粉纸盘：套在定位轴上、压在纸带【上方】，随纸带转动
        放电顺序：放电针 → 墨粉纸盘 → 纸带 → 下极板 */
-    var rot=S.dots.length*0.32, dy0=TAPE_Y+0.030;
+    var rot=S.pulseCount*0.32, dy0=TAPE_Y+0.030;
     pushDisc(F,cx+0.62,dy0,0, 0.32,'#2a2d35','disc',rot,'felt');
     pushCyl(F,cx+0.62,dy0+0.032,0, 0.048,0.04,'y','#a7b0bc','disc',{mat:'metal',seg:14});
     /* 放电针支架 + 放电针（针尖悬在纸盘上方，留出放电间隙） */
@@ -911,66 +923,33 @@ function vibOffset(){
 /* ---------- 纸带 ---------- */
 function strikeX(){ return TIMER_X+(S.machine==='em'?0.66:0.62); }
 function buildTape(F){
-  if(S.step<1) return;                 // 第 2 步才穿纸带
   var y=TAPE_Y, z0=-0.19, z1=0.19, th=0.014;
-  var noHole = S.err==='noHole';
-  var xL=-3.28, xR=carX()-0.50;
-  if(xR<xL+0.6) xR=xL+0.6;
-  var segs=22, up=noHole?0.13:0;
-  // 带面：分段生成，让纸带有轻微垂垂/扭曲的质感
+  var xL=TIMER_X-1.55, xR=TIMER_X+1.55;
+  var segs=22;
   for(var s=0;s<segs;s++){
     var t0=s/segs, t1=(s+1)/segs;
     var xa=lerp(xL,xR,t0), xb=lerp(xL,xR,t1);
-    var ya=y+up*t0*t0+Math.sin(t0*7.1+1.2)*0.006;
-    var yb=y+up*t1*t1+Math.sin(t1*7.1+1.2)*0.006;
-    var za=noHole? Math.sin(t0*4.3)*0.13 : 0;
-    var zb=noHole? Math.sin(t1*4.3)*0.13 : 0;
-    pushQuad(F,v3(xa,ya,z0+za),v3(xb,yb,z0+zb),v3(xb,yb,z1+zb),v3(xa,ya,z1+za),
+    var ya=y+Math.sin(t0*7.1+1.2)*0.004;
+    var yb=y+Math.sin(t1*7.1+1.2)*0.004;
+    pushQuad(F,v3(xa,ya,z0),v3(xb,yb,z0),v3(xb,yb,z1),v3(xa,ya,z1),
              '#eae5d6','tape',{mat:'paper',layer:10});
-    pushQuad(F,v3(xa,ya,z1+za),v3(xb,yb,z1+zb),v3(xb,yb-th,z1+zb),v3(xa,ya-th,z1+za),
+    pushQuad(F,v3(xa,ya,z1),v3(xb,yb,z1),v3(xb,yb-th,z1),v3(xa,ya-th,z1),
              '#cdc7b6','tape',{mat:'paper',layer:10});
-    pushQuad(F,v3(xa,ya-th,z0+za),v3(xb,yb-th,z0+zb),v3(xb,yb,z0+zb),v3(xa,ya,z0+za),
+    pushQuad(F,v3(xa,ya-th,z0),v3(xb,yb-th,z0),v3(xb,yb,z0),v3(xa,ya,z0),
              '#cdc7b6','tape',{mat:'paper',layer:10});
   }
-  // 点迹：圆形墨点，带轻微墨晕
-  // 打下的点固定在纸带上，纸带被小车拖着走，所以点会随小车一起离开振针
-  var sx=strikeX(), em=S.machine==='em', D=(carX()-CAR_X0)/PX_PER_M;
+  var sx=strikeX(), em=S.machine==='em';
   var r=em?0.038:0.023, rgb=em?[34,37,45]:[12,14,19];
   for(var i=0;i<S.dots.length;i++){
-    var px = sx + (D-S.dots[i])*PX_PER_M;
+    var px=sx-(S.tapeTravel-S.dots[i])*0.58;
     if(px<xL+0.03||px>xR-0.03) continue;
-    var tt=(px-xL)/Math.max(xR-xL,1e-6);
-    var dy = y+up*tt*tt+Math.sin(tt*7.1+1.2)*0.006+0.003;
-    var dz = noHole? Math.sin(tt*4.3)*0.13+Math.sin(i*2.7)*0.06 : 0;
     var ring=[];
     for(var k=0;k<10;k++){
       var a=k/10*Math.PI*2;
-      ring.push(v3(px+Math.cos(a)*r, dy, dz+Math.sin(a)*r*0.92));
+      ring.push(v3(px+Math.cos(a)*r, y+0.005, Math.sin(a)*r*0.92));
     }
     F.push({pts:ring,rgb:rgb,n:v3(0,1,0),part:'tape',mat:'paper',alpha:1,outline:false,layer:11});
   }
-}
-
-/* ---------- 小车 ---------- */
-function buildCar(F){
-  var x=carX(), by=BOARD_Y+0.20;
-  // 车身
-  pushBox(F,x,by,0, 1.00,0.20,0.80,'#b8452f','car',{mat:'plastic'});
-  pushBox(F,x,by+0.125,0, 0.94,0.05,0.74,'#8f3323','car',{mat:'plastic'});
-  // 车顶配重块
-  pushBox(F,x+0.02,by+0.215,0, 0.52,0.13,0.50,'#6d757f','car',{mat:'metal'});
-  // 车轮 + 轮轴
-  var wx=[x-0.32,x+0.32],wz=[-0.44,0.44];
-  for(var i=0;i<2;i++){
-    pushCyl(F,wx[i],BOARD_Y+0.10,0, 0.028,0.86,'z','#8b94a1','car',{mat:'metal',seg:10});
-    for(var j=0;j<2;j++){
-      pushCyl(F,wx[i],BOARD_Y+0.10,wz[j], 0.10,0.07,'z','#26292f','car',{mat:'rubber',seg:16});
-      pushCyl(F,wx[i],BOARD_Y+0.10,wz[j]+(j?0.036:-0.036), 0.045,0.012,'z','#b9c1cc','car',{mat:'metal',seg:12});
-    }
-  }
-  // 纸带夹：把纸带别在车尾
-  pushBox(F,x-0.52,by-0.02,0, 0.09,0.13,0.26,'#dfe4ec','car',{mat:'metal'});
-  pushCyl(F,x-0.52,by+0.075,0, 0.022,0.09,'y','#9aa4b2','car',{mat:'metal',seg:10});
 }
 
 /* ---------- 渲染 ---------- */
@@ -978,6 +957,14 @@ var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 var W=0,H=0,DPR=1;
 function resize(){
   var st=document.getElementById('stage');
+  var lessonLayout=document.getElementById('experimentLayout');
+  if(window.innerWidth>=960||window.innerWidth>window.innerHeight){
+    var resolved=TimerPrincipleLesson.layoutForViewport(window.innerWidth,window.innerHeight);
+    lessonLayout.style.gridTemplateColumns=resolved.columns[0]+'px minmax(0,1fr) '+resolved.columns[2]+'px';
+    lessonLayout.dataset.resolvedLayout=resolved.kind;
+  }else{
+    lessonLayout.style.removeProperty('grid-template-columns');delete lessonLayout.dataset.resolvedLayout;
+  }
   DPR=Math.min(window.devicePixelRatio||1,2);
   W=st.clientWidth; H=st.clientHeight;
   cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
@@ -1002,8 +989,8 @@ function render(){
     if(!ok||p.length<3) continue;
     list.push({p:p,z:zs/p.length,f:f,c:v3(cxx/L,cyy/L,czz/L)});
   }
-  /* 桌面—木板—刻度尺—纸带—点迹这些几乎共面的"贴花"用固定图层号强制先后，
-     其余立体物件（计时器、小车）统一为 20，仍按深度排序 */
+  /* 底座—纸带—点迹这些几乎共面的贴花用固定图层号强制先后，
+     其余计时器立体物件统一为 20，仍按深度排序。 */
   list.sort(function(a,b){
     var la=a.f.layer==null?20:a.f.layer, lb=b.f.layer==null?20:b.f.layer;
     if(la!==lb) return la-lb;
@@ -1018,11 +1005,12 @@ function render(){
     for(var n=1;n<pp.length;n++) ctx.lineTo(pp[n].x,pp[n].y);
     ctx.closePath();
     var isHi = (S.picked&&f.part===S.picked)||(S.hover&&f.part===S.hover);
-    ctx.globalAlpha=f.alpha;
+    var isDim=Boolean(S.focusParts.size&&f.part&&!S.focusParts.has(f.part)&&f.part!=='body'&&f.part!=='base');
+    ctx.globalAlpha=f.alpha*(isDim?0.28:1);
     if(f.glow){
       ctx.shadowColor='rgba(255,230,150,.95)'; ctx.shadowBlur=26*f.glow;
     }
-    ctx.fillStyle=litColor(f,it.c,isHi);
+    ctx.fillStyle=litColor(f,it.c,isHi,isDim);
     ctx.fill();
     ctx.shadowBlur=0;
     if(f.outline||isHi){
@@ -1072,6 +1060,7 @@ function drawLabels(){
   ctx.textBaseline='middle';
   for(var i=0;i<L.length;i++){
     var it=L[i],q=project(it.p,W,H);
+    if(S.focusParts.size&&!S.focusParts.has(it.part)&&S.picked!==it.part) continue;
     if(q.z<=0.1) continue;
     var tx=q.x+it.dx, ty=q.y+it.dy;
     var hi=(S.picked===it.part||S.hover===it.part);
@@ -1166,7 +1155,7 @@ cv.addEventListener('pointermove',function(e){
   if(drag.on){
     var dx=p.x-drag.x, dy=p.y-drag.y;
     drag.moved+=Math.abs(dx)+Math.abs(dy);
-    cam.yaw   -= dx*0.0072;
+    cam.yaw   = clamp(cam.yaw-dx*0.0072,YAW_MIN,YAW_MAX);
     cam.pitch  = clamp(cam.pitch + dy*0.0058, PITCH_MIN, PITCH_MAX);
     drag.x=p.x;drag.y=p.y;
   }else{
@@ -1182,7 +1171,7 @@ function endDrag(e){
     var p=localXY(e);
     var part=pickAt(p.x,p.y);
     S.picked=(part===S.picked)?null:part;
-    if(part&&PARTS[part]) toast('【'+PARTS[part].n+'】'+PARTS[part].d);
+    if(part&&PARTS[part]){updateSelectedPart(part);toast('【'+PARTS[part].n+'】'+PARTS[part].d);}
   }
 }
 cv.addEventListener('pointerup',endDrag);
@@ -1212,8 +1201,8 @@ cv.addEventListener('touchend',function(){pinch=null;},{passive:true});
 // 键盘可达性
 cv.addEventListener('keydown',function(e){
   var k=e.key;
-  if(k==='ArrowLeft'){cam.yaw+=0.09;e.preventDefault();}
-  else if(k==='ArrowRight'){cam.yaw-=0.09;e.preventDefault();}
+  if(k==='ArrowLeft'){cam.yaw=clamp(cam.yaw+0.09,YAW_MIN,YAW_MAX);e.preventDefault();}
+  else if(k==='ArrowRight'){cam.yaw=clamp(cam.yaw-0.09,YAW_MIN,YAW_MAX);e.preventDefault();}
   else if(k==='ArrowUp'){cam.pitch=clamp(cam.pitch+0.07,PITCH_MIN,PITCH_MAX);e.preventDefault();}
   else if(k==='ArrowDown'){cam.pitch=clamp(cam.pitch-0.07,PITCH_MIN,PITCH_MAX);e.preventDefault();}
   else if(k==='+'||k==='='){cam.dist=clamp(cam.dist*0.9,6.5,30);}
@@ -1232,170 +1221,39 @@ function showTip(part,x,y){
 function hideTip(){tipEl.style.display='none';}
 
 /* ---------- toast ---------- */
-var toastEl=document.getElementById('toast'),toastText=document.getElementById('toastText'),toastMath=document.getElementById('toastMath'),toastMathVisual=document.getElementById('toastMathVisual'),toastTimer=null;
+var toastEl=document.getElementById('toast'),toastText=document.getElementById('toastText'),toastTimer=null;
 function toast(msg,ms){
-  toastText.hidden=false;toastText.textContent=msg;toastMath.hidden=true;toastMath.setAttribute('aria-hidden','true');toastEl.style.opacity='1';
+  toastText.textContent=msg;toastEl.style.opacity='1';
   if(toastTimer)clearTimeout(toastTimer);
   toastTimer=setTimeout(function(){toastEl.style.opacity='0';},ms||3600);
 }
 
 /* ---------- 物理与打点 ---------- */
 var lastMs=performance.now();
+var clockState=TimerPrincipleLesson.createClockState();
+var teachingState=TimerPrincipleTeaching.createTeachingState('guided');
+var autoElapsed=0;
 function tick(now){
   var dt=Math.min((now-lastMs)/1000,0.05);
   lastMs=now;
-  if(S.playing){
-    var sdt=dt*S.speed;
-    var t0=S.t;
-    if(S.running){
-      S.t += sdt;
-    }
-    var t1=S.t;
-    if(S.powered){
-      var p0=S.vibPhase;
-      S.vibPhase = TimerPrincipleCore.advancePhase(p0,sdt,TICK_FREQUENCY);
-      var phaseStart=p0/TICK_FREQUENCY;
-      var phaseEnd=S.vibPhase/TICK_FREQUENCY;
-      TimerPrincipleCore.dotTimesBetween(phaseStart,phaseEnd,TICK_FREQUENCY).forEach(function(dotTime){
-        var frac=sdt>0?(dotTime-phaseStart)/sdt:0;
-        onDot(t0+(t1-t0)*frac);
-      });
-      if(S.sparkFlash>0) S.sparkFlash=Math.max(0,S.sparkFlash-sdt*14);
-    }
-    if(S.running && carX()>CAR_STOP){ S.running=false; onCarStop(); }
-    if(S.errT>0){ S.errT=Math.max(0,S.errT-dt); if(S.errT===0) S.err=null; }
+  if(S.playing&&S.powered){
+    var advanced=TimerPrincipleLesson.advanceClock(clockState,dt,S.speed,true);
+    var physicalElapsed=advanced.physicalTime-clockState.physicalTime;
+    clockState=advanced;S.vibPhase=advanced.phase;S.tapeTravel+=physicalElapsed;
+    advanced.dotTimes.forEach(onDot);
+    if(S.sparkFlash>0) S.sparkFlash=Math.max(0,S.sparkFlash-dt*14);
+  }
+  if(teachingState.mode==='auto'&&teachingState.running&&S.playing){
+    autoElapsed+=dt;
+    if(autoElapsed>=1.1){autoElapsed=0;dispatchTeaching({type:'AUTO_TICK'});}
   }
   render();
-  if(S.tapeDirty){ S.tapeDirty=false; updateHUD(); drawTape(); }
   requestAnimationFrame(tick);
 }
-// td = 打点瞬间小车已运动的时刻
-function onDot(td){
+function onDot(dotTime){
   if(S.machine==='spark') S.sparkFlash=1;
-  if(S.err==='carbonFlip'||S.err==='noHole') return;   // 打不出点 / 点迹废掉
-  // 记录点迹位置（小车位移，单位 m）
-  var x=S.v0*td + 0.5*S.acc*td*td;
-  // 纸带不动时（未放车 / 车已停），振针反复打在同一处，
-  // 实际只是一个被反复加深的点，不产生新的点迹。
-  if(!S.running){
-    if(S.dots.length===0){ S.dots.push(x); S.tapeDirty=true; }
-    return;
-  }
-  var n=S.dots.length;
-  if(n>0 && Math.abs(x-S.dots[n-1])<1e-4) return;
-  S.dots.push(x);
-  if(S.dots.length>400) S.dots.shift();
-  S.tapeDirty=true;
-}
-function onCarStop(){
-  S.tapeDone=true;
-  toast('小车到达末端。按"先断电后取带"的顺序结束：现在应该先切断电源。');
-  setPhase('小车已停止');
-  drawTape();
-}
-/* ---------- 纸带展开视图 + 数据分析 ---------- */
-var tcv=document.getElementById('tapeCv'),tctx=tcv.getContext('2d');
-function drawTape(){
-  var cssW=tcv.clientWidth||420, cssH=96, dpr=Math.min(window.devicePixelRatio||1,2);
-  if(tcv.width!==Math.round(cssW*dpr)){
-    tcv.width=Math.round(cssW*dpr); tcv.height=Math.round(cssH*dpr);
-  }
-  tctx.setTransform(dpr,0,0,dpr,0,0);
-  tctx.clearRect(0,0,cssW,cssH);
-  // 纸带底
-  tctx.fillStyle='#f6f3ea';tctx.fillRect(0,26,cssW,44);
-  tctx.strokeStyle='#ddd8c8';tctx.lineWidth=1;tctx.strokeRect(.5,26.5,cssW-1,43);
-
-  var step=S.everyFive?5:1;
-  var pts=[];
-  for(var i=0;i<S.dots.length;i+=step) pts.push(S.dots[i]);
-  if(pts.length<2){
-    var msg=(S.err==='carbonFlip')
-      ? '复写纸装反了：纸带上打不出任何点迹'
-      : '通电并释放小车后，这里会显示打出的纸带';
-    tctx.fillStyle=(S.err==='carbonFlip')?'#b93c2d':'#9aa0aa';
-    tctx.font=((S.err==='carbonFlip')?'700 ':'')+'11px '+TEMPLATE_CANVAS_FONT;
-    tctx.textAlign='center';tctx.fillText(msg,cssW/2,52);
-    updateTable(null);return;
-  }
-  // 只显示最后一段能放下的点
-  var total=pts[pts.length-1]-pts[0];
-  var scale=(cssW-30)/Math.max(total,1e-6);
-  var maxShow=pts.length;
-  // 若太密，从后往前截取
-  while(maxShow>2 && (pts[pts.length-1]-pts[pts.length-maxShow])*scale>cssW-30) maxShow--;
-  var view=pts.slice(pts.length-Math.max(maxShow,2));
-  var span=view[view.length-1]-view[0];
-  var sc=span>1e-6 ? (cssW-34)/span : 0;
-  var x0=17;
-  var xs=view.map(function(p){return x0+(p-view[0])*sc;});
-  // 先放车后通电：纸带开头有一段空白（起始点丢失）
-  if(S.err==='lateOn'&&view[0]>1e-6){
-    var bw=Math.min(cssW*0.34,x0+ (view[0])*sc);
-    tctx.fillStyle='rgba(214,74,58,.13)';tctx.fillRect(0,26,bw,44);
-    tctx.setLineDash([4,3]);tctx.strokeStyle='#d64a3a';tctx.lineWidth=1.2;
-    tctx.beginPath();tctx.moveTo(bw,26);tctx.lineTo(bw,70);tctx.stroke();
-    tctx.setLineDash([]);
-    tctx.fillStyle='#b93c2d';tctx.font='700 11px '+TEMPLATE_CANVAS_FONT;
-    tctx.textAlign='center';tctx.fillText('空白：起始点丢失',bw/2,48);
-  }
-  // 纸带不动时反复打点形成的黑团（先取带后断电）
-  if(S.err==='lateOff'){
-    tctx.fillStyle='rgba(20,22,28,.85)';
-    tctx.beginPath();tctx.arc(xs[xs.length-1],48,7.5,0,6.283);tctx.fill();
-    tctx.fillStyle='#b93c2d';tctx.font='700 11px '+TEMPLATE_CANVAS_FONT;
-    tctx.textAlign='right';tctx.fillText('原地重复打点 →',xs[xs.length-1]-11,48);
-  }
-  // 点迹
-  var jit=(S.err==='noHole')?1:0;      // 没穿限位孔：点迹歪斜不成直线
-  for(var k=0;k<xs.length;k++){
-    var dy=jit? (Math.sin(k*2.7)*6+Math.sin(k*1.1)*3) : 0;
-    tctx.beginPath();
-    tctx.arc(xs[k],48+dy,(S.machine==='em')?3.2:2.1,0,6.283);
-    tctx.fillStyle=(S.machine==='em')?'#2a2d34':'#0d0f13';tctx.fill();
-    if(k>=xs.length-3&&!jit){
-      tctx.beginPath();tctx.arc(xs[k],48,6.5,0,6.283);
-      tctx.strokeStyle='#e66d26';tctx.lineWidth=1.4;tctx.stroke();
-    }
-  }
-  // 最后两段间隔标注 s1 s2
-  if(xs.length>=3){
-    var i1=xs.length-3,i2=xs.length-2,i3=xs.length-1;
-    dimLine(tctx,xs[i1],xs[i2],70,'s₁','#2557d6');
-    dimLine(tctx,xs[i2],xs[i3],70,'s₂','#e66d26');
-    tctx.fillStyle='#5c6678';tctx.font='11px '+TEMPLATE_CANVAS_FONT;
-    tctx.textAlign='left';tctx.fillText('运动方向 →',4,16);
-    tctx.textAlign='right';tctx.fillText('计数点间隔 T′='+(step/TICK_FREQUENCY).toFixed(3)+' s',cssW-4,16);
-  }
-  var s1=view.length>=3?(view[view.length-2]-view[view.length-3]):null;
-  var s2=view.length>=3?(view[view.length-1]-view[view.length-2]):null;
-  updateTable({s1:s1,s2:s2,T:step/TICK_FREQUENCY});
-}
-function dimLine(c,xa,xb,y,label,col){
-  c.strokeStyle=col;c.lineWidth=1.2;
-  c.beginPath();c.moveTo(xa,y);c.lineTo(xb,y);c.stroke();
-  [xa,xb].forEach(function(x){
-    c.beginPath();c.moveTo(x,y-4);c.lineTo(x,y+4);c.stroke();
-    c.beginPath();c.moveTo(x,52);c.lineTo(x,y-4);
-    c.strokeStyle='rgba(92,102,120,.35)';c.lineWidth=.8;c.stroke();
-    c.strokeStyle=col;c.lineWidth=1.2;
-  });
-  c.fillStyle=col;c.font='700 11px '+TEMPLATE_CANVAS_FONT;c.textAlign='center';
-  c.fillText(label,(xa+xb)/2,y+15);
-}
-function updateTable(d){
-  var g=function(id){return document.getElementById(id);};
-  var step=S.everyFive?5:1;
-  g('tT').textContent=(step/TICK_FREQUENCY).toFixed(3)+' s';
-  if(!d||d.s1==null){
-    g('tS12').textContent='—；—';g('tDs').textContent='—';
-    g('tV').textContent='—';g('tA').textContent='—';return;
-  }
-  var T=d.T, s1=d.s1, s2=d.s2, ds=s2-s1;
-  g('tS12').textContent=(s1*100).toFixed(2)+'；'+(s2*100).toFixed(2)+' cm';
-  g('tDs').textContent=(ds*100).toFixed(2)+' cm';
-  g('tV').textContent=((s1+s2)/(2*T)).toFixed(3)+' m/s';
-  g('tA').textContent=(ds/(T*T)).toFixed(3)+' m/s²';
+  S.pulseCount+=1;S.dots.push(dotTime);
+  if(S.dots.length>80) S.dots.shift();
 }
 
 /* ---------- 面板更新 ---------- */
@@ -1405,33 +1263,17 @@ function updateHUD(){
   g('hudMachine').textContent=em?'电磁打点计时器':'电火花计时器';
   g('hudPower').textContent=em?'4~6 V 交流':'220 V 交流';
   g('hudT').textContent=TimerPrincipleCore.intervalForFrequency(TICK_FREQUENCY).toFixed(3)+' s';
-  g('hudDots').textContent=S.dots.length;
-  var x=S.v0*S.t+0.5*S.acc*S.t*S.t;
-  g('dX').textContent=x.toFixed(2)+' m';
-  g('dV').textContent=(S.v0+S.acc*S.t).toFixed(2)+' m/s';
-  g('dTime').textContent=S.t.toFixed(2)+' s';
-  g('dDots').textContent=S.dots.length;
-}
-function toastFormula(interval){
-  toastText.hidden=true;toastMath.hidden=false;toastMath.setAttribute('aria-hidden','false');
-  toastMath.setAttribute('aria-label','电源频率改变，打点间隔 T 等于一除以 f，当前为 '+interval+' 秒');
-  toastMathVisual.innerHTML='<span aria-hidden="true">电源频率改变：T=<span class="frac"><span class="num">1</span><span class="den">f</span></span> = <b>'+interval+' s</b></span>';
-  toastEl.style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(function(){toastEl.style.opacity='0';},2400);
-}
-function setPhase(t){ g('dPhase').textContent=t; }
-function setTrend(t,cls){
-  var el=g('dTrend');el.textContent=t;
-  el.className='trend-box'+(cls?' '+cls:'');
 }
 function updateMachineCard(){
   var em=S.machine==='em';
+  var machine=TimerPrincipleCore.MACHINES[S.machine];
   g('sPower').textContent=em?'4~6 V 交流':'220 V 交流';
   g('sFreq').textContent=TICK_FREQUENCY+' Hz';
   g('sT').textContent=TimerPrincipleCore.intervalForFrequency(TICK_FREQUENCY).toFixed(3)+' s';
-  g('sFric').textContent=em?'较大（振针压紧）':'很小（无接触）';
-  g('machineHint').innerHTML = em
-    ? '振针周期性下压，把复写纸的痕迹打在纸带上。<b>纸带受到的摩擦阻力较大</b>，测出的加速度会略偏小。'
-    : '脉冲高压在放电针与墨粉纸盘之间放电，火花直接在纸带上烧出墨点。<b>纸带几乎不受额外阻力</b>，点迹清晰、误差更小，但要注意 220 V 用电安全。';
+  g('sMarking').textContent=machine.marking;
+  g('machineHint').textContent=em
+    ? '交流电使电磁状态周期变化，振片带动振针通过复写纸留下点迹。'
+    : '交流电经内部电路形成脉冲高压，放电针通过墨粉纸盘留下点迹。';
   document.querySelectorAll('.machine-switch button').forEach(function(b){
     var on=b.dataset.m===S.machine;
     b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');
@@ -1439,136 +1281,62 @@ function updateMachineCard(){
   updateHUD();
 }
 /* ---------- 步骤流程 ---------- */
-var STEP_INFO=[
-  {phase:'第 1 步 · 固定计时器',
-   trend:'计时器要竖直固定在长木板末端，让纸带能水平通过限位孔。',cls:''},
-  {phase:'第 2 步 · 穿纸带',
-   trend:'纸带穿过限位孔，压在复写纸下方。复写纸有墨的一面必须朝下。',cls:''},
-  {phase:'第 3 步 · 先接通电源',
-   trend:'听到连续均匀的打点声、点迹稳定后，才可以放小车。这一步先不要动小车。',cls:'is-ok'},
-  {phase:'第 4 步 · 后释放小车',
-   trend:'小车拖着纸带做匀加速运动，点迹间隔越来越大。',cls:'is-ok'},
-  {phase:'第 5 步 · 先断电再取带',
-   trend:'小车停下立刻断电，再取纸带。这样既不空打浪费纸带，也不会漏掉点迹。',cls:'is-ok'}
-];
-function applyStep(){
-  document.querySelectorAll('.step').forEach(function(b){
-    var n=+b.dataset.step;
-    b.classList.toggle('active',n===S.step);
-    b.classList.toggle('done',n<S.step);
-  });
-  var info=STEP_INFO[S.step];
-  setPhase(info.phase);setTrend(info.trend,info.cls);
-  // 状态推导
-  if(S.step<2){ S.powered=false; S.running=false; }
-  if(S.step===2){ S.powered=true; S.running=false; }
-  if(S.step===3){ S.powered=true; S.running=true; }
-  if(S.step===4){ S.powered=false; S.running=false; }
-  g('prevStep').disabled=(S.step===0);
-  g('nextStep').textContent=(S.step===4)?'完成':'下一步';
-  g('nextStep').disabled=(S.step===4);
-  updateHUD();drawTape();
+var PRINCIPLE_STEPS=TimerPrincipleTeaching.PRINCIPLE_STEPS;
+var CAMERA_PRESETS=TimerPrincipleLesson.CAMERA_PRESETS;
+function setPrincipleFocus(partIds){S.focusParts=new Set(partIds);S.picked=null;}
+function applyCameraPreset(id){
+  var next=TimerPrincipleLesson.viewForPreset({yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist,cut:S.cut,machine:S.machine},id);
+  if(!next)return false;
+  cam.yaw=next.yaw;cam.pitch=next.pitch;cam.dist=next.dist;S.cut=next.cut;S.machine=next.machine;
+  document.querySelectorAll('[data-view]').forEach(function(b){b.classList.toggle('active',b.dataset.view===id);});
+  g('cutToggle').classList.toggle('on',S.cut);updateMachineCard();return true;
 }
-g('nextStep').addEventListener('click',function(){
-  if(S.step>=4) return;
-  S.step++;
-  if(S.step===3){ S.t=0; }   // 从静止开始计时
-  applyStep();
-  if(S.step===2) toast('已接通电源。注意：此时小车还没放，计时器在原地打点——这正是"先通电"的含义。');
-  if(S.step===3) toast('释放小车。纸带被拖动，点迹间隔逐渐变大，说明小车在加速。');
-  if(S.step===4) toast('已切断电源。现在可以取下纸带做数据处理了。');
-});
-g('prevStep').addEventListener('click',function(){
-  if(S.step<=0) return;
-  S.step--;
-  if(S.step<3){ S.t=0; }
-  applyStep();
-});
-document.querySelectorAll('.step').forEach(function(b){
-  b.addEventListener('click',function(){
-    S.step=+b.dataset.step;
-    if(S.step<3) S.t=0;
-    applyStep();
-  });
-});
-
-/* ---------- 错误操作演示 ---------- */
-var ERRS={
-  lateOn:{
-    t:'先放车后通电',
-    msg:'小车已经跑出一段距离才通电——开头这段运动没有点迹，起始点丢失，无法算出真实初速度。',
-    run:function(){
-      // 小车 0 → 0.42 s 之间没有点迹，之后才开始打点
-      synth(0.42,1.30); S.powered=true;S.running=true;
-    }
-  },
-  lateOff:{
-    t:'先取带后断电',
-    msg:'小车停了却没断电，振针继续在同一位置反复打点，纸带末端被打成一团黑，还白白磨损设备。',
-    run:function(){
-      synth(0,1.30); S.powered=true;S.running=false;   // 车停了但仍在通电
-    }
-  },
-  noHole:{
-    t:'纸带没穿限位孔',
-    msg:'纸带没有被限位孔约束，会翘起、跑偏甚至卡住，点迹歪斜不成直线，间隔也不可靠。',
-    run:function(){ synth(0,1.10); S.powered=true;S.running=true; }
-  },
-  carbonFlip:{
-    t:'复写纸装反',
-    msg:'复写纸有墨的一面朝上了，振针压下去也印不到纸带上——纸带上几乎没有点迹。',
-    run:function(){ S.step=3;S.t=1.0;S.dots=[];S.powered=true;S.running=true;applyStep(); }
-  }
-};
-// 按理论公式直接生成 [ta, tb] 区间内的点迹，避免依赖动画时序
-function synth(ta,tb){
-  S.step=3;applyStep();
-  S.dots=[];S.t=tb;
-  var T=TimerPrincipleCore.intervalForFrequency(TICK_FREQUENCY);
-  for(var t=ta;t<=tb+1e-9;t+=T){
-    S.dots.push(S.v0*t+0.5*S.acc*t*t);
-  }
-  updateHUD();
-};
-document.querySelectorAll('[data-err]').forEach(function(b){
-  b.addEventListener('click',function(){
-    var key=b.dataset.err,E=ERRS[key];
-    S.err=key;S.errT=6.5;
-    S.dots=[];S.t=0;
-    E.run();
-    toast('❌ 错误操作：'+E.t+'。'+E.msg,6500);
-    setTrend('❌ '+E.t+'：'+E.msg,'is-warn');
-    g('errHint').textContent=E.msg;
-    setTimeout(function(){ drawTape(); },80);
-  });
-});
+function updateSelectedPart(part){
+  if(!part||!PARTS[part])return;
+  g('selectedPartName').textContent=PARTS[part].n;g('selectedPartRole').textContent=PARTS[part].d;
+}
+function applyTeachingStep(){
+  var step=PRINCIPLE_STEPS[teachingState.step-1];
+  if(step.machine!=='both')S.machine=step.machine;
+  applyCameraPreset(step.camera);setPrincipleFocus(step.focusParts);
+  if(step.id>=3){S.powered=true;}else{S.powered=false;}
+  g('powerToggle').setAttribute('aria-pressed',S.powered?'true':'false');
+  g('powerToggle').textContent=S.powered?'切断电源':'接通电源，观察周期打点';
+  g('stepKicker').textContent='STEP '+step.id+' / 5';g('focusTitle').textContent=step.task;g('focusObserve').textContent=step.observe;
+  g('focusParts').innerHTML=step.focusParts.map(function(id){return '<span>'+PARTS[id].n+'</span>';}).join('');
+  updateSelectedPart(step.focusParts[0]);
+}
+function renderTeaching(){
+  document.querySelectorAll('[data-mode]').forEach(function(b){var on=b.dataset.mode===teachingState.mode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');});
+  document.querySelectorAll('[data-principle-step]').forEach(function(b){var n=+b.dataset.principleStep;b.classList.toggle('active',n===teachingState.step);b.classList.toggle('done',teachingState.completed.indexOf(n)>=0);});
+  g('prevPrinciple').disabled=teachingState.step===1;g('confirmObservation').disabled=teachingState.mode==='explore'||teachingState.observationConfirmed;
+  g('confirmObservation').textContent=teachingState.observationConfirmed?'已确认':'我已观察';
+  g('nextPrinciple').disabled=teachingState.mode!=='explore'&&!teachingState.observationConfirmed;
+  g('nextPrinciple').textContent=teachingState.step===5?'回到第一步':'进入下一步';
+  g('observationState').textContent=teachingState.mode==='auto'?(teachingState.running?'自动演示进行中，可随时暂停接管。':'自动演示已暂停，可继续操作。'):(teachingState.mode==='explore'?'自由探索：机型、剖面和四个视角均可直接切换。':(teachingState.observationConfirmed?'观察已确认，可以进入下一步。':'观察后点击“我已观察”，再进入下一步。'));
+}
+function dispatchTeaching(action){
+  var previous=teachingState.step;teachingState=TimerPrincipleTeaching.principleReducer(teachingState,action);
+  if(teachingState.step!==previous||action.type==='SET_MODE'||action.type==='RESET')applyTeachingStep();
+  renderTeaching();
+}
 
 /* ---------- 控件绑定 ---------- */
 document.querySelectorAll('.machine-switch button').forEach(function(b){
   b.addEventListener('click',function(){
     S.machine=b.dataset.m;S.picked=null;
-    updateMachineCard();drawTape();
-    toast(S.machine==='em'
-      ? '电磁打点计时器：4~6 V 交流电源，靠振针和复写纸打点，纸带阻力较大。'
-      : '电火花计时器：220 V 交流电源，靠火花放电在墨粉纸盘上留点，阻力小、点迹清晰、误差更小。');
+    if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:false});
+    if(teachingState.mode==='explore')setPrincipleFocus([]);
+    updateMachineCard();updateSelectedPart(S.machine==='em'?'coil':'spark');
+    toast(S.machine==='em'?'电磁式：线圈驱动振针，通过复写纸形成点迹。':'电火花式：脉冲高压通过墨粉纸盘放电形成点迹。');
   });
-});
-g('acc').addEventListener('input',function(){
-  S.acc=+this.value;g('accVal').textContent=S.acc.toFixed(2)+' m/s²';
-  S.t=0;S.dots=[];drawTape();updateHUD();
-});
-g('v0').addEventListener('input',function(){
-  S.v0=+this.value;g('v0Val').textContent=S.v0.toFixed(2)+' m/s';
-  S.t=0;S.dots=[];drawTape();updateHUD();
-});
-g('everyFive').addEventListener('change',function(){
-  S.everyFive=this.checked;drawTape();
 });
 g('playPause').addEventListener('click',function(){
   S.playing=!S.playing;
   this.classList.toggle('is-playing',S.playing);
   this.setAttribute('aria-pressed',S.playing?'true':'false');
   g('playPauseLabel').textContent=S.playing?'暂停':'播放';
+  if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:S.playing});
 });
 document.querySelectorAll('.speed-control button').forEach(function(b){
   b.addEventListener('click',function(){
@@ -1576,48 +1344,50 @@ document.querySelectorAll('.speed-control button').forEach(function(b){
     document.querySelectorAll('.speed-control button').forEach(function(x){
       var on=x===b;x.classList.toggle('active',on);x.setAttribute('aria-pressed',on?'true':'false');
     });
-    if(S.speed<=0.3) toast('慢放 '+S.speed+'×：可以看清振针每次下压（或每次火花放电）就打出一个点。');
+    toast(S.speed+'× 只改变观看快慢；物理打点间隔始终是 0.02 s。');
   });
 });
 g('cutToggle').addEventListener('click',function(){
   S.cut=!S.cut;this.classList.toggle('on',S.cut);
-  toast(S.cut
-    ? (S.machine==='em'
-        ? '剖面透视：可以看到线圈、永久磁铁和振片。交流电使线圈磁性周期变化，振片被反复吸放。'
-        : '剖面透视：可以看到顶部脉冲高压模块与中心轴上的墨粉纸盘。')
-    : '已关闭剖面透视。');
+  if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:false});
+  toast(S.cut?'剖面已开启：外壳被弱化，内部结构保持原位。':'剖面已关闭。');
 });
 g('labelToggle').addEventListener('click',function(){
   S.labels=!S.labels;this.classList.toggle('on',S.labels);
 });
+document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:false});applyCameraPreset(b.dataset.view);});});
+document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener('click',function(){
+  if(b.dataset.mode==='auto'){S.playing=true;g('playPause').classList.add('is-playing');g('playPause').setAttribute('aria-pressed','true');g('playPauseLabel').textContent='暂停';}
+  dispatchTeaching({type:'SET_MODE',mode:b.dataset.mode});if(b.dataset.mode==='explore')setPrincipleFocus([]);
+});});
+document.querySelectorAll('[data-principle-step]').forEach(function(b){b.addEventListener('click',function(){dispatchTeaching({type:'SELECT_STEP',step:+b.dataset.principleStep});});});
+g('prevPrinciple').addEventListener('click',function(){dispatchTeaching({type:'PREVIOUS'});});
+g('confirmObservation').addEventListener('click',function(){dispatchTeaching({type:'CONFIRM_OBSERVATION'});});
+g('nextPrinciple').addEventListener('click',function(){
+  if(teachingState.step===5&&teachingState.observationConfirmed){dispatchTeaching({type:'RESET'});return;}
+  if(teachingState.mode==='explore'){var next=teachingState.step===5?1:teachingState.step+1;dispatchTeaching({type:'SELECT_STEP',step:next});return;}
+  dispatchTeaching({type:'NEXT'});
+});
+g('powerToggle').addEventListener('click',function(){
+  S.powered=!S.powered;this.setAttribute('aria-pressed',S.powered?'true':'false');this.textContent=S.powered?'切断电源':'接通电源，观察周期打点';
+  toast(S.powered?'已接通：观察周期运动与点迹同步出现。':'已切断：结构保持可观察。');
+});
 g('reset').addEventListener('click',doReset);
 function doReset(){
-  S.step=0;S.t=0;S.dots=[];S.powered=false;S.running=false;
-  S.err=null;S.errT=0;S.picked=null;S.tapeDone=false;S.vibPhase=0;S.sparkFlash=0;
+  S.machine='em';S.playing=true;S.speed=1;S.cut=false;S.labels=true;S.powered=false;
+  S.dots=[];S.picked=null;S.hover=null;S.vibPhase=0;S.sparkFlash=0;S.pulseCount=0;S.tapeTravel=0;S.focusParts=new Set(['tape','hole']);
+  clockState=TimerPrincipleLesson.createClockState();teachingState=TimerPrincipleTeaching.createTeachingState('guided');autoElapsed=0;
   cam.yaw=camDefault.yaw;cam.pitch=camDefault.pitch;cam.dist=camDefault.dist;
-  g('errHint').textContent='点一个按钮，模型会演示后果并说明为什么。';
-  applyStep();drawTape();
-  toast('已重置。按"固定 → 穿带 → 通电 → 放车 → 断电取带"的顺序走一遍。');
-}
-// 移动端 tab
-g('tabControls').addEventListener('click',function(){switchTab('controls');});
-g('tabData').addEventListener('click',function(){switchTab('data');});
-function switchTab(which){
-  var m=g('experimentLayout');
-  m.classList.toggle('show-controls',which==='controls');
-  m.classList.toggle('show-data',which==='data');
-  g('tabControls').setAttribute('aria-selected',which==='controls'?'true':'false');
-  g('tabData').setAttribute('aria-selected',which==='data'?'true':'false');
-  if(which==='data') drawTape();
+  g('playPause').classList.add('is-playing');g('playPause').setAttribute('aria-pressed','true');g('playPauseLabel').textContent='暂停';
+  document.querySelectorAll('.speed-control button').forEach(function(b){var on=+b.dataset.speed===1;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');});
+  applyTeachingStep();renderTeaching();toast('已回到第 1 步：先找到纸带通道和打点位置。');
 }
 
 /* ---------- 启动 ---------- */
 resize();
-updateMachineCard();
-applyStep();
-drawTape();
+applyTeachingStep();renderTeaching();updateMachineCard();
 requestAnimationFrame(function(t){lastMs=t;tick(t);});
-toast('拖拽画布可 360° 观察模型，点击部件查看说明。左侧按 5 个步骤走一遍完整实验。',5200);
+toast('从左侧五步原理开始；拖动可有限旋转，点击部件可查看作用。',5200);
 })();
 </script>
 </body>
