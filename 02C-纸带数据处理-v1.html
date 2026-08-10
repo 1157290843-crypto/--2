@@ -478,6 +478,30 @@
     </div>
   </aside>
 </main>
+<script data-successive-difference-core>
+(function () {
+  const CONFIG = Object.freeze({ frequency: 50, intervalCount: 5, interval: 0.1, initialVelocity: 0.2, acceleration: 2, pointCount: 7 });
+  const PAIRINGS = Object.freeze([Object.freeze([0, 3]), Object.freeze([1, 4]), Object.freeze([2, 5])]);
+  function generatePositions(config) {
+    return Array.from({ length: config.pointCount }, (_, index) => {
+      const time = index * config.interval;
+      return config.initialVelocity * time + 0.5 * config.acceleration * time * time;
+    });
+  }
+  function segmentDisplacements(positions) {
+    return positions.slice(1).map((position, index) => position - positions[index]);
+  }
+  function analyzeSuccessiveDifferences(segments, interval) {
+    if (segments.length !== 6) throw new RangeError('six segments are required');
+    const denominator = 3 * interval * interval;
+    const groupAccelerations = PAIRINGS.map(([left, right]) => (segments[right] - segments[left]) / denominator);
+    const average = groupAccelerations.reduce((sum, value) => sum + value, 0) / groupAccelerations.length;
+    const combined = ((segments[3] + segments[4] + segments[5]) - (segments[0] + segments[1] + segments[2])) / (9 * interval * interval);
+    return { groupAccelerations, average, combined };
+  }
+  window.SuccessiveDifferenceCore = Object.freeze({ CONFIG, PAIRINGS, generatePositions, segmentDisplacements, analyzeSuccessiveDifferences });
+})();
+</script>
 <script>
 (function(){
 "use strict";
