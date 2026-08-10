@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>打点计时器三维互动实验 · 电磁式 vs 电火花式</title>
+<style>
+  :root{
+    --bg:#f7f4ed;--panel:#f7f4ed;--panel2:#fffdf8;--line:#d8d6cf;
+    --txt:#14213d;--dim:#5c6678;--cyan:#2557d6;--orange:#e66d26;
+    --purple:#7a69d8;--green:#2f9b63;--red:#c54c5d;--yellow:#ad721e;
+    --stage:#0b1424;--stage-line:#263650;--shadow:0 16px 38px rgba(20,33,61,.12);
+    --ease-out:cubic-bezier(.2,0,0,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    height:100dvh;overflow:hidden;background:var(--bg);color:var(--txt);
+    font-family:ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    display:flex;flex-direction:column;letter-spacing:.01em;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  /* ---------- header ---------- */
+  header{
+    min-height:64px;padding:7px 16px;display:flex;align-items:center;gap:18px;
+    justify-content:space-between;flex-wrap:nowrap;
+    background:rgba(255,253,248,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(14px);
+  }
+  .brand{display:flex;align-items:center;gap:11px;min-width:218px}
+  .brand-mark{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:#fff;background:var(--txt);font-size:17px;font-weight:800}
+  .brand-copy{display:flex;flex-direction:column;gap:1px}
+  .brand-name{font-size:15px;font-weight:800;letter-spacing:.03em}
+  .brand-meta{font-size:11px;color:var(--dim)}
+  .lesson-title{min-width:0;flex:1}
+  .lesson-title .crumb{font-size:11px;color:var(--cyan);font-weight:700;margin-bottom:2px}
+  header h1{font-size:18px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header h1 b{color:var(--txt)}
+  header .sub{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .experiment-badge{flex:none;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--dim);font-size:11px;font-weight:700}
+  /* ---------- layout ---------- */
+  main{
+    flex:1;min-height:0;display:grid;overflow:hidden;background:var(--bg);
+    grid-template-columns:clamp(240px,22vw,286px) minmax(420px,1fr) clamp(232px,21vw,272px);
+    grid-template-rows:minmax(0,1fr);
+  }
+  .control-panel,.observe-panel{
+    min-width:0;height:100%;padding:10px;overflow-y:auto;overscroll-behavior:contain;
+    background:var(--panel);display:flex;flex-direction:column;gap:9px;scrollbar-gutter:stable;
+  }
+  .control-panel{grid-area:1/1;border-right:1px solid var(--line)}
+  .observe-panel{grid-area:1/3;border-left:1px solid var(--line)}
+  .stage{
+    grid-area:1/2;position:relative;min-width:0;min-height:0;margin:10px;overflow:hidden;
+    border:1px solid var(--stage-line);border-radius:16px;box-shadow:var(--shadow);
+    background:radial-gradient(circle at 50% 42%,rgba(42,75,126,.30),transparent 46%),var(--stage);
+  }
+  .stage::before{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;z-index:1;
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:32px 32px;
+  }
+  canvas#cv{display:block;position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+  canvas#cv.dragging{cursor:grabbing}
+  /* ---------- cards ---------- */
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+  .card h3{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:9px;line-height:1.4}
+  .card h3 .kicker{font-size:10px;color:var(--cyan);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .card label{display:block;font-size:12px;line-height:1.45;margin-bottom:4px}
+  .card label span{color:var(--cyan);font-weight:700;font-variant-numeric:tabular-nums}
+  label.rng{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  input[type=range]{width:100%;margin:4px 0 8px;accent-color:var(--cyan);min-height:26px}
+  .hint{font-size:11px;line-height:1.7;color:var(--dim);margin-top:4px}
+  .hint b{color:var(--yellow)}
+  button{
+    cursor:pointer;border:none;border-radius:9px;padding:8px;font-family:inherit;
+    font-size:12.5px;font-weight:700;background:#e7e5dd;color:var(--txt);line-height:1.2;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
+    transition:filter .12s var(--ease-out),transform .1s var(--ease-out),background-color .18s,border-color .18s,color .18s;
+  }
+  button:hover{filter:brightness(1.05)}button:active{transform:scale(.97)}
+  button:disabled{opacity:.42;cursor:not-allowed}
+  /* 机型切换 */
+  .machine-switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:2px}
+  .machine-switch button{
+    min-height:52px;flex-direction:column;gap:2px;padding:7px 5px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-size:12px;white-space:normal;
+  }
+  .machine-switch button small{font-size:9.5px;font-weight:600;opacity:.85}
+  .machine-switch button[data-m="em"].active{border-color:var(--cyan);background:#e7edff;color:var(--cyan)}
+  .machine-switch button[data-m="spark"].active{border-color:var(--orange);background:rgba(230,109,38,.1);color:var(--orange)}
+  .spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .spec-grid>div{min-height:50px;padding:7px 8px;border:1px solid var(--line);border-radius:9px;background:#fff;display:flex;flex-direction:column;justify-content:center}
+  .spec-grid span{display:block;font-size:9.5px;color:var(--dim);margin-bottom:3px;line-height:1.3}
+  .spec-grid b{font-size:11px;line-height:1.4;font-variant-numeric:tabular-nums}
+  /* 步骤流程 */
+  .steps{display:flex;flex-direction:column;gap:5px}
+  .step{
+    display:flex;align-items:flex-start;gap:8px;padding:7px 8px;border:1px solid var(--line);
+    border-radius:9px;background:#fff;font-size:11px;line-height:1.5;color:var(--dim);cursor:pointer;text-align:left;
+    transition:border-color .18s,background-color .18s;
+  }
+  .step .n{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;background:#eceae2;color:var(--dim);font-size:10px;font-weight:800}
+  .step b{display:block;color:var(--txt);font-size:11.5px;margin-bottom:1px}
+  .step.active{border-color:var(--cyan);background:#eef2ff}
+  .step.active .n{background:var(--cyan);color:#fff}
+  .step.done{border-color:#bfe0cd;background:#f1f9f4}
+  .step.done .n{background:var(--green);color:#fff;font-size:0}
+  .step.done .n::after{content:"✓";font-size:10px}
+  .action-stack{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+  .action-stack button{min-height:40px}
+  button.confirm{background:var(--cyan);color:#fff;box-shadow:0 8px 17px rgba(37,87,214,.2)}
+  button.secondary{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .chk{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:11.5px;cursor:pointer;color:var(--txt)}
+  .chk input{accent-color:var(--cyan);width:15px;height:15px;flex:none}
+  .btnrow{display:grid;gap:6px;margin-top:7px}
+  .btnrow.two{grid-template-columns:1fr 1fr}
+  .btnrow button{min-height:36px;font-size:11.5px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);white-space:normal;line-height:1.3}
+  .btnrow button.err{border-color:#eec4cb;color:#a8404f;background:#fdf3f4}
+  details.card summary{cursor:pointer;font-size:12.5px;font-weight:700;line-height:1.45;outline:none}
+  details.card .body{font-size:11.5px;line-height:1.85;margin-top:9px}
+  details.card .body b{color:var(--yellow)}
+  details.card .body .f{color:var(--purple);font-weight:700}
+  /* ---------- stage overlays ---------- */
+  .stage-hud{position:absolute;left:12px;top:12px;z-index:4;display:flex;gap:6px;pointer-events:none}
+  .hud-phase,.hud-metrics>div{
+    border:1px solid rgba(122,143,177,.3);background:rgba(11,20,36,.82);
+    backdrop-filter:blur(9px);color:#dceaff;
+  }
+  .hud-phase{min-width:128px;padding:8px 10px;border-radius:10px}
+  .hud-phase span,.hud-metrics span{display:block;color:#91a3bf;font-size:9px;margin-bottom:2px}
+  .hud-phase strong{font-size:11.5px}
+  .hud-metrics{display:flex;gap:4px}
+  .hud-metrics>div{min-width:86px;padding:8px 9px;border-radius:10px}
+  .hud-metrics b{font-size:11px;color:#f4f8ff;font-variant-numeric:tabular-nums}
+  .stage-toolbar{
+    position:absolute;z-index:6;left:50%;bottom:13px;transform:translateX(-50%);
+    display:flex;align-items:center;gap:6px;min-height:52px;padding:6px;white-space:nowrap;
+    border:1px solid rgba(121,145,183,.32);border-radius:12px;background:rgba(11,20,36,.86);
+    backdrop-filter:blur(12px);box-shadow:0 12px 28px rgba(0,0,0,.25);
+  }
+  .stage-toolbar button{
+    flex:0 0 auto;height:38px;min-height:38px;padding:0 11px;border:1px solid #31425d;
+    border-radius:8px;background:#15233a;color:#cbd7e9;font-size:11px;font-weight:750;line-height:1;
+  }
+  .stage-toolbar button.on{background:#1b3153;border-color:#6685ea;color:#fff}
+  .stage-toolbar .toolbar-play{width:92px;min-width:92px;background:var(--cyan);border-color:#6685ea;color:#fff;font-weight:800}
+  .stage-toolbar .toolbar-reset{width:38px;min-width:38px;padding:0;font-size:15px}
+  .speed-control{display:flex;height:38px;padding:3px;gap:2px;align-items:center;border:1px solid #31425d;border-radius:9px;background:#0e1a2d}
+  .speed-control button{flex:0 0 46px;width:46px;height:30px;min-height:30px;padding:0;border:0;background:transparent;color:#8293ad;font-size:10.5px;font-variant-numeric:tabular-nums}
+  .speed-control button.active{background:#fff;color:var(--txt);font-weight:800}
+  .playback-icon{position:relative;display:inline-block;flex:0 0 11px;width:11px;height:12px}
+  .playback-icon::before,.playback-icon::after{content:"";position:absolute;top:1px;bottom:1px;width:3px;border-radius:1px;background:currentColor}
+  .playback-icon::before{left:1px}.playback-icon::after{right:1px}
+  .toolbar-play:not(.is-playing) .playback-icon::before{
+    left:2px;top:0;bottom:auto;width:0;height:0;border-top:6px solid transparent;
+    border-bottom:6px solid transparent;border-left:9px solid currentColor;border-radius:0;background:transparent;
+  }
+  .toolbar-play:not(.is-playing) .playback-icon::after{display:none}
+  .legend{
+    position:absolute;right:12px;top:12px;z-index:4;padding:8px 10px;border-radius:10px;
+    background:rgba(11,20,36,.78);border:1px solid #2e3e58;color:#98a9c2;font-size:9.5px;line-height:1.9;
+  }
+  .legend i{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+  #toast{
+    position:absolute;left:50%;top:76px;transform:translateX(-50%);z-index:7;
+    max-width:72%;padding:8px 14px;border-radius:10px;text-align:center;
+    background:rgba(11,20,36,.9);border:1px solid #7899ff;color:#edf3ff;
+    font-size:12px;line-height:1.6;opacity:0;transition:opacity .3s;pointer-events:none;
+  }
+  #partTip{
+    position:absolute;z-index:5;padding:6px 9px;border-radius:8px;pointer-events:none;
+    background:rgba(11,20,36,.92);border:1px solid #45618d;color:#eaf2ff;
+    font-size:10.5px;line-height:1.5;max-width:190px;display:none;
+  }
+  #partTip b{display:block;color:#8fb7ff;font-size:11px;margin-bottom:2px}
+  .drag-tip{
+    position:absolute;left:50%;bottom:74px;transform:translateX(-50%);z-index:4;
+    font-size:10px;color:#7f90aa;pointer-events:none;letter-spacing:.04em;
+  }
+  /* ---------- observe panel ---------- */
+  .judgement-card{border-top:3px solid var(--cyan)}
+  .phase-banner{
+    margin-bottom:8px;padding:8px 9px;border-radius:9px;background:var(--txt);color:#fff;
+    font-size:12px;font-weight:800;text-align:center;min-height:38px;
+    display:flex;align-items:center;justify-content:center;line-height:1.35;
+  }
+  .decision-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .decision-grid>div{min-height:52px;padding:8px;border:1px solid var(--line);border-radius:9px;background:#fff;display:flex;flex-direction:column;justify-content:center}
+  .decision-grid span{display:block;color:var(--dim);font-size:9.5px;margin-bottom:3px;line-height:1.35}
+  .decision-grid b{display:block;font-size:11px;line-height:1.4;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .trend-box{
+    margin-top:7px;padding:9px;border:1px solid #c9d4f6;border-radius:9px;
+    background:#eef2ff;color:#24499e;font-size:11px;font-weight:750;line-height:1.55;
+  }
+  .trend-box.is-warn{border-color:#eec4cb;background:#fdf3f4;color:#a8404f}
+  .trend-box.is-ok{border-color:#bfe0cd;background:#f1f9f4;color:#237049}
+  /* 纸带展开 */
+  #tapeCard{border-top:3px solid var(--orange)}
+  #tapeCv{width:100%;height:96px;display:block;border:1px solid var(--line);border-radius:8px;background:#fffdf8}
+  table.live{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:8px}
+  table.live td{padding:3.5px 2px;border-bottom:1px solid var(--line);vertical-align:middle;line-height:1.45}
+  table.live td:first-child{color:var(--dim);width:52%}
+  table.live td:last-child{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+  table.cmp{width:100%;border-collapse:collapse;font-size:10px;margin-top:4px}
+  table.cmp th,table.cmp td{padding:4.5px 3px;text-align:center;border-bottom:1px solid var(--line);line-height:1.45}
+  table.cmp th{color:var(--dim);font-weight:600;font-size:9.5px}
+  table.cmp td:first-child,table.cmp th:first-child{text-align:left;color:var(--dim)}
+  table.cmp .em{color:var(--cyan);font-weight:700}
+  table.cmp .sp{color:var(--orange);font-weight:700}
+  .insight{
+    margin-top:9px;padding:8px 10px;border-radius:9px;font-size:11.5px;line-height:1.7;
+    background:#fff4e7;border:1px solid #f0c79c;color:#8d5517;
+  }
+  /* ---------- 响应式 ---------- */
+  .mobile-tabs{display:none}
+  @media (min-width:960px) and (max-width:1180px){
+    main{grid-template-columns:232px minmax(400px,1fr) 224px}
+    .control-panel,.observe-panel{padding:8px}.stage{margin:8px}
+    .brand{min-width:180px}.brand-name{font-size:13px}.lesson-title .sub{display:none}
+    .hud-metrics>div{min-width:72px;padding-inline:7px}.hud-metrics>div:nth-child(3){display:none}
+    .legend{display:none}
+    .stage-toolbar{min-height:46px;gap:5px;padding:5px}
+    .stage-toolbar button{height:34px;min-height:34px;font-size:10px;padding-inline:8px}
+    .stage-toolbar .toolbar-play{width:76px;min-width:76px}
+    .speed-control{height:34px}.speed-control button{flex-basis:40px;width:40px;height:28px;min-height:28px;font-size:9.5px}
+  }
+  @media (max-width:959px){
+    body{height:100dvh;overflow:hidden}
+    header{min-height:56px;padding:6px 10px}.brand-copy,.lesson-title .crumb,.lesson-title .sub,.experiment-badge{display:none}
+    .lesson-title h1{font-size:15px}
+    main{display:flex;flex-direction:column;overflow:hidden}
+    .stage{order:1;flex:0 0 clamp(300px,48svh,480px);margin:8px;border-radius:13px}
+    .mobile-tabs{order:2;display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:0 0 auto;padding:4px 8px}
+    .mobile-tabs button{min-height:36px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-size:12px}
+    .mobile-tabs button[aria-selected="true"]{border-color:var(--txt);background:var(--txt);color:#fff}
+    .control-panel,.observe-panel{order:3;display:none;flex:1 1 auto;width:100%;border:0;border-top:1px solid var(--line);padding:8px 10px 18px}
+    main.show-controls .control-panel{display:flex}main.show-data .observe-panel{display:flex}
+    .legend{display:none}.stage-hud{left:8px;top:8px}.hud-metrics>div:nth-child(3){display:none}
+    .stage-toolbar{left:8px;right:8px;bottom:8px;transform:none;justify-content:center;gap:4px;padding:5px}
+    #toast{top:58px;max-width:88%}.drag-tip{display:none}
+  }
+</style>
+<style id="template-system-v2">
+  :root{
+    --font-ui:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    --type-20:20px;--type-16:16px;--type-14:14px;--type-13:13px;--type-12:12px;--type-11:11px;
+    --surface-page:#f7f4ed;--surface-panel:#f7f4ed;--surface-raised:#fffdf8;--border:#d8d6cf;
+    --text-strong:#14213d;--text-muted:#5c6678;--action:#2557d6;--on-action:#fff;
+    --prograde:#e66d26;--retrograde:#2557d6;--safe:#277a51;--safe-soft:#e5f4eb;
+    --danger:#b9384d;--danger-soft:#fae9ec;--warning:#8d5517;--warning-soft:#fff4e7;
+    --rising:#a84d19;--rising-soft:#fff0e7;--falling:#24569d;--falling-soft:#edf4ff;
+    --stage:#0b1424;--stage-line:#263650;--stage-text:#f4f8ff;--stage-muted:#91a3bf;
+    --viz-circular:#38bdf8;--viz-transfer:#fb923c;--viz-reference:#55617c;--viz-velocity:#4ade80;
+    --viz-gravity:#f6c453;--viz-required:#c084fc;--viz-apsis:#f8fafc;--viz-escape:#fb7185;
+    --bg:var(--surface-page);--panel:var(--surface-panel);--panel2:var(--surface-raised);--surface:var(--surface-raised);--line:var(--border);
+    --txt:var(--text-strong);--ink:var(--text-strong);--dim:var(--text-muted);--muted:var(--text-muted);--cyan:var(--action);--blue:var(--action);--blue-soft:#eaf0ff;
+    --orange:var(--prograde);--purple:var(--viz-required);--green:var(--safe);--red:var(--danger);--yellow:var(--warning);
+  }
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--surface-page);color:var(--text-strong);font-family:var(--font-ui);font-size:var(--type-13);touch-action:manipulation}
+  button,input,select,textarea,a{touch-action:manipulation;font-family:var(--font-ui)}
+  button,input,select,textarea{font-size:var(--type-13)}
+  sub{font-size:1em}
+  canvas,.stage,#left,#chartWrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  input[type=range]{min-height:28px}
+  header.topbar.template-header{height:64px;min-height:64px;padding:8px 16px;display:flex;align-items:center;gap:12px;background:rgba(255,253,248,.96);border-bottom:1px solid var(--border);color:var(--text-strong)}
+  #headerBackSlot{flex:0 0 28px;width:28px;height:28px}
+  .template-header .brand{display:flex;align-items:center;gap:10px;min-width:0}
+  .template-header .brand-mark{width:36px;height:36px;display:grid;place-items:center;flex:none;border-radius:10px;background:var(--text-strong);color:var(--on-action);font-size:var(--type-16);font-weight:800}
+  .template-header .brand-copy{display:block;min-width:0}.template-header .eyebrow{margin:0 0 2px;color:var(--text-muted);font-size:var(--type-11);font-weight:650;line-height:1.2}
+  .template-header h1{margin:0;color:var(--text-strong);font-size:var(--type-20);font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brand-name{font-size:var(--type-14)}.brand-meta,.lesson-title .crumb,header .sub,.experiment-badge,.badge{font-size:var(--type-11)}
+  main,.control-panel,.observe-panel,.panel{background:var(--surface-page)}
+  .control-panel,.observe-panel,.panel{border-color:var(--border)}
+  .card,.workflow,.quick-presets button,.direction-row button,button.secondary,button.demo,.decision-grid>div,.relation div,.preset,.mode,.choice,.focus-btn{background:var(--surface-raised);border-color:var(--border);color:var(--text-strong)}
+  .card{border-color:var(--border)}.card h2,.card h3{font-size:var(--type-13);color:var(--text-strong)}
+  .card h2 .kicker,.card h3 .kicker,.workflow-step,.workflow>div,.status-pill,.preview-metric span,.preview-note,.hint,.chk,details.card .body,.tag,.focus-note,.cursor-help,.drag-tip,.stage-note{font-size:var(--type-11)!important}
+  .card label,details.card summary,details summary,.preview-metric b,.preview-head strong,.direction-row button,.phase-banner,.banner,.phase{font-size:var(--type-12)!important}
+  .workflow-step b,.workflow>div b,.decision-grid b,.target-apsis b,.hud-phase strong,.hud-metrics b,.relation b{font-size:var(--type-12)!important}
+  .quick-presets button,.btnrow button,.stage-toolbar button,.toolbar button,.speed-control button,.speed button,.observe-popover button,.mobile-tabs button,table.cmp,.compact-details table.live td,.next-event b,.data-row,.formula,.formula-row,.formula-live,.formula-card,.details-body,.tips li,.tip-list li{font-size:var(--type-11)!important}
+  .decision-grid span,.metric-grid span,.next-event span,.target-apsis span,.hud-phase span,.hud-metrics span,.hud span,.observe-popover span,.legend,.slider-label,.data-row span{font-size:var(--type-11)!important}
+  table.live,.fbar .lb,#verdict,.trend-box,.trend,.insight,.conclusion,.warning{font-size:var(--type-12)!important}
+  button.primary,button.confirm,.stage-toolbar .toolbar-play,.toolbar .play,.play{background:var(--action)!important;border-color:var(--action)!important;color:var(--on-action)!important}
+  .quick-presets button.active,.mobile-tabs button[aria-selected="true"],.mobile-tabs button[aria-selected=true],.workflow-step.active,.workflow>div.active,.preset.active,.mode.active,.choice.active{background:var(--action)!important;border-color:var(--action)!important;color:var(--on-action)!important}
+  .direction-row button[data-dir="pro"].active,button.pro{background:var(--prograde);border-color:var(--prograde);color:var(--on-action)}
+  .direction-row button[data-dir="ret"].active,button.ret{background:var(--retrograde);border-color:var(--retrograde);color:var(--on-action)}
+  .workflow-step.done,.workflow>div.done,.status-pill{background:var(--safe-soft);color:var(--safe)}
+  .status-pill.warn{background:var(--danger-soft);color:var(--danger)}
+  .up,.trend-box.is-up{border-color:var(--rising);background:var(--rising-soft);color:var(--rising)}
+  .down,.trend-box.is-down{border-color:var(--falling);background:var(--falling-soft);color:var(--falling)}
+  .insight,.formula-live{background:var(--warning-soft);border-color:var(--warning);color:var(--warning)}
+  .stage{background:radial-gradient(circle at 50% 46%,rgba(38,54,80,.72),transparent 44%),var(--stage);border-color:var(--stage-line)}
+  .hud,.hud-main,.hud-phase,.hud-metrics>div,.stage-toolbar,.toolbar,.observe-popover,.focus-menu,.legend,#toast,#centerMsg,.stage-note{background:rgba(11,20,36,.88);border-color:var(--stage-line);color:var(--stage-text)}
+  #centerMsg{font-size:var(--type-14)}
+  .hud span,.hud-main span,.hud-phase span,.hud-metrics span,.observe-popover span,.legend{color:var(--stage-muted)}
+  .stage-toolbar button,.toolbar button{background:#15233a;border-color:#31425d;color:var(--stage-text);font-size:var(--type-11)!important}
+  .speed-control,.speed{background:#0e1a2d;border-color:#31425d}.speed-control button,.speed button{color:var(--stage-muted);font-size:var(--type-11)!important}
+  .speed-control button.active,.speed button.active{background:var(--stage-text);color:var(--text-strong)}
+  .observe-popover button,.focus-menu button{color:var(--stage-text)}.observe-popover button.active,.focus-menu button.active{background:#1b3153;border-color:#45618d;color:var(--on-action)}
+  .legend{font-size:var(--type-11)!important;line-height:1.7}.legend i[data-viz="circular"]{background:var(--viz-circular)}.legend i[data-viz="transfer"]{background:var(--viz-transfer)}.legend i[data-viz="reference"]{background:var(--viz-reference)}.legend i[data-viz="gravity"]{background:var(--viz-gravity)}.legend i[data-viz="required"]{background:var(--viz-required)}.legend i[data-viz="velocity"]{background:var(--viz-velocity)}.legend i[data-viz="escape"]{background:var(--viz-escape)}
+  .stage-hud{transform:none!important}.stage-toolbar #observeToggle,#observeLabel,.toolbar-observe,#focusBtn{font-size:var(--type-11)!important}#observeLabel::after,.stage-toolbar #observeToggle::after{content:none}
+  .frac{display:inline-flex;flex-direction:column;align-items:stretch;vertical-align:middle;text-align:center;line-height:1.05;margin:0 .12em}.frac>.num{padding:0 .18em .08em;border-bottom:1px solid currentColor}.frac>.den{padding:.08em .18em 0}.formula-math{white-space:nowrap}.formula math{font-family:var(--font-ui);font-size:1em}.formula-overlay{position:absolute;z-index:8;padding:6px 10px;border:1px solid var(--stage-line);border-radius:9px;background:rgba(11,20,36,.9);color:var(--stage-text);font-size:var(--type-11);pointer-events:none}
+  .step .n,.step.done .n{font-size:var(--type-11)!important}
+  #sceneCanvas{position:absolute;inset:0;width:100%;height:100%}#chartCanvas,#chartXT,#chartMom,#chartPath,#chartInt,#tapeCv{position:static!important;inset:auto!important;width:100%;height:100%}
+  @media (max-width:960px){header.topbar.template-header{height:56px;min-height:56px;padding:6px 10px}.template-header h1{font-size:var(--type-16)}#headerBackSlot{flex-basis:20px;width:20px}.template-header .brand-mark{width:32px;height:32px}.template-header .eyebrow{display:block}.toolbar-observe,#focusBtn{width:auto!important;min-width:56px!important;font-size:var(--type-11)!important}.toolbar-observe::after,#focusBtn::after{content:none!important}}
+  @media (orientation:landscape) and (max-width:960px) and (max-height:540px){header.topbar.template-header{height:46px;min-height:46px;padding-block:4px}.template-header h1{font-size:var(--type-14)}.stage-hud{transform:none!important}.mobile-tabs button{font-size:var(--type-11)!important}}
+  @media (orientation:landscape) and (max-width:960px) and (max-height:540px){#experimentLayout{height:calc(100dvh - 46px);display:grid;grid-template-columns:minmax(0,1fr) 258px;grid-template-rows:42px minmax(0,1fr);overflow:hidden}.stage{grid-column:1;grid-row:1/3;width:auto;height:auto;min-height:0;margin:6px;flex:none}.mobile-tabs{grid-column:2;grid-row:1;order:initial;padding:4px 6px}.control-panel,.observe-panel{grid-column:2;grid-row:2;order:initial;width:auto;height:auto;min-height:0;padding:6px 8px 12px;overflow-y:auto}.stage-toolbar{left:6px;right:6px;bottom:6px}.stage-toolbar button{min-height:32px;height:32px}}
+
+  small,.machine-switch small,.next span,.mode span,.live-grid span,.probe-grid span,.chart-btn{font-size:var(--type-11)!important}
+
+  .spec-grid span,.next b,.focus-actions button,.quiz-head span,.formula-row .sub,.progress-info,.data-row b,.metric-grid span,.live-grid span,.probe-grid span{font-size:var(--type-11)!important}
+
+  .answer,.sync-row,.sync-row span{font-size:var(--type-11)!important}
+
+  table th,.result-strip,.pt-body{font-size:var(--type-11)!important}
+</style>
+</head>
+<body>
+<header class="topbar template-header">
+  <div id="headerBackSlot" aria-hidden="true"></div>
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">罗</div>
+    <div class="brand-copy">
+      <p class="eyebrow">老罗物理 · 探究实验</p>
+      <h1>打点计时器：结构、原理与使用</h1>
+    </div>
+  </div>
+</header>
+<main id="experimentLayout" class="show-controls">
+  <div class="mobile-tabs" role="tablist" aria-label="切换参数与数据面板">
+    <button type="button" id="tabControls" role="tab" aria-selected="true">操作面板</button>
+    <button type="button" id="tabData" role="tab" aria-selected="false">观察数据</button>
+  </div>
+  <section class="stage" id="stage">
+    <canvas id="cv" tabindex="0" aria-label="打点计时器三维模型，可用鼠标拖拽旋转、滚轮缩放"></canvas>
+    <div id="toast" role="status" aria-live="polite"><span id="toastText"></span><span id="toastMath" class="formula-math" role="math" aria-label="电源频率改变，打点间隔 T 等于一除以 f" aria-hidden="true" hidden><span id="toastMathVisual" aria-hidden="true"></span></span></div>
+    <div id="partTip"></div>
+    <div class="stage-hud" aria-hidden="true">
+      <div class="hud-phase"><span>当前机型</span><strong id="hudMachine">电磁打点计时器</strong></div>
+      <div class="hud-metrics">
+        <div><span>工作电源</span><b id="hudPower">4~6 V 交流</b></div>
+        <div><span>打点间隔 T</span><b id="hudT">0.02 s</b></div>
+        <div><span>已打点数</span><b id="hudDots">0</b></div>
+      </div>
+    </div>
+    <div class="legend">
+      <div><i data-viz="circular"></i>电磁式部件　<i data-viz="transfer"></i>电火花式部件</div>
+      <div><i data-viz="velocity"></i>纸带与限位孔　<i data-viz="gravity"></i>当前高亮部件</div>
+      <div>拖拽旋转 · 滚轮缩放 · 点击部件看说明</div>
+    </div>
+    <div class="drag-tip">按住拖动可 360° 观察，滚轮缩放</div>
+    <div class="stage-toolbar" aria-label="动画控制">
+      <button type="button" id="playPause" class="toolbar-play is-playing" aria-pressed="true">
+        <span class="playback-icon" aria-hidden="true"></span><span id="playPauseLabel">暂停</span>
+      </button>
+      <div class="speed-control" role="group" aria-label="播放倍速">
+        <button type="button" data-speed="0.1" aria-pressed="false">0.1×</button>
+        <button type="button" data-speed="0.3" aria-pressed="false">0.3×</button>
+        <button type="button" data-speed="1" class="active" aria-pressed="true">1×</button>
+      </div>
+      <button type="button" id="cutToggle">剖面透视</button>
+      <button type="button" id="labelToggle" class="on">部件标注</button>
+      <button type="button" id="reset" class="toolbar-reset" title="重置">↺</button>
+    </div>
+  </section>
+
+  <aside class="control-panel" id="controlPanel">
+    <div class="card">
+      <p class="hint template-intro">三维模型可拖拽旋转、剖面观察，纸带会自动展开并计算速度与加速度。</p>
+      <h3><span>选择计时器</span><span class="kicker">STEP 1</span></h3>
+      <div class="machine-switch" role="group" aria-label="机型选择">
+        <button type="button" data-m="em" class="active" aria-pressed="true">电磁打点计时器<small>振针打点 · 复写纸</small></button>
+        <button type="button" data-m="spark" aria-pressed="false">电火花计时器<small>火花放电 · 墨粉纸盘</small></button>
+      </div>
+      <div class="spec-grid">
+        <div><span>工作电压</span><b id="sPower">4~6 V 交流</b></div>
+        <div><span>电源频率</span><b id="sFreq">50 Hz</b></div>
+        <div><span>打点间隔</span><b id="sT">0.02 s</b></div>
+        <div><span>纸带阻力</span><b id="sFric">较大（振针压紧）</b></div>
+      </div>
+      <div class="hint" id="machineHint">
+        振针周期性下压，把复写纸的痕迹打在纸带上。<b>纸带受到的摩擦阻力较大</b>，测出的加速度会略偏小。
+      </div>
+    </div>
+
+    <div class="card">
+      <h3><span>操作步骤</span><span class="kicker">STEP 2</span></h3>
+      <div class="steps" id="stepList">
+        <button type="button" class="step active" data-step="0"><i class="n">1</i><span><b>固定计时器</b>用铁夹把计时器竖直固定在长木板末端</span></button>
+        <button type="button" class="step" data-step="1"><i class="n">2</i><span><b>穿纸带</b>纸带穿过限位孔，复写纸片压在纸带上方</span></button>
+        <button type="button" class="step" data-step="2"><i class="n">3</i><span><b>先接通电源</b>听到连续打点声、点迹稳定后再动小车</span></button>
+        <button type="button" class="step" data-step="3"><i class="n">4</i><span><b>后释放小车</b>小车拖着纸带做匀加速运动</span></button>
+        <button type="button" class="step" data-step="4"><i class="n">5</i><span><b>先断电再取带</b>小车停下立刻断电，然后取下纸带</span></button>
+      </div>
+      <div class="action-stack">
+        <button type="button" class="secondary" id="prevStep">上一步</button>
+        <button type="button" class="confirm" id="nextStep">下一步</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="autoRun" checked>播放到本步的动画演示</label>
+      <div class="hint">口诀：<b>先通电后放车，先断电后取带</b>。顺序颠倒会丢掉起始点迹或空打浪费纸带。</div>
+    </div>
+
+    <div class="card">
+      <h3><span>小车运动参数</span><span class="kicker">STEP 3</span></h3>
+      <label class="rng" for="acc">加速度 a <span id="accVal">2.00 m/s²</span></label>
+      <input type="range" id="acc" min="0" max="6" step="0.05" value="2">
+      <label class="rng" for="v0">初速度 v₀ <span id="v0Val">0.00 m/s</span></label>
+      <input type="range" id="v0" min="0" max="1.5" step="0.01" value="0">
+      <label class="rng" for="freq">电源频率 f <span id="freqVal">50 Hz</span></label>
+      <input type="range" id="freq" min="10" max="60" step="1" value="50">
+      <div class="hint">打点间隔 <b class="formula-math" role="math" aria-label="T 等于一除以 f"><span aria-hidden="true">T = <span class="frac"><span class="num">1</span><span class="den">f</span></span></span></b>。频率 50 Hz 时 T = 0.02 s，这是纸带能当"计时尺"用的根本原因。</div>
+    </div>
+
+    <details class="card">
+      <summary>⚠ 错误操作演示</summary>
+      <div class="body">
+        <div class="btnrow two">
+          <button type="button" class="err" data-err="lateOn">先放车后通电</button>
+          <button type="button" class="err" data-err="lateOff">先取带后断电</button>
+          <button type="button" class="err" data-err="noHole">纸带没穿限位孔</button>
+          <button type="button" class="err" data-err="carbonFlip">复写纸装反</button>
+        </div>
+        <div class="hint" id="errHint">点一个按钮，模型会演示后果并说明为什么。</div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>📖 知识要点</summary>
+      <div class="body">
+        <b>1. 本质：</b>打点计时器是<span class="f">计时仪器</span>，每隔 T 等于频率的倒数 打一个点。50 Hz 交流电 → <span class="f">T=0.02 s</span>。<br>
+        <b>2. 电磁式：</b>4~6 V <b>交流</b>电源，线圈使振针上下振动，靠<b>复写纸</b>打点；纸带阻力大。<br>
+        <b>3. 电火花式：</b>220 V <b>交流</b>电源，脉冲高压在放电针与纸盘间放电，<b>墨粉纸盘</b>留点；<b>阻力小、点迹清晰、误差更小</b>。<br>
+        <b>4. 计算：</b>取相邻计数点，<span class="f formula-math" role="math" aria-label="v n 等于 s n 加 s n 加一的和除以二 T"><span aria-hidden="true">v<sub>n</sub> = <span class="frac"><span class="num">s<sub>n</sub>+s<sub>n+1</sub></span><span class="den">2T</span></span></span></span>（中间时刻速度）；<span class="f formula-math" role="math" aria-label="a 等于 delta s 除以 T 的平方"><span aria-hidden="true">a = <span class="frac"><span class="num">Δs</span><span class="den">T²</span></span></span></span>，Δs 为连续相等时间内位移之差。<br>
+        <b>5. 每 5 个间隔取一个计数点</b>时，计时单位变为 <span id="countPointIntervalLaw" role="math" aria-label="T 撇等于五乘零点零二秒，等于零点一秒"><span aria-hidden="true">T' = 5×0.02 = 0.1 s</span></span>，公式里的 T 要换成 T'。<br>
+        <b>口诀：</b>先通电后放车，先断电后取带；电火花更准，电磁更常见。
+      </div>
+    </details>
+  </aside>
+  <aside class="observe-panel" id="observePanel">
+    <div class="card judgement-card">
+      <h3><span>实时状态</span><span class="kicker">LIVE</span></h3>
+      <div class="phase-banner" id="dPhase">等待固定计时器</div>
+      <div class="decision-grid">
+        <div><span>小车位移 x</span><b id="dX">0.00 m</b></div>
+        <div><span>小车速度 v</span><b id="dV">0.00 m/s</b></div>
+        <div><span>运动时间 t</span><b id="dTime">0.00 s</b></div>
+        <div><span>纸带点数</span><b id="dDots">0</b></div>
+      </div>
+      <div class="trend-box" id="dTrend">按"先通电后放车"的顺序开始实验。</div>
+    </div>
+
+    <div class="card" id="tapeCard">
+      <h3><span>纸带展开</span><span class="kicker">TAPE</span></h3>
+      <canvas id="tapeCv" width="480" height="192" aria-label="打出的纸带展开视图，标出计数点与间隔"></canvas>
+      <label class="chk"><input type="checkbox" id="everyFive" checked>每 5 个间隔取一个计数点（<span id="countPointRelation" role="math" aria-label="T 撇等于五 T"><span aria-hidden="true">T′=5T</span></span>）</label>
+      <table class="live">
+        <tr><td>计时单位 T′</td><td id="tT">0.10 s</td></tr>
+        <tr><td>s₁ 与 s₂</td><td id="tS12">—；—</td></tr>
+        <tr><td><span id="deltaDisplacementLaw" role="math" aria-label="delta s 等于 s 二减 s 一"><span aria-hidden="true">Δs = s₂−s₁</span></span></td><td id="tDs">—</td></tr>
+        <tr><td role="math" aria-label="v 等于 s 一加 s 二的和除以二 T 撇"><span aria-hidden="true">v = <span class="frac"><span class="num">s₁+s₂</span><span class="den">2T′</span></span></span></td><td id="tV">—</td></tr>
+        <tr><td role="math" aria-label="a 等于 delta s 除以 T 撇的平方"><span aria-hidden="true">a = <span class="frac"><span class="num">Δs</span><span class="den">T′²</span></span></span></td><td id="tA">—</td></tr>
+      </table>
+      <div class="hint">测得的 a 与设定值的偏差来自<b>纸带摩擦阻力</b>；电火花计时器阻力小，偏差明显更小。</div>
+    </div>
+
+    <div class="card">
+      <h3><span>两种计时器对比</span><span class="kicker">对比</span></h3>
+      <table class="cmp">
+        <tr><th>项目</th><th class="em">电磁式</th><th class="sp">电火花式</th></tr>
+        <tr><td>电源</td><td>4~6 V 交流</td><td>220 V 交流</td></tr>
+        <tr><td>打点方式</td><td>振针+复写纸</td><td>放电+墨粉纸盘</td></tr>
+        <tr><td>纸带阻力</td><td>较大</td><td>很小</td></tr>
+        <tr><td>点迹</td><td>较粗</td><td>清晰细小</td></tr>
+        <tr><td>误差</td><td>偏大</td><td>较小</td></tr>
+        <tr><td>耗材</td><td>复写纸</td><td>墨粉纸盘</td></tr>
+      </table>
+      <div class="insight" id="cmpInsight">两者打点间隔都由电源频率决定：50 Hz 下同为 0.02 s。差别只在打点方式和阻力，不在计时精度的时间基准。</div>
+    </div>
+  </aside>
+</main>
+<script>
+(function(){
+"use strict";
+var TEMPLATE_ROOT_STYLE=getComputedStyle(document.documentElement);
+var TEMPLATE_CANVAS_FONT=getComputedStyle(document.body).fontFamily||TEMPLATE_ROOT_STYLE.getPropertyValue('--font-ui');
+var TEMPLATE_VIZ={circular:TEMPLATE_ROOT_STYLE.getPropertyValue('--viz-circular').trim(),transfer:TEMPLATE_ROOT_STYLE.getPropertyValue('--viz-transfer').trim(),velocity:TEMPLATE_ROOT_STYLE.getPropertyValue('--viz-velocity').trim(),gravity:TEMPLATE_ROOT_STYLE.getPropertyValue('--viz-gravity').trim()};
+/* =========================================================
+   打点计时器三维互动实验
+   自写极简 3D 渲染管线（画布 2D + 手写投影/深度排序），
+   无外部依赖，可离线运行。
+   ========================================================= */
+
+/* ---------- 数学工具 ---------- */
+function v3(x,y,z){return {x:x,y:y,z:z};}
+function add(a,b){return v3(a.x+b.x,a.y+b.y,a.z+b.z);}
+function sub(a,b){return v3(a.x-b.x,a.y-b.y,a.z-b.z);}
+function mul(a,s){return v3(a.x*s,a.y*s,a.z*s);}
+function cross(a,b){return v3(a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x);}
+function dot(a,b){return a.x*b.x+a.y*b.y+a.z*b.z;}
+function norm(a){var l=Math.hypot(a.x,a.y,a.z)||1;return v3(a.x/l,a.y/l,a.z/l);}
+function clamp(v,a,b){return v<a?a:(v>b?b:v);}
+function lerp(a,b,t){return a+(b-a)*t;}
+
+/* ---------- 相机 ---------- */
+/* 注意：eye.y = target.y + sin(pitch)*dist，故 pitch 为正才是俯视 */
+var cam={yaw:-0.72,pitch:0.34,dist:8.0,target:v3(0.55,-0.16,0),fov:620};
+var camDefault={yaw:-0.72,pitch:0.34,dist:8.0};
+var PITCH_MIN=0.04, PITCH_MAX=1.24;   // 始终保持在桌面之上
+
+function camBasis(){
+  var cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw);
+  var cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+  var fwd=v3(-sy*cp,-sp,-cy*cp);          // 相机朝向
+  var right=norm(cross(fwd,v3(0,1,0)));
+  var up=cross(right,fwd);
+  var eye=sub(cam.target,mul(fwd,cam.dist));
+  return {fwd:fwd,right:right,up:up,eye:eye};
+}
+var B=camBasis();
+
+function project(p,w,h){
+  var d=sub(p,B.eye);
+  var z=dot(d,B.fwd);
+  if(z<0.05) z=0.05;
+  var x=dot(d,B.right), y=dot(d,B.up);
+  var s=cam.fov/z;
+  return {x:w/2+x*s, y:h/2-y*s, z:z, s:s};
+}
+/* =========================================================
+   材质与光照：每个面片带真实法向，着色在渲染时计算
+   face = {pts:[v3...], rgb:[r,g,b], n:法向, mat:材质名, part, alpha, outline, glow}
+   ========================================================= */
+var MAT={
+  bakelite:{gloss:0.10,shin:16,amb:0.30},   // 胶木外壳（哑光）
+  plastic :{gloss:0.20,shin:26,amb:0.34},
+  metal   :{gloss:0.60,shin:62,amb:0.28},   // 抛光金属
+  steel   :{gloss:0.44,shin:44,amb:0.30},
+  brass   :{gloss:0.52,shin:50,amb:0.34},
+  paper   :{gloss:0.04,shin:8, amb:0.46},
+  wood    :{gloss:0.09,shin:12,amb:0.38},
+  rubber  :{gloss:0.05,shin:10,amb:0.26},
+  felt    :{gloss:0.02,shin:6, amb:0.40}
+};
+var LKEY=norm(v3(-0.44,0.82,0.37));   // 主光：左上前
+var LFIL=norm(v3(0.74,0.24,-0.60));   // 补光：右后
+function hex2rgb(h){var n=parseInt(h.slice(1),16);return [(n>>16)&255,(n>>8)&255,n&255];}
+
+function pushBox(faces,cx,cy,cz,sx,sy,sz,color,part,opt){
+  opt=opt||{};
+  var hx=sx/2,hy=sy/2,hz=sz/2,rgb=hex2rgb(color);
+  var F=[
+    [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[0,0,-1]],
+    [[-1,-1, 1],[-1,1, 1],[1,1, 1],[1,-1, 1],[0,0, 1]],
+    [[-1,-1,-1],[-1,1,-1],[-1,1,1],[-1,-1,1],[-1,0,0]],
+    [[ 1,-1,-1],[ 1,-1,1],[1,1,1],[1,1,-1],[ 1,0,0]],
+    [[-1, 1,-1],[ 1,1,-1],[1,1,1],[-1,1,1],[0, 1,0]],
+    [[-1,-1,-1],[-1,-1,1],[1,-1,1],[1,-1,-1],[0,-1,0]]
+  ];
+  for(var i=0;i<6;i++){
+    if(opt.skip && opt.skip.indexOf(i)>=0) continue;   // 可跳过指定面（如顶面另行细分）
+    var f=F[i],pts=[];
+    for(var j=0;j<4;j++) pts.push(v3(cx+f[j][0]*hx, cy+f[j][1]*hy, cz+f[j][2]*hz));
+    faces.push({pts:pts,rgb:rgb,n:v3(f[4][0],f[4][1],f[4][2]),part:part,mat:opt.mat||'plastic',
+                alpha:opt.alpha==null?1:opt.alpha,outline:opt.outline!==false,glow:opt.glow,layer:opt.layer});
+  }
+}
+// 圆柱：axis 'y'|'x'|'z'
+function pushCyl(faces,cx,cy,cz,r,len,axis,color,part,opt){
+  opt=opt||{};var seg=opt.seg||20,rgb=hex2rgb(color),h=len/2;
+  function P(ang,t){
+    var a=Math.cos(ang)*r,b=Math.sin(ang)*r;
+    if(axis==='y')return v3(cx+a,cy+t,cz+b);
+    if(axis==='x')return v3(cx+t,cy+a,cz+b);
+    return v3(cx+a,cy+b,cz+t);
+  }
+  function N(ang){
+    var a=Math.cos(ang),b=Math.sin(ang);
+    if(axis==='y')return v3(a,0,b);
+    if(axis==='x')return v3(0,a,b);
+    return v3(a,b,0);
+  }
+  var A=axis==='y'?v3(0,1,0):(axis==='x'?v3(1,0,0):v3(0,0,1));
+  var mt=opt.mat||'plastic',al=opt.alpha==null?1:opt.alpha;
+  for(var i=0;i<seg;i++){
+    var a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2;
+    faces.push({pts:[P(a0,-h),P(a1,-h),P(a1,h),P(a0,h)],rgb:rgb,n:N((a0+a1)/2),
+      part:part,mat:mt,alpha:al,outline:false,glow:opt.glow});
+  }
+  if(opt.caps!==false){
+    var top=[],bot=[];
+    for(var k=0;k<seg;k++){var a=k/seg*Math.PI*2;top.push(P(a,h));bot.push(P(-a,-h));}
+    faces.push({pts:top,rgb:rgb,n:A,part:part,mat:mt,alpha:al,outline:false,glow:opt.glow});
+    faces.push({pts:bot,rgb:rgb,n:mul(A,-1),part:part,mat:mt,alpha:al,outline:false,glow:opt.glow});
+  }
+}
+function pushQuad(faces,a,b,c,d,color,part,opt){
+  opt=opt||{};
+  faces.push({pts:[a,b,c,d],rgb:hex2rgb(color),n:norm(cross(sub(b,a),sub(d,a))),
+              part:part,mat:opt.mat||'plastic',alpha:opt.alpha==null?1:opt.alpha,
+              outline:opt.outline||false,glow:opt.glow,layer:opt.layer});
+}
+/* 接触阴影：叠三层同心四边形近似软阴影，作为普通面片参与深度排序 */
+function pushShadow(F,y,x0,x1,z0,z1,a,lay0){
+  var cx=(x0+x1)/2, cz=(z0+z1)/2, hw=(x1-x0)/2, hd=(z1-z0)/2;
+  var lay=[[1.34,0.30],[1.12,0.42],[0.94,1.00]];
+  var NS=Math.max(1,Math.min(24,Math.round((x1-x0)*3)));   // 长阴影沿 x 分段，保证深度排序
+  for(var i=0;i<3;i++){
+    var k=lay[i][0], yy=y+i*0.0016, ax=hw*k, az=hd*k;
+    for(var s=0;s<NS;s++){
+      var xa=cx-ax+2*ax*s/NS, xb=cx-ax+2*ax*(s+1)/NS;
+      F.push({pts:[v3(xa,yy,cz-az),v3(xb,yy,cz-az),v3(xb,yy,cz+az),v3(xa,yy,cz+az)],
+              rgb:[4,9,16],n:v3(0,1,0),part:null,mat:'felt',layer:(lay0||3)+i*0.01,
+              alpha:a*lay[i][1],outline:false,flat:true});
+    }
+  }
+}
+/* 面片着色：Lambert 主光 + 补光 + 天光环境 + Blinn 高光 */
+function litColor(f,ctr,hi){
+  if(f.flat) return 'rgb('+f.rgb[0]+','+f.rgb[1]+','+f.rgb[2]+')';
+  var m=MAT[f.mat]||MAT.plastic, n=f.n;
+  var V=norm(sub(B.eye,ctr));
+  if(dot(n,V)<0) n=mul(n,-1);                   // 双面光照：法向始终朝向相机
+  var d1=Math.max(0,dot(n,LKEY)), d2=Math.max(0,dot(n,LFIL));
+  var sky=0.5+0.5*n.y;                          // 上方天光更亮，下方地面反射更暗
+  var k=m.amb*(0.72+0.42*sky)+0.74*d1+0.24*d2;
+  var Hh=norm(add(LKEY,V));
+  var sp=Math.pow(Math.max(0,dot(n,Hh)),m.shin)*m.gloss;
+  var r=f.rgb[0]*k+sp*255, g=f.rgb[1]*k+sp*252, b=f.rgb[2]*k+sp*240;
+  if(hi){ r=r*0.55+255*0.45; g=g*0.55+206*0.45; b=b*0.55+96*0.45; }
+  return 'rgb('+(clamp(r,0,255)|0)+','+(clamp(g,0,255)|0)+','+(clamp(b,0,255)|0)+')';
+}
+
+/* ---------- 部件说明（点击/悬停显示） ---------- */
+var PARTS={
+  base:{n:'底座与固定夹',d:'用铁夹把计时器竖直固定在长木板末端，保证纸带水平通过。'},
+  coil:{n:'线圈（电磁铁）',d:'接 4~6 V 交流电。电流方向每 1/100 s 改变一次，线圈磁性随之变化。'},
+  magnet:{n:'永久磁铁',d:'与线圈配合，使振片被交替吸引和释放，从而周期性振动。'},
+  reed:{n:'振片与振针',d:'振片带动振针上下振动，每振动一次打一个点。50 Hz 下每 0.02 s 打一点。'},
+  carbon:{n:'复写纸片',d:'必须放在纸带上方、有墨的一面朝下对着纸带。装反则打不出点迹。'},
+  tape:{n:'纸带',d:'穿过限位孔并压在复写纸下方。纸带上的点迹记录了时间与位移。'},
+  hole:{n:'限位孔',d:'约束纸带只能沿直线滑动，防止跑偏、卡带。纸带必须穿过它。'},
+  plug:{n:'接线柱',d:'电磁式接 4~6 V 低压交流电源，绝不能接直流或 220 V。'},
+  spark:{n:'放电针',d:'脉冲高压在放电针与墨粉纸盘之间放电，火花在纸带上烧出细小墨点。'},
+  disc:{n:'墨粉纸盘',d:'套在中心轴上，随纸带转动。火花使墨粉转印到纸带，点迹清晰。'},
+  hv:{n:'脉冲高压电源',d:'220 V 交流经内部电路产生脉冲高压，每 0.02 s 放电一次。使用时注意安全。'},
+  body:{n:'外壳',d:'保护内部结构。开启剖面透视可以看到里面的工作部件。'},
+  car:{n:'小车',d:'拖着纸带做匀加速运动，纸带上间隔越来越大的点迹就是它的运动记录。'},
+  board:{n:'长木板',d:'实验平台。计时器固定在末端，板面贴有刻度尺，小车在板上运动。'},
+  table:{n:'实验台',d:'实验桌面。长木板放在桌面上，注意木板要水平，否则会引入额外的分力。'}
+};
+
+/* ---------- 全局状态 ---------- */
+var S={
+  machine:'em',        // 'em' 电磁式 | 'spark' 电火花式
+  step:0,              // 0..4
+  playing:true,
+  speed:1,
+  cut:false,           // 剖面透视
+  labels:true,
+  acc:2, v0:0, freq:50,
+  t:0,                 // 小车运动时间
+  running:false,       // 小车是否在跑
+  powered:false,       // 是否通电
+  dots:[],             // 纸带点迹位置(m)
+  vibPhase:0,
+  sparkFlash:0,
+  hover:null, picked:null,
+  err:null, errT:0,
+  everyFive:true,
+  tapeDone:false,
+  msgTimer:0
+};
+var TAPE_LEN=1.1;      // 三维里纸带可见长度参考
+/* ---------- 场景常量 ---------- */
+var TABLE_Y=-0.58;     // 桌面高度
+var BOARD_Y=-0.15;     // 长木板上表面
+var TAPE_Y=0.075;      // 纸带所在高度（贴着计时器底板通过）
+var TIMER_X=-1.95;     // 计时器中心 x
+var CAR_X0=0.55;       // 小车初始 x（三维单位）
+var PX_PER_M=1.85;     // 1 m 对应三维单位
+var CAR_STOP=4.55;     // 小车到达木板末端
+
+function carX(){ return CAR_X0 + (S.v0*S.t + 0.5*S.acc*S.t*S.t)*PX_PER_M; }
+
+function buildScene(){
+  var F=[],cxx=carX();
+  buildTable(F);
+  pushShadow(F,TABLE_Y+0.008,-3.10,5.22,-0.80,1.16,0.40,3);              // 木板落在桌面
+  buildBoard(F);
+  pushShadow(F,BOARD_Y+0.014,TIMER_X-0.98,TIMER_X+1.04,-0.60,0.86,0.34,8); // 计时器落在木板
+  pushShadow(F,BOARD_Y+0.022,cxx-0.48,cxx+0.54,-0.34,0.52,0.32,8);       // 小车落在木板
+  if(S.step>=1) pushShadow(F,BOARD_Y+0.030,-3.20,cxx-0.52,-0.12,0.26,0.16,9); // 纸带落在木板
+  buildTimer(F);
+  buildTape(F);
+  buildCar(F);
+  return F;
+}
+
+/* ---------- 实验台桌面 ---------- */
+function buildTable(F){
+  var x0=-4.05,x1=5.85,z0=-1.75,z1=1.75,NS=28;
+  pushBox(F,(x0+x1)/2,TABLE_Y-0.11,(z0+z1)/2, x1-x0,0.22,z1-z0,'#6d5c48','table',{mat:'wood',skip:[4],layer:1});
+  for(var s=0;s<NS;s++){                       // 桌面沿 x 细分，保证深度排序正确
+    var xa=lerp(x0,x1,s/NS), xb=lerp(x0,x1,(s+1)/NS);
+    pushQuad(F,v3(xa,TABLE_Y,z0),v3(xb,TABLE_Y,z0),v3(xb,TABLE_Y,z1),v3(xa,TABLE_Y,z1),
+             '#6d5c48','table',{mat:'wood',outline:false,layer:1});
+  }
+  for(var i=0;i<6;i++){                        // 桌面木纹（分段，避免长面片破坏深度排序）
+    var z=z0+0.24+i*0.55;
+    for(var s2=0;s2<NS;s2++){
+      var ga=lerp(x0,x1,s2/NS), gb=lerp(x0,x1,(s2+1)/NS);
+      pushQuad(F,v3(ga,TABLE_Y+0.004,z),v3(gb,TABLE_Y+0.004,z),
+                 v3(gb,TABLE_Y+0.004,z+0.055),v3(ga,TABLE_Y+0.004,z+0.055),'#63523f','table',{mat:'wood',outline:false,layer:2});
+    }
+  }
+}
+
+/* ---------- 长木板（带刻度尺） ---------- */
+function buildBoard(F){
+  var x0=-3.30,x1=5.10,cy=BOARD_Y-0.11,NS=28;
+  // 侧面与底面用整块盒子；顶面沿 x 细分，避免大面片在画家算法里盖住上方的纸带
+  pushBox(F,(x0+x1)/2,cy,0, x1-x0,0.22,1.92,'#ab8253','board',{mat:'wood',skip:[4],layer:4});
+  for(var s=0;s<NS;s++){
+    var xa=lerp(x0,x1,s/NS), xb=lerp(x0,x1,(s+1)/NS);
+    pushQuad(F,v3(xa,BOARD_Y,-0.96),v3(xb,BOARD_Y,-0.96),
+               v3(xb,BOARD_Y,0.96),v3(xa,BOARD_Y,0.96),'#ab8253','board',{mat:'wood',outline:false,layer:4});
+  }
+  // 板面顺纹
+  for(var i=0;i<9;i++){
+    var x=x0+0.20+i*0.92;
+    pushQuad(F,v3(x,BOARD_Y+0.002,-0.86),v3(x+0.06,BOARD_Y+0.002,-0.86),
+               v3(x+0.06,BOARD_Y+0.002,0.86),v3(x,BOARD_Y+0.002,0.86),'#9a7343','board',{mat:'wood',layer:5});
+  }
+  // 贴在板面上的刻度尺（同样沿 x 细分）
+  var y=BOARD_Y+0.006, rx0=x0+0.10, rx1=x1-0.24;
+  for(var s2=0;s2<NS;s2++){
+    var ra=lerp(rx0,rx1,s2/NS), rb=lerp(rx0,rx1,(s2+1)/NS);
+    pushQuad(F,v3(ra,y,-0.92),v3(rb,y,-0.92),v3(rb,y,-0.68),v3(ra,y,-0.68),
+             '#ece6d6','board',{mat:'paper',outline:false,layer:6});
+  }
+  for(var k=0;k<=40;k++){
+    var xx=rx0+k*0.2015, big=(k%5===0);
+    pushQuad(F,v3(xx,y+0.003,-0.92),v3(xx+0.018,y+0.003,-0.92),
+               v3(xx+0.018,y+0.003,big?-0.74:-0.83),v3(xx,y+0.003,big?-0.74:-0.83),'#39404b','board',{mat:'paper',layer:7});
+  }
+  // 末端挡板（立体件，回到常规深度排序）
+  pushBox(F,x1+0.08,BOARD_Y+0.11,0, 0.16,0.30,1.92,'#916c3e','board',{mat:'wood'});
+}
+
+/* ---------- 计时器主体 ---------- */
+function buildTimer(F){
+  var em = S.machine==='em';
+  var cx = TIMER_X;
+  var shellA = S.cut?0.17:1;              // 剖面时外壳半透明
+  var accent = em?'#2f6bbf':'#c9691f';
+
+  /* --- 铁夹：把计时器压在长木板末端 --- */
+  pushBox(F,cx-1.06,BOARD_Y+0.02,0, 0.13,0.50,1.44,'#828d9c','base',{mat:'metal'});
+  pushBox(F,cx-1.06,BOARD_Y-0.32,0, 0.38,0.11,1.44,'#74808f','base',{mat:'metal'});
+  pushCyl(F,cx-1.06,BOARD_Y-0.44,0.50, 0.065,0.30,'y','#9aa4b2','base',{mat:'metal',seg:12});
+  pushCyl(F,cx-1.06,BOARD_Y-0.60,0.50, 0.115,0.05,'y','#b3bcc8','base',{mat:'metal',seg:14});
+
+  /* --- 胶木底板（两级台阶）：排在纸带之前，纸带才能压在台面上 --- */
+  pushBox(F,cx,BOARD_Y+0.085,0, 2.02,0.17,1.52,'#4a5361','base',{mat:'bakelite',layer:9.4});
+  pushBox(F,cx,0.035,0, 1.86,0.03,1.38,'#555f6e','base',{mat:'bakelite',layer:9.5});
+  for(var sv=0;sv<4;sv++){                       // 底板四角螺钉
+    var sx=cx+(sv<2?-0.88:0.88), sz=(sv%2?0.62:-0.62);
+    pushCyl(F,sx,0.058,sz, 0.045,0.03,'y','#9aa4b2','base',{mat:'metal',seg:10});
+  }
+  if(em){
+    /* ===== 电磁打点计时器 ===== */
+    var vy=vibOffset();
+    /* 线圈柱：胶木外壳 + 内部绕线 */
+    pushCyl(F,cx-0.44,0.28,0, 0.40,0.46,'y','#39414d','body',{alpha:shellA,mat:'bakelite',seg:26});
+    pushCyl(F,cx-0.44,0.545,0, 0.43,0.07,'y','#8b95a3','body',{mat:'metal',seg:26});
+    pushCyl(F,cx-0.44,0.28,0, 0.27,0.42,'y','#a9782f','coil',{mat:'brass',seg:20});
+    for(var i=0;i<6;i++){
+      pushCyl(F,cx-0.44,0.11+i*0.07,0, 0.305,0.045,'y','#c08a35','coil',{seg:18,caps:false,mat:'brass'});
+    }
+    /* 永久磁铁（剖面可见） */
+    pushBox(F,cx-0.44,0.28,-0.30, 0.52,0.40,0.10,'#9099a6','magnet',{mat:'steel'});
+    pushBox(F,cx-0.44,0.28, 0.30, 0.52,0.40,0.10,'#9099a6','magnet',{mat:'steel'});
+    /* 振片：钢片一端固定在线圈柱顶，另一端随电流上下振动 */
+    pushBox(F,cx-0.44,0.585,0, 0.30,0.05,0.26,'#c4ccd8','reed',{mat:'steel'});
+    pushBox(F,cx+0.14,0.565+vy*0.45,0, 1.20,0.035,0.22,'#cfd6e2','reed',{mat:'steel'});
+    /* 振针 + 针尖：下压时针尖压在复写纸片上，把墨迹打到纸带上 */
+    pushCyl(F,cx+0.66,0.365+vy,0, 0.022,0.34,'y','#dfe5ee','reed',{mat:'metal',seg:12});
+    pushCyl(F,cx+0.66,0.185+vy,0, 0.012,0.05,'y','#e8c46a','reed',{mat:'brass',seg:10});
+    /* 复写纸片：圆片压在纸带【上方】，有墨的一面朝下 */
+    var flip = S.err==='carbonFlip';
+    pushDisc(F,cx+0.66,TAPE_Y+0.032,0, 0.22, flip?'#e6e1d4':'#2c2536','carbon',0.4,'felt');
+    pushCyl(F,cx+0.66,TAPE_Y+0.076,0, 0.030,0.05,'y','#8b95a3','carbon',{mat:'metal',seg:10});
+    /* 接线柱：红黑两个，接 4~6V 交流 */
+    var pz=[-0.46,0.46],pc=['#b8352f','#26262c'];
+    for(var t=0;t<2;t++){
+      pushCyl(F,cx-0.78,0.11,pz[t], 0.05,0.15,'y','#b9903c','plug',{mat:'brass',seg:12});
+      pushCyl(F,cx-0.78,0.215,pz[t], 0.082,0.08,'y',pc[t],'plug',{mat:'plastic',seg:14});
+    }
+    /* 铭牌：平贴在胶木底板上（纸带走中线，铭牌贴在靠前的空白处） */
+    pushQuad(F,v3(cx-0.06,0.053,0.30),v3(cx+0.86,0.053,0.30),
+               v3(cx+0.86,0.053,0.66),v3(cx-0.06,0.053,0.66),'#ded8c6','body',{mat:'paper'});
+    pushQuad(F,v3(cx-0.06,0.055,0.30),v3(cx+0.86,0.055,0.30),
+               v3(cx+0.86,0.055,0.37),v3(cx-0.06,0.055,0.37),accent,'body',{mat:'paper'});
+  }else{
+    /* ===== 电火花计时器 ===== */
+    /* 脉冲高压电源模块（机身左半，靠后布置，把中线让给纸带通道） */
+    pushBox(F,cx-0.46,0.31,-0.42, 1.02,0.52,0.52,'#a2571d','body',{alpha:shellA,mat:'bakelite'});
+    pushBox(F,cx-0.46,0.585,-0.42, 1.06,0.04,0.56,'#8c4a18','body',{alpha:shellA,mat:'bakelite'});
+    /* 面板：铭牌 + 电源指示灯 + 开关 */
+    pushQuad(F,v3(cx-0.92,0.20,-0.155),v3(cx-0.10,0.20,-0.155),
+               v3(cx-0.10,0.46,-0.155),v3(cx-0.92,0.46,-0.155),'#e8dcc4','hv',{mat:'paper'});
+    pushCyl(F,cx-0.24,0.33,-0.150, 0.055,0.03,'z',S.powered?'#ff5f4a':'#7d3b32','hv',
+            {mat:'plastic',seg:14,glow:S.powered?0.55:0});
+    pushBox(F,cx-0.72,0.33,-0.138, 0.16,0.13,0.05,'#2a2a30','hv',{mat:'plastic'});
+    /* 220V 电源线 */
+    pushCyl(F,cx-1.06,0.16,-0.40, 0.05,0.34,'x','#22222a','hv',{mat:'rubber',seg:12});
+    /* 铭牌：平贴在底板靠前的空白处 */
+    pushQuad(F,v3(cx-0.88,0.053,0.24),v3(cx-0.04,0.053,0.24),
+               v3(cx-0.04,0.053,0.58),v3(cx-0.88,0.053,0.58),'#ded8c6','body',{mat:'paper'});
+    pushQuad(F,v3(cx-0.88,0.055,0.24),v3(cx-0.04,0.055,0.24),
+               v3(cx-0.04,0.055,0.31),v3(cx-0.88,0.055,0.31),accent,'body',{mat:'paper'});
+    /* 墨粉纸盘：套在定位轴上、压在纸带【上方】，随纸带转动
+       放电顺序：放电针 → 墨粉纸盘 → 纸带 → 下极板 */
+    var rot=S.dots.length*0.32, dy0=TAPE_Y+0.030;
+    pushDisc(F,cx+0.62,dy0,0, 0.32,'#2a2d35','disc',rot,'felt');
+    pushCyl(F,cx+0.62,dy0+0.032,0, 0.048,0.04,'y','#a7b0bc','disc',{mat:'metal',seg:14});
+    /* 放电针支架 + 放电针（针尖悬在纸盘上方，留出放电间隙） */
+    pushBox(F,cx+0.62,0.34,-0.52, 0.14,0.58,0.12,'#3a414c','spark',{mat:'bakelite'});
+    pushBox(F,cx+0.62,0.56,-0.26, 0.12,0.07,0.64,'#3a414c','spark',{mat:'bakelite'});
+    pushCyl(F,cx+0.62,0.40,0, 0.026,0.30,'y','#dde3ec','spark',{mat:'metal',seg:12});
+    pushCyl(F,cx+0.62,0.222,0, 0.012,0.05,'y','#f0d68e','spark',{mat:'brass',seg:10});
+    /* 火花：放电瞬间在针尖与纸盘之间的间隙里高亮 */
+    if(S.sparkFlash>0){
+      var a=S.sparkFlash;
+      pushCyl(F,cx+0.62,0.178,0, 0.030+0.042*a,0.06,'y','#fff6d4','spark',{seg:12,glow:a,mat:'metal'});
+    }
+  }
+  /* --- 限位孔：纸带从这里穿过，只能沿直线滑动 --- */
+  var hx=cx+(em?1.02:0.98);
+  pushBox(F,hx,TAPE_Y+0.035,-0.24, 0.20,0.13,0.09,'#57c48c','hole',{mat:'plastic'});
+  pushBox(F,hx,TAPE_Y+0.035, 0.24, 0.20,0.13,0.09,'#57c48c','hole',{mat:'plastic'});
+  pushBox(F,hx,TAPE_Y+0.088,0,     0.20,0.03,0.57,'#49b57e','hole',{mat:'plastic'});
+  pushBox(F,hx,TAPE_Y-0.022,0,     0.20,0.02,0.57,'#3fa471','hole',{mat:'plastic'});
+}
+// 薄圆盘（墨粉纸盘 / 复写纸片）：rot 表示随纸带转过的角度
+function pushDisc(F,cx,cy,cz,r,color,part,rot,mat,lay){
+  var seg=26,th=0.018,rgb=hex2rgb(color),top=[],bot=[];
+  mat=mat||'felt';
+  for(var i=0;i<seg;i++){
+    var a=i/seg*Math.PI*2+rot;
+    top.push(v3(cx+Math.cos(a)*r, cy+th, cz+Math.sin(a)*r));
+    bot.push(v3(cx+Math.cos(-a)*r, cy-th, cz+Math.sin(-a)*r));
+  }
+  F.push({pts:top,rgb:rgb,n:v3(0,1,0),part:part,mat:mat,alpha:1,outline:false,layer:lay});
+  F.push({pts:bot,rgb:rgb,n:v3(0,-1,0),part:part,mat:mat,alpha:1,outline:false,layer:lay});
+  for(var k=0;k<seg;k++){
+    var a0=k/seg*Math.PI*2+rot,a1=(k+1)/seg*Math.PI*2+rot,am=(a0+a1)/2;
+    F.push({pts:[
+      v3(cx+Math.cos(a0)*r,cy-th,cz+Math.sin(a0)*r),
+      v3(cx+Math.cos(a1)*r,cy-th,cz+Math.sin(a1)*r),
+      v3(cx+Math.cos(a1)*r,cy+th,cz+Math.sin(a1)*r),
+      v3(cx+Math.cos(a0)*r,cy+th,cz+Math.sin(a0)*r)],
+      rgb:rgb,n:v3(Math.cos(am),0,Math.sin(am)),part:part,mat:mat,alpha:1,outline:false,layer:lay});
+  }
+  // 盘面放射刻纹：转动时能看出来
+  var mr=Math.min(255,rgb[0]+46),mg=Math.min(255,rgb[1]+46),mb=Math.min(255,rgb[2]+46);
+  for(var m=0;m<10;m++){
+    var a=m/10*Math.PI*2+rot;
+    F.push({pts:[
+      v3(cx+Math.cos(a)*r*0.30, cy+th+0.001, cz+Math.sin(a)*r*0.30),
+      v3(cx+Math.cos(a+0.06)*r*0.94, cy+th+0.001, cz+Math.sin(a+0.06)*r*0.94),
+      v3(cx+Math.cos(a+0.12)*r*0.94, cy+th+0.001, cz+Math.sin(a+0.12)*r*0.94),
+      v3(cx+Math.cos(a+0.05)*r*0.30, cy+th+0.001, cz+Math.sin(a+0.05)*r*0.30)],
+      rgb:[mr,mg,mb],n:v3(0,1,0),part:part,mat:mat,alpha:1,outline:false,layer:lay});
+  }
+}
+/* 振针偏移：随电源频率上下振动 */
+function vibOffset(){
+  if(!S.powered) return 0;
+  // 下压快、回弹慢：更像振片被吸下再弹起
+  var u=S.vibPhase-Math.floor(S.vibPhase);
+  var s=u<0.34 ? (u/0.34) : (1-(u-0.34)/0.66);
+  return -0.055*s*s*(3-2*s);
+}
+
+/* ---------- 纸带 ---------- */
+function strikeX(){ return TIMER_X+(S.machine==='em'?0.66:0.62); }
+function buildTape(F){
+  if(S.step<1) return;                 // 第 2 步才穿纸带
+  var y=TAPE_Y, z0=-0.19, z1=0.19, th=0.014;
+  var noHole = S.err==='noHole';
+  var xL=-3.28, xR=carX()-0.50;
+  if(xR<xL+0.6) xR=xL+0.6;
+  var segs=22, up=noHole?0.13:0;
+  // 带面：分段生成，让纸带有轻微垂垂/扭曲的质感
+  for(var s=0;s<segs;s++){
+    var t0=s/segs, t1=(s+1)/segs;
+    var xa=lerp(xL,xR,t0), xb=lerp(xL,xR,t1);
+    var ya=y+up*t0*t0+Math.sin(t0*7.1+1.2)*0.006;
+    var yb=y+up*t1*t1+Math.sin(t1*7.1+1.2)*0.006;
+    var za=noHole? Math.sin(t0*4.3)*0.13 : 0;
+    var zb=noHole? Math.sin(t1*4.3)*0.13 : 0;
+    pushQuad(F,v3(xa,ya,z0+za),v3(xb,yb,z0+zb),v3(xb,yb,z1+zb),v3(xa,ya,z1+za),
+             '#eae5d6','tape',{mat:'paper',layer:10});
+    pushQuad(F,v3(xa,ya,z1+za),v3(xb,yb,z1+zb),v3(xb,yb-th,z1+zb),v3(xa,ya-th,z1+za),
+             '#cdc7b6','tape',{mat:'paper',layer:10});
+    pushQuad(F,v3(xa,ya-th,z0+za),v3(xb,yb-th,z0+zb),v3(xb,yb,z0+zb),v3(xa,ya,z0+za),
+             '#cdc7b6','tape',{mat:'paper',layer:10});
+  }
+  // 点迹：圆形墨点，带轻微墨晕
+  // 打下的点固定在纸带上，纸带被小车拖着走，所以点会随小车一起离开振针
+  var sx=strikeX(), em=S.machine==='em', D=(carX()-CAR_X0)/PX_PER_M;
+  var r=em?0.038:0.023, rgb=em?[34,37,45]:[12,14,19];
+  for(var i=0;i<S.dots.length;i++){
+    var px = sx + (D-S.dots[i])*PX_PER_M;
+    if(px<xL+0.03||px>xR-0.03) continue;
+    var tt=(px-xL)/Math.max(xR-xL,1e-6);
+    var dy = y+up*tt*tt+Math.sin(tt*7.1+1.2)*0.006+0.003;
+    var dz = noHole? Math.sin(tt*4.3)*0.13+Math.sin(i*2.7)*0.06 : 0;
+    var ring=[];
+    for(var k=0;k<10;k++){
+      var a=k/10*Math.PI*2;
+      ring.push(v3(px+Math.cos(a)*r, dy, dz+Math.sin(a)*r*0.92));
+    }
+    F.push({pts:ring,rgb:rgb,n:v3(0,1,0),part:'tape',mat:'paper',alpha:1,outline:false,layer:11});
+  }
+}
+
+/* ---------- 小车 ---------- */
+function buildCar(F){
+  var x=carX(), by=BOARD_Y+0.20;
+  // 车身
+  pushBox(F,x,by,0, 1.00,0.20,0.80,'#b8452f','car',{mat:'plastic'});
+  pushBox(F,x,by+0.125,0, 0.94,0.05,0.74,'#8f3323','car',{mat:'plastic'});
+  // 车顶配重块
+  pushBox(F,x+0.02,by+0.215,0, 0.52,0.13,0.50,'#6d757f','car',{mat:'metal'});
+  // 车轮 + 轮轴
+  var wx=[x-0.32,x+0.32],wz=[-0.44,0.44];
+  for(var i=0;i<2;i++){
+    pushCyl(F,wx[i],BOARD_Y+0.10,0, 0.028,0.86,'z','#8b94a1','car',{mat:'metal',seg:10});
+    for(var j=0;j<2;j++){
+      pushCyl(F,wx[i],BOARD_Y+0.10,wz[j], 0.10,0.07,'z','#26292f','car',{mat:'rubber',seg:16});
+      pushCyl(F,wx[i],BOARD_Y+0.10,wz[j]+(j?0.036:-0.036), 0.045,0.012,'z','#b9c1cc','car',{mat:'metal',seg:12});
+    }
+  }
+  // 纸带夹：把纸带别在车尾
+  pushBox(F,x-0.52,by-0.02,0, 0.09,0.13,0.26,'#dfe4ec','car',{mat:'metal'});
+  pushCyl(F,x-0.52,by+0.075,0, 0.022,0.09,'y','#9aa4b2','car',{mat:'metal',seg:10});
+}
+
+/* ---------- 渲染 ---------- */
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var W=0,H=0,DPR=1;
+function resize(){
+  var st=document.getElementById('stage');
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=st.clientWidth; H=st.clientHeight;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resize);
+
+var faceCache=[];
+function render(){
+  ctx.clearRect(0,0,W,H);
+  B=camBasis();
+  var F=buildScene();
+  // 投影 + 深度 + 面心（供高光计算）
+  var list=[];
+  for(var i=0;i<F.length;i++){
+    var f=F[i],p=[],zs=0,ok=true,cxx=0,cyy=0,czz=0,L=f.pts.length;
+    for(var j=0;j<L;j++){
+      var pt=f.pts[j],q=project(pt,W,H);
+      if(q.z<=0.06){ok=false;break;}
+      p.push(q); zs+=q.z; cxx+=pt.x; cyy+=pt.y; czz+=pt.z;
+    }
+    if(!ok||p.length<3) continue;
+    list.push({p:p,z:zs/p.length,f:f,c:v3(cxx/L,cyy/L,czz/L)});
+  }
+  /* 桌面—木板—刻度尺—纸带—点迹这些几乎共面的"贴花"用固定图层号强制先后，
+     其余立体物件（计时器、小车）统一为 20，仍按深度排序 */
+  list.sort(function(a,b){
+    var la=a.f.layer==null?20:a.f.layer, lb=b.f.layer==null?20:b.f.layer;
+    if(la!==lb) return la-lb;
+    return b.z-a.z;
+  });
+  faceCache=list;
+
+  for(var m=0;m<list.length;m++){
+    var it=list[m],f=it.f,pp=it.p;
+    ctx.beginPath();
+    ctx.moveTo(pp[0].x,pp[0].y);
+    for(var n=1;n<pp.length;n++) ctx.lineTo(pp[n].x,pp[n].y);
+    ctx.closePath();
+    var isHi = (S.picked&&f.part===S.picked)||(S.hover&&f.part===S.hover);
+    ctx.globalAlpha=f.alpha;
+    if(f.glow){
+      ctx.shadowColor='rgba(255,230,150,.95)'; ctx.shadowBlur=26*f.glow;
+    }
+    ctx.fillStyle=litColor(f,it.c,isHi);
+    ctx.fill();
+    ctx.shadowBlur=0;
+    if(f.outline||isHi){
+      ctx.lineWidth=isHi?1.5:0.6;
+      ctx.strokeStyle=isHi?'rgba(255,215,107,.92)':'rgba(6,10,18,.30)';
+      ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+  drawLabels();
+  drawSparkArc();
+}
+/* ---------- 引线标注 ---------- */
+function labelSet(){
+  var cx=TIMER_X;
+  if(S.machine==='em'){
+    var L=[
+      {p:v3(cx-0.44,0.52,0),  t:'线圈外壳',   part:'body', dx:-84,dy:-56},
+      {p:v3(cx+0.66,0.42,0),  t:'振针',       part:'reed', dx:46, dy:-74},
+      {p:v3(cx+0.66,TAPE_Y+0.05,0),t:'复写纸片',part:'carbon',dx:60,dy:-30},
+      {p:v3(cx+1.02,TAPE_Y+0.09,0.28),t:'限位孔',part:'hole',dx:86, dy:26},
+      {p:v3(cx-0.78,0.22,0),  t:'接线柱 4~6V交流',part:'plug',dx:-112,dy:26},
+      {p:v3(cx-1.06,BOARD_Y,0),t:'铁夹',      part:'base', dx:-58,dy:52}
+    ];
+    if(S.cut){
+      L.push({p:v3(cx-0.44,0.28,0),    t:'线圈（电磁铁）',part:'coil',  dx:-132,dy:-4});
+      L.push({p:v3(cx-0.44,0.28, 0.30),t:'永久磁铁',      part:'magnet',dx:-96, dy:58});
+      L.push({p:v3(cx+0.14,0.57,0),    t:'振片',          part:'reed',  dx:-30,dy:-86});
+    }
+    return L;
+  }
+  var L2=[
+    {p:v3(cx-0.46,0.60,-0.42),t:'脉冲高压电源 220V',part:'hv',dx:-116,dy:-52},
+    {p:v3(cx+0.62,TAPE_Y+0.05,0.30),t:'墨粉纸盘',part:'disc',dx:88, dy:-14},
+    {p:v3(cx+0.62,0.36,0),  t:'放电针',      part:'spark',dx:54, dy:-76},
+    {p:v3(cx+0.98,TAPE_Y+0.09,0.28),t:'限位孔',part:'hole',dx:52, dy:72},
+    {p:v3(cx-0.24,0.33,-0.14),t:'电源指示灯', part:'hv',   dx:-44,dy:54},
+    {p:v3(cx-1.06,BOARD_Y,0),t:'铁夹',       part:'base', dx:-58,dy:52}
+  ];
+  return L2;
+}
+function drawLabels(){
+  if(!S.labels) return;
+  var L=labelSet();
+  ctx.save();
+  ctx.font='600 11px '+TEMPLATE_CANVAS_FONT;
+  ctx.textBaseline='middle';
+  for(var i=0;i<L.length;i++){
+    var it=L[i],q=project(it.p,W,H);
+    if(q.z<=0.1) continue;
+    var tx=q.x+it.dx, ty=q.y+it.dy;
+    var hi=(S.picked===it.part||S.hover===it.part);
+    var wid=ctx.measureText(it.t).width+12;
+    // 引线
+    ctx.beginPath();
+    ctx.moveTo(q.x,q.y);
+    ctx.lineTo(tx+(it.dx<0?wid/2:-wid/2), ty);
+    ctx.strokeStyle=hi?'rgba(255,215,107,.9)':'rgba(180,200,230,.42)';
+    ctx.lineWidth=hi?1.4:1;
+    ctx.stroke();
+    // 锚点
+    ctx.beginPath();ctx.arc(q.x,q.y,2.6,0,6.283);
+    ctx.fillStyle=hi?TEMPLATE_VIZ.gravity:'#9fb6d8';ctx.fill();
+    // 文字底
+    ctx.beginPath();
+    var bx=tx-wid/2, by=ty-9;
+    roundRect(ctx,bx,by,wid,18,6);
+    ctx.fillStyle=hi?'rgba(60,48,16,.92)':'rgba(11,20,36,.80)';ctx.fill();
+    ctx.strokeStyle=hi?'rgba(255,215,107,.8)':'rgba(120,142,178,.34)';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle=hi?'#ffe9a8':'#d6e3f6';
+    ctx.textAlign='center';
+    ctx.fillText(it.t,tx,ty+.5);
+  }
+  ctx.restore();
+}
+function roundRect(c,x,y,w,h,r){
+  c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
+}
+/* 火花电弧（电火花式打点瞬间） */
+function drawSparkArc(){
+  if(S.machine!=='spark'||S.sparkFlash<=0) return;
+  var cx=TIMER_X;
+  var a=project(v3(cx+0.62,0.197,0),W,H);          // 针尖
+  var b=project(v3(cx+0.62,TAPE_Y+0.048,0),W,H);   // 墨粉纸盘上表面
+  if(a.z<=0.1) return;
+  var k=S.sparkFlash;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  ctx.globalAlpha=k;
+  var R=34*(0.6+0.4*k);
+  var g=ctx.createRadialGradient(a.x,a.y,0,a.x,a.y,R);
+  g.addColorStop(0,'rgba(255,252,232,.95)');
+  g.addColorStop(.28,'rgba(255,228,150,.60)');
+  g.addColorStop(.62,'rgba(255,186,72,.22)');
+  g.addColorStop(1,'rgba(255,170,50,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(a.x,a.y,R,0,6.283);ctx.fill();
+  // 锯齿电弧：两条细支，模拟放电通道
+  for(var s=0;s<2;s++){
+    ctx.beginPath();ctx.moveTo(a.x,a.y);
+    for(var i=1;i<=5;i++){
+      ctx.lineTo(a.x+(Math.random()-0.5)*8, a.y+(b.y-a.y)*i/5);
+    }
+    ctx.strokeStyle=s?'rgba(255,226,150,.72)':'rgba(255,255,246,.96)';
+    ctx.lineWidth=s?2.6:1.4;ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ---------- 拾取：点击选中部件 ---------- */
+function pickAt(mx,my){
+  for(var i=faceCache.length-1;i>=0;i--){
+    var it=faceCache[i];
+    if(it.f.alpha<0.3) continue;
+    if(pointInPoly(mx,my,it.p)) return it.f.part;
+  }
+  return null;
+}
+function pointInPoly(x,y,p){
+  var inside=false;
+  for(var i=0,j=p.length-1;i<p.length;j=i++){
+    if(((p[i].y>y)!==(p[j].y>y)) &&
+       (x < (p[j].x-p[i].x)*(y-p[i].y)/(p[j].y-p[i].y)+p[i].x)) inside=!inside;
+  }
+  return inside;
+}
+/* ---------- 拖拽 / 缩放 ---------- */
+var drag={on:false,x:0,y:0,moved:0};
+function localXY(e){
+  var r=cv.getBoundingClientRect();
+  return {x:e.clientX-r.left, y:e.clientY-r.top};
+}
+cv.addEventListener('pointerdown',function(e){
+  cv.setPointerCapture(e.pointerId);
+  var p=localXY(e);
+  drag.on=true;drag.x=p.x;drag.y=p.y;drag.moved=0;
+  cv.classList.add('dragging');
+});
+cv.addEventListener('pointermove',function(e){
+  var p=localXY(e);
+  if(drag.on){
+    var dx=p.x-drag.x, dy=p.y-drag.y;
+    drag.moved+=Math.abs(dx)+Math.abs(dy);
+    cam.yaw   -= dx*0.0072;
+    cam.pitch  = clamp(cam.pitch + dy*0.0058, PITCH_MIN, PITCH_MAX);
+    drag.x=p.x;drag.y=p.y;
+  }else{
+    var part=pickAt(p.x,p.y);
+    if(part!==S.hover){ S.hover=part; }
+    showTip(part,p.x,p.y);
+  }
+});
+function endDrag(e){
+  if(!drag.on) return;
+  drag.on=false;cv.classList.remove('dragging');
+  if(drag.moved<5){                      // 视为点击
+    var p=localXY(e);
+    var part=pickAt(p.x,p.y);
+    S.picked=(part===S.picked)?null:part;
+    if(part&&PARTS[part]) toast('【'+PARTS[part].n+'】'+PARTS[part].d);
+  }
+}
+cv.addEventListener('pointerup',endDrag);
+cv.addEventListener('pointercancel',function(){drag.on=false;cv.classList.remove('dragging');});
+cv.addEventListener('pointerleave',function(){S.hover=null;hideTip();});
+cv.addEventListener('wheel',function(e){
+  e.preventDefault();
+  cam.dist=clamp(cam.dist*(1+Math.sign(e.deltaY)*0.09), 6.5, 30);
+},{passive:false});
+// 双指缩放
+var pinch=null;
+cv.addEventListener('touchstart',function(e){
+  if(e.touches.length===2){
+    pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    drag.on=false;
+  }
+},{passive:true});
+cv.addEventListener('touchmove',function(e){
+  if(e.touches.length===2&&pinch){
+    e.preventDefault();
+    var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    cam.dist=clamp(cam.dist*(pinch/d), 6.5, 30);
+    pinch=d;
+  }
+},{passive:false});
+cv.addEventListener('touchend',function(){pinch=null;},{passive:true});
+// 键盘可达性
+cv.addEventListener('keydown',function(e){
+  var k=e.key;
+  if(k==='ArrowLeft'){cam.yaw+=0.09;e.preventDefault();}
+  else if(k==='ArrowRight'){cam.yaw-=0.09;e.preventDefault();}
+  else if(k==='ArrowUp'){cam.pitch=clamp(cam.pitch+0.07,PITCH_MIN,PITCH_MAX);e.preventDefault();}
+  else if(k==='ArrowDown'){cam.pitch=clamp(cam.pitch-0.07,PITCH_MIN,PITCH_MAX);e.preventDefault();}
+  else if(k==='+'||k==='='){cam.dist=clamp(cam.dist*0.9,6.5,30);}
+  else if(k==='-'){cam.dist=clamp(cam.dist*1.1,6.5,30);}
+});
+
+var tipEl=document.getElementById('partTip');
+function showTip(part,x,y){
+  if(!part||!PARTS[part]){hideTip();return;}
+  tipEl.innerHTML='<b>'+PARTS[part].n+'</b>'+PARTS[part].d;
+  tipEl.style.display='block';
+  var tw=tipEl.offsetWidth,th=tipEl.offsetHeight;
+  tipEl.style.left=clamp(x+14,6,W-tw-6)+'px';
+  tipEl.style.top =clamp(y+14,6,H-th-6)+'px';
+}
+function hideTip(){tipEl.style.display='none';}
+
+/* ---------- toast ---------- */
+var toastEl=document.getElementById('toast'),toastText=document.getElementById('toastText'),toastMath=document.getElementById('toastMath'),toastMathVisual=document.getElementById('toastMathVisual'),toastTimer=null;
+function toast(msg,ms){
+  toastText.hidden=false;toastText.textContent=msg;toastMath.hidden=true;toastMath.setAttribute('aria-hidden','true');toastEl.style.opacity='1';
+  if(toastTimer)clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){toastEl.style.opacity='0';},ms||3600);
+}
+
+/* ---------- 物理与打点 ---------- */
+var lastMs=performance.now();
+function tick(now){
+  var dt=Math.min((now-lastMs)/1000,0.05);
+  lastMs=now;
+  if(S.playing){
+    var sdt=dt*S.speed;
+    var t0=S.t;
+    if(S.running){
+      S.t += sdt;
+    }
+    var t1=S.t;
+    if(S.powered){
+      var p0=S.vibPhase;
+      S.vibPhase = p0 + sdt*S.freq;
+      // 在这一帧内跨过的每个整数相位都对应一次打点；
+      // 用线性插值求出打点瞬间小车的时刻，保证间隔精确。
+      var n=Math.floor(p0)+1;
+      while(n<=S.vibPhase){
+        var frac=(S.vibPhase>p0)?((n-p0)/(S.vibPhase-p0)):0;
+        onDot(t0+(t1-t0)*frac);
+        n++;
+      }
+      if(S.sparkFlash>0) S.sparkFlash=Math.max(0,S.sparkFlash-sdt*14);
+    }
+    if(S.running && carX()>CAR_STOP){ S.running=false; onCarStop(); }
+    if(S.errT>0){ S.errT=Math.max(0,S.errT-dt); if(S.errT===0) S.err=null; }
+  }
+  render();
+  if(S.tapeDirty){ S.tapeDirty=false; updateHUD(); drawTape(); }
+  requestAnimationFrame(tick);
+}
+// td = 打点瞬间小车已运动的时刻
+function onDot(td){
+  if(S.machine==='spark') S.sparkFlash=1;
+  if(S.err==='carbonFlip'||S.err==='noHole') return;   // 打不出点 / 点迹废掉
+  // 记录点迹位置（小车位移，单位 m）
+  var x=S.v0*td + 0.5*S.acc*td*td;
+  // 纸带不动时（未放车 / 车已停），振针反复打在同一处，
+  // 实际只是一个被反复加深的点，不产生新的点迹。
+  if(!S.running){
+    if(S.dots.length===0){ S.dots.push(x); S.tapeDirty=true; }
+    return;
+  }
+  var n=S.dots.length;
+  if(n>0 && Math.abs(x-S.dots[n-1])<1e-4) return;
+  S.dots.push(x);
+  if(S.dots.length>400) S.dots.shift();
+  S.tapeDirty=true;
+}
+function onCarStop(){
+  S.tapeDone=true;
+  toast('小车到达末端。按"先断电后取带"的顺序结束：现在应该先切断电源。');
+  setPhase('小车已停止');
+  drawTape();
+}
+/* ---------- 纸带展开视图 + 数据分析 ---------- */
+var tcv=document.getElementById('tapeCv'),tctx=tcv.getContext('2d');
+function drawTape(){
+  var cssW=tcv.clientWidth||420, cssH=96, dpr=Math.min(window.devicePixelRatio||1,2);
+  if(tcv.width!==Math.round(cssW*dpr)){
+    tcv.width=Math.round(cssW*dpr); tcv.height=Math.round(cssH*dpr);
+  }
+  tctx.setTransform(dpr,0,0,dpr,0,0);
+  tctx.clearRect(0,0,cssW,cssH);
+  // 纸带底
+  tctx.fillStyle='#f6f3ea';tctx.fillRect(0,26,cssW,44);
+  tctx.strokeStyle='#ddd8c8';tctx.lineWidth=1;tctx.strokeRect(.5,26.5,cssW-1,43);
+
+  var step=S.everyFive?5:1;
+  var pts=[];
+  for(var i=0;i<S.dots.length;i+=step) pts.push(S.dots[i]);
+  if(pts.length<2){
+    var msg=(S.err==='carbonFlip')
+      ? '复写纸装反了：纸带上打不出任何点迹'
+      : '通电并释放小车后，这里会显示打出的纸带';
+    tctx.fillStyle=(S.err==='carbonFlip')?'#b93c2d':'#9aa0aa';
+    tctx.font=((S.err==='carbonFlip')?'700 ':'')+'11px '+TEMPLATE_CANVAS_FONT;
+    tctx.textAlign='center';tctx.fillText(msg,cssW/2,52);
+    updateTable(null);return;
+  }
+  // 只显示最后一段能放下的点
+  var total=pts[pts.length-1]-pts[0];
+  var scale=(cssW-30)/Math.max(total,1e-6);
+  var maxShow=pts.length;
+  // 若太密，从后往前截取
+  while(maxShow>2 && (pts[pts.length-1]-pts[pts.length-maxShow])*scale>cssW-30) maxShow--;
+  var view=pts.slice(pts.length-Math.max(maxShow,2));
+  var span=view[view.length-1]-view[0];
+  var sc=span>1e-6 ? (cssW-34)/span : 0;
+  var x0=17;
+  var xs=view.map(function(p){return x0+(p-view[0])*sc;});
+  // 先放车后通电：纸带开头有一段空白（起始点丢失）
+  if(S.err==='lateOn'&&view[0]>1e-6){
+    var bw=Math.min(cssW*0.34,x0+ (view[0])*sc);
+    tctx.fillStyle='rgba(214,74,58,.13)';tctx.fillRect(0,26,bw,44);
+    tctx.setLineDash([4,3]);tctx.strokeStyle='#d64a3a';tctx.lineWidth=1.2;
+    tctx.beginPath();tctx.moveTo(bw,26);tctx.lineTo(bw,70);tctx.stroke();
+    tctx.setLineDash([]);
+    tctx.fillStyle='#b93c2d';tctx.font='700 11px '+TEMPLATE_CANVAS_FONT;
+    tctx.textAlign='center';tctx.fillText('空白：起始点丢失',bw/2,48);
+  }
+  // 纸带不动时反复打点形成的黑团（先取带后断电）
+  if(S.err==='lateOff'){
+    tctx.fillStyle='rgba(20,22,28,.85)';
+    tctx.beginPath();tctx.arc(xs[xs.length-1],48,7.5,0,6.283);tctx.fill();
+    tctx.fillStyle='#b93c2d';tctx.font='700 11px '+TEMPLATE_CANVAS_FONT;
+    tctx.textAlign='right';tctx.fillText('原地重复打点 →',xs[xs.length-1]-11,48);
+  }
+  // 点迹
+  var jit=(S.err==='noHole')?1:0;      // 没穿限位孔：点迹歪斜不成直线
+  for(var k=0;k<xs.length;k++){
+    var dy=jit? (Math.sin(k*2.7)*6+Math.sin(k*1.1)*3) : 0;
+    tctx.beginPath();
+    tctx.arc(xs[k],48+dy,(S.machine==='em')?3.2:2.1,0,6.283);
+    tctx.fillStyle=(S.machine==='em')?'#2a2d34':'#0d0f13';tctx.fill();
+    if(k>=xs.length-3&&!jit){
+      tctx.beginPath();tctx.arc(xs[k],48,6.5,0,6.283);
+      tctx.strokeStyle='#e66d26';tctx.lineWidth=1.4;tctx.stroke();
+    }
+  }
+  // 最后两段间隔标注 s1 s2
+  if(xs.length>=3){
+    var i1=xs.length-3,i2=xs.length-2,i3=xs.length-1;
+    dimLine(tctx,xs[i1],xs[i2],70,'s₁','#2557d6');
+    dimLine(tctx,xs[i2],xs[i3],70,'s₂','#e66d26');
+    tctx.fillStyle='#5c6678';tctx.font='11px '+TEMPLATE_CANVAS_FONT;
+    tctx.textAlign='left';tctx.fillText('运动方向 →',4,16);
+    tctx.textAlign='right';tctx.fillText('计数点间隔 T′='+(step/S.freq).toFixed(3)+' s',cssW-4,16);
+  }
+  var s1=view.length>=3?(view[view.length-2]-view[view.length-3]):null;
+  var s2=view.length>=3?(view[view.length-1]-view[view.length-2]):null;
+  updateTable({s1:s1,s2:s2,T:step/S.freq});
+}
+function dimLine(c,xa,xb,y,label,col){
+  c.strokeStyle=col;c.lineWidth=1.2;
+  c.beginPath();c.moveTo(xa,y);c.lineTo(xb,y);c.stroke();
+  [xa,xb].forEach(function(x){
+    c.beginPath();c.moveTo(x,y-4);c.lineTo(x,y+4);c.stroke();
+    c.beginPath();c.moveTo(x,52);c.lineTo(x,y-4);
+    c.strokeStyle='rgba(92,102,120,.35)';c.lineWidth=.8;c.stroke();
+    c.strokeStyle=col;c.lineWidth=1.2;
+  });
+  c.fillStyle=col;c.font='700 11px '+TEMPLATE_CANVAS_FONT;c.textAlign='center';
+  c.fillText(label,(xa+xb)/2,y+15);
+}
+function updateTable(d){
+  var g=function(id){return document.getElementById(id);};
+  var step=S.everyFive?5:1;
+  g('tT').textContent=(step/S.freq).toFixed(3)+' s';
+  if(!d||d.s1==null){
+    g('tS12').textContent='—；—';g('tDs').textContent='—';
+    g('tV').textContent='—';g('tA').textContent='—';return;
+  }
+  var T=d.T, s1=d.s1, s2=d.s2, ds=s2-s1;
+  g('tS12').textContent=(s1*100).toFixed(2)+'；'+(s2*100).toFixed(2)+' cm';
+  g('tDs').textContent=(ds*100).toFixed(2)+' cm';
+  g('tV').textContent=((s1+s2)/(2*T)).toFixed(3)+' m/s';
+  g('tA').textContent=(ds/(T*T)).toFixed(3)+' m/s²';
+}
+
+/* ---------- 面板更新 ---------- */
+function g(id){return document.getElementById(id);}
+function updateHUD(){
+  var em=S.machine==='em';
+  g('hudMachine').textContent=em?'电磁打点计时器':'电火花计时器';
+  g('hudPower').textContent=em?'4~6 V 交流':'220 V 交流';
+  g('hudT').textContent=(1/S.freq).toFixed(3)+' s';
+  g('hudDots').textContent=S.dots.length;
+  var x=S.v0*S.t+0.5*S.acc*S.t*S.t;
+  g('dX').textContent=x.toFixed(2)+' m';
+  g('dV').textContent=(S.v0+S.acc*S.t).toFixed(2)+' m/s';
+  g('dTime').textContent=S.t.toFixed(2)+' s';
+  g('dDots').textContent=S.dots.length;
+}
+function toastFormula(interval){
+  toastText.hidden=true;toastMath.hidden=false;toastMath.setAttribute('aria-hidden','false');
+  toastMath.setAttribute('aria-label','电源频率改变，打点间隔 T 等于一除以 f，当前为 '+interval+' 秒');
+  toastMathVisual.innerHTML='<span aria-hidden="true">电源频率改变：T=<span class="frac"><span class="num">1</span><span class="den">f</span></span> = <b>'+interval+' s</b></span>';
+  toastEl.style.opacity='1';clearTimeout(toastTimer);toastTimer=setTimeout(function(){toastEl.style.opacity='0';},2400);
+}
+function setPhase(t){ g('dPhase').textContent=t; }
+function setTrend(t,cls){
+  var el=g('dTrend');el.textContent=t;
+  el.className='trend-box'+(cls?' '+cls:'');
+}
+function updateMachineCard(){
+  var em=S.machine==='em';
+  g('sPower').textContent=em?'4~6 V 交流':'220 V 交流';
+  g('sFreq').textContent=S.freq+' Hz';
+  g('sT').textContent=(1/S.freq).toFixed(3)+' s';
+  g('sFric').textContent=em?'较大（振针压紧）':'很小（无接触）';
+  g('machineHint').innerHTML = em
+    ? '振针周期性下压，把复写纸的痕迹打在纸带上。<b>纸带受到的摩擦阻力较大</b>，测出的加速度会略偏小。'
+    : '脉冲高压在放电针与墨粉纸盘之间放电，火花直接在纸带上烧出墨点。<b>纸带几乎不受额外阻力</b>，点迹清晰、误差更小，但要注意 220 V 用电安全。';
+  document.querySelectorAll('.machine-switch button').forEach(function(b){
+    var on=b.dataset.m===S.machine;
+    b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');
+  });
+  updateHUD();
+}
+/* ---------- 步骤流程 ---------- */
+var STEP_INFO=[
+  {phase:'第 1 步 · 固定计时器',
+   trend:'计时器要竖直固定在长木板末端，让纸带能水平通过限位孔。',cls:''},
+  {phase:'第 2 步 · 穿纸带',
+   trend:'纸带穿过限位孔，压在复写纸下方。复写纸有墨的一面必须朝下。',cls:''},
+  {phase:'第 3 步 · 先接通电源',
+   trend:'听到连续均匀的打点声、点迹稳定后，才可以放小车。这一步先不要动小车。',cls:'is-ok'},
+  {phase:'第 4 步 · 后释放小车',
+   trend:'小车拖着纸带做匀加速运动，点迹间隔越来越大。',cls:'is-ok'},
+  {phase:'第 5 步 · 先断电再取带',
+   trend:'小车停下立刻断电，再取纸带。这样既不空打浪费纸带，也不会漏掉点迹。',cls:'is-ok'}
+];
+function applyStep(){
+  document.querySelectorAll('.step').forEach(function(b){
+    var n=+b.dataset.step;
+    b.classList.toggle('active',n===S.step);
+    b.classList.toggle('done',n<S.step);
+  });
+  var info=STEP_INFO[S.step];
+  setPhase(info.phase);setTrend(info.trend,info.cls);
+  // 状态推导
+  if(S.step<2){ S.powered=false; S.running=false; }
+  if(S.step===2){ S.powered=true; S.running=false; }
+  if(S.step===3){ S.powered=true; S.running=true; }
+  if(S.step===4){ S.powered=false; S.running=false; }
+  g('prevStep').disabled=(S.step===0);
+  g('nextStep').textContent=(S.step===4)?'完成':'下一步';
+  g('nextStep').disabled=(S.step===4);
+  updateHUD();drawTape();
+}
+g('nextStep').addEventListener('click',function(){
+  if(S.step>=4) return;
+  S.step++;
+  if(S.step===3){ S.t=0; }   // 从静止开始计时
+  applyStep();
+  if(S.step===2) toast('已接通电源。注意：此时小车还没放，计时器在原地打点——这正是"先通电"的含义。');
+  if(S.step===3) toast('释放小车。纸带被拖动，点迹间隔逐渐变大，说明小车在加速。');
+  if(S.step===4) toast('已切断电源。现在可以取下纸带做数据处理了。');
+});
+g('prevStep').addEventListener('click',function(){
+  if(S.step<=0) return;
+  S.step--;
+  if(S.step<3){ S.t=0; }
+  applyStep();
+});
+document.querySelectorAll('.step').forEach(function(b){
+  b.addEventListener('click',function(){
+    S.step=+b.dataset.step;
+    if(S.step<3) S.t=0;
+    applyStep();
+  });
+});
+
+/* ---------- 错误操作演示 ---------- */
+var ERRS={
+  lateOn:{
+    t:'先放车后通电',
+    msg:'小车已经跑出一段距离才通电——开头这段运动没有点迹，起始点丢失，无法算出真实初速度。',
+    run:function(){
+      // 小车 0 → 0.42 s 之间没有点迹，之后才开始打点
+      synth(0.42,1.30); S.powered=true;S.running=true;
+    }
+  },
+  lateOff:{
+    t:'先取带后断电',
+    msg:'小车停了却没断电，振针继续在同一位置反复打点，纸带末端被打成一团黑，还白白磨损设备。',
+    run:function(){
+      synth(0,1.30); S.powered=true;S.running=false;   // 车停了但仍在通电
+    }
+  },
+  noHole:{
+    t:'纸带没穿限位孔',
+    msg:'纸带没有被限位孔约束，会翘起、跑偏甚至卡住，点迹歪斜不成直线，间隔也不可靠。',
+    run:function(){ synth(0,1.10); S.powered=true;S.running=true; }
+  },
+  carbonFlip:{
+    t:'复写纸装反',
+    msg:'复写纸有墨的一面朝上了，振针压下去也印不到纸带上——纸带上几乎没有点迹。',
+    run:function(){ S.step=3;S.t=1.0;S.dots=[];S.powered=true;S.running=true;applyStep(); }
+  }
+};
+// 按理论公式直接生成 [ta, tb] 区间内的点迹，避免依赖动画时序
+function synth(ta,tb){
+  S.step=3;applyStep();
+  S.dots=[];S.t=tb;
+  var T=1/S.freq;
+  for(var t=ta;t<=tb+1e-9;t+=T){
+    S.dots.push(S.v0*t+0.5*S.acc*t*t);
+  }
+  updateHUD();
+};
+document.querySelectorAll('[data-err]').forEach(function(b){
+  b.addEventListener('click',function(){
+    var key=b.dataset.err,E=ERRS[key];
+    S.err=key;S.errT=6.5;
+    S.dots=[];S.t=0;
+    E.run();
+    toast('❌ 错误操作：'+E.t+'。'+E.msg,6500);
+    setTrend('❌ '+E.t+'：'+E.msg,'is-warn');
+    g('errHint').textContent=E.msg;
+    setTimeout(function(){ drawTape(); },80);
+  });
+});
+
+/* ---------- 控件绑定 ---------- */
+document.querySelectorAll('.machine-switch button').forEach(function(b){
+  b.addEventListener('click',function(){
+    S.machine=b.dataset.m;S.picked=null;
+    updateMachineCard();drawTape();
+    toast(S.machine==='em'
+      ? '电磁打点计时器：4~6 V 交流电源，靠振针和复写纸打点，纸带阻力较大。'
+      : '电火花计时器：220 V 交流电源，靠火花放电在墨粉纸盘上留点，阻力小、点迹清晰、误差更小。');
+  });
+});
+g('acc').addEventListener('input',function(){
+  S.acc=+this.value;g('accVal').textContent=S.acc.toFixed(2)+' m/s²';
+  S.t=0;S.dots=[];drawTape();updateHUD();
+});
+g('v0').addEventListener('input',function(){
+  S.v0=+this.value;g('v0Val').textContent=S.v0.toFixed(2)+' m/s';
+  S.t=0;S.dots=[];drawTape();updateHUD();
+});
+g('freq').addEventListener('input',function(){
+  S.freq=+this.value;g('freqVal').textContent=S.freq+' Hz';
+  S.dots=[];S.t=0;updateMachineCard();drawTape();
+  if(S.freq!==50) toastFormula((1/S.freq).toFixed(3));
+});
+g('everyFive').addEventListener('change',function(){
+  S.everyFive=this.checked;drawTape();
+});
+g('playPause').addEventListener('click',function(){
+  S.playing=!S.playing;
+  this.classList.toggle('is-playing',S.playing);
+  this.setAttribute('aria-pressed',S.playing?'true':'false');
+  g('playPauseLabel').textContent=S.playing?'暂停':'播放';
+});
+document.querySelectorAll('.speed-control button').forEach(function(b){
+  b.addEventListener('click',function(){
+    S.speed=+b.dataset.speed;
+    document.querySelectorAll('.speed-control button').forEach(function(x){
+      var on=x===b;x.classList.toggle('active',on);x.setAttribute('aria-pressed',on?'true':'false');
+    });
+    if(S.speed<=0.3) toast('慢放 '+S.speed+'×：可以看清振针每次下压（或每次火花放电）就打出一个点。');
+  });
+});
+g('cutToggle').addEventListener('click',function(){
+  S.cut=!S.cut;this.classList.toggle('on',S.cut);
+  toast(S.cut
+    ? (S.machine==='em'
+        ? '剖面透视：可以看到线圈、永久磁铁和振片。交流电使线圈磁性周期变化，振片被反复吸放。'
+        : '剖面透视：可以看到顶部脉冲高压模块与中心轴上的墨粉纸盘。')
+    : '已关闭剖面透视。');
+});
+g('labelToggle').addEventListener('click',function(){
+  S.labels=!S.labels;this.classList.toggle('on',S.labels);
+});
+g('reset').addEventListener('click',doReset);
+function doReset(){
+  S.step=0;S.t=0;S.dots=[];S.powered=false;S.running=false;
+  S.err=null;S.errT=0;S.picked=null;S.tapeDone=false;S.vibPhase=0;S.sparkFlash=0;
+  cam.yaw=camDefault.yaw;cam.pitch=camDefault.pitch;cam.dist=camDefault.dist;
+  g('errHint').textContent='点一个按钮，模型会演示后果并说明为什么。';
+  applyStep();drawTape();
+  toast('已重置。按"固定 → 穿带 → 通电 → 放车 → 断电取带"的顺序走一遍。');
+}
+// 移动端 tab
+g('tabControls').addEventListener('click',function(){switchTab('controls');});
+g('tabData').addEventListener('click',function(){switchTab('data');});
+function switchTab(which){
+  var m=g('experimentLayout');
+  m.classList.toggle('show-controls',which==='controls');
+  m.classList.toggle('show-data',which==='data');
+  g('tabControls').setAttribute('aria-selected',which==='controls'?'true':'false');
+  g('tabData').setAttribute('aria-selected',which==='data'?'true':'false');
+  if(which==='data') drawTape();
+}
+
+/* ---------- 启动 ---------- */
+resize();
+updateMachineCard();
+applyStep();
+drawTape();
+requestAnimationFrame(function(t){lastMs=t;tick(t);});
+toast('拖拽画布可 360° 观察模型，点击部件查看说明。左侧按 5 个步骤走一遍完整实验。',5200);
+})();
+</script>
+</body>
+</html>
