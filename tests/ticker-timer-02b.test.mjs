@@ -67,4 +67,68 @@ test('taking tape while powered records an end-overprint consequence', () => {
   assert.equal(O.reduceOperation(s, { type: 'RECOVER_STEP' }).phase, 'finish');
 });
 
+test('guided and explore scene actions expose the right operation choices', () => {
+  const O = loadOperationCore();
+  const initial = O.createOperationState();
+  assert.deepEqual(Array.from(O.availableSceneActions(initial, 'guided')), ['fixTimer']);
+  assert.deepEqual(Array.from(O.availableSceneActions(initial, 'explore')), ['fixTimer', 'releaseCar']);
+
+  const fixed = O.reduceOperation(initial, { type: 'FIX_TIMER', aligned: true });
+  assert.deepEqual(Array.from(O.availableSceneActions(fixed, 'guided')), ['threadTape']);
+
+  const threaded = O.reduceOperation(fixed, { type: 'THREAD_TAPE', throughGuide: true, consumableReady: true });
+  assert.deepEqual(Array.from(O.availableSceneActions(threaded, 'guided')), ['powerOn']);
+
+  const finishingPowered = { ...threaded, phase: 'finish', powered: true, carStopped: true };
+  assert.deepEqual(Array.from(O.availableSceneActions(finishingPowered, 'guided')), ['powerOff']);
+  assert.deepEqual(Array.from(O.availableSceneActions(finishingPowered, 'explore')), ['powerOff', 'takeTape']);
+});
+
+test('operation tape is fixed, deterministic, and playback-speed invariant', () => {
+  const O = loadOperationCore();
+  const normal = O.generateOperationTape({ startDelay: 0, endOverprint: false, playbackSpeed: 0.25 });
+  const late = O.generateOperationTape({ startDelay: 0.42, endOverprint: false, playbackSpeed: 1 });
+  const overprint = O.generateOperationTape({ startDelay: 0, endOverprint: true, playbackSpeed: 1 });
+
+  for (const playbackSpeed of [0.25, 0.5, 1, 2]) {
+    const outcome = O.generateOperationTape({ startDelay: 0, endOverprint: false, playbackSpeed });
+    assert.deepEqual(Array.from(outcome.dots), Array.from(normal.dots));
+  }
+  assert.equal(normal.dots[0], 0);
+  assert.ok(Math.abs(normal.dots.at(-1) - 1.69) < 1e-9);
+  assert.ok(late.dots[0] > 0.17);
+  assert.equal(late.missingStart, true);
+  assert.equal(overprint.endOverprint, true);
+  assert.equal(overprint.overprintPosition, overprint.dots.at(-1));
+});
+
+test('automatic guidance uses the reducer and reaches the same completed state', () => {
+  const O = loadOperationCore();
+  let state = O.createOperationState();
+  let guard = 0;
+  while (!state.completed && guard++ < 12) {
+    const action = O.nextRecommendedAction(state);
+    assert.ok(action, `missing recommended action in phase ${state.phase}`);
+    state = O.reduceOperation(state, action);
+  }
+  assert.equal(state.completed, true);
+  assert.deepEqual(Array.from(state.errors), []);
+  assert.equal(state.consequences.missingStart, false);
+  assert.equal(state.consequences.endOverprint, false);
+});
+
+test('unrelated out-of-order actions do not create extra error types', () => {
+  const O = loadOperationCore();
+  let state = O.createOperationState();
+  for (const action of [
+    { type: 'POWER_ON' },
+    { type: 'MARKING_STABLE' },
+    { type: 'CAR_STOP' },
+    { type: 'POWER_OFF' },
+    { type: 'TAKE_TAPE' }
+  ]) state = O.reduceOperation(state, action);
+  assert.deepEqual(Array.from(state.errors), []);
+  assert.equal(state.lastError, null);
+});
+
 export { read02B, loadInlineCore };

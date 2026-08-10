@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>打点计时器三维互动实验 · 电磁式 vs 电火花式</title>
+<title>打点计时器：规范实验操作</title>
 <style>
   :root{
     --bg:#f7f4ed;--panel:#f7f4ed;--panel2:#fffdf8;--line:#d8d6cf;
@@ -314,6 +314,60 @@
 
   table th,.result-strip,.pt-body{font-size:var(--type-11)!important}
 </style>
+<style id="operation-lesson">
+  #experimentLayout{grid-template-columns:clamp(220px,22vw,280px) minmax(0,1fr) clamp(240px,21vw,314px)}
+  .mode-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+  .mode-switch button{min-height:44px;padding:7px 4px;white-space:normal;font-size:var(--type-11);border:1px solid var(--border);background:var(--surface-raised);color:var(--text-strong)}
+  .mode-switch button.active{background:var(--action);border-color:var(--action);color:var(--on-action)}
+  #continueGuide{width:100%;min-height:40px;margin-top:7px}
+  .task-card #currentTask{font-size:var(--type-14);font-weight:800;line-height:1.45;margin-bottom:9px}
+  .completion-box{padding:9px;border-radius:9px;background:var(--warning-soft);border:1px solid #efd7b8;line-height:1.5}
+  .completion-box span{display:block;color:var(--warning);font-size:var(--type-11);font-weight:800;margin-bottom:2px}
+  .completion-box b{font-size:var(--type-12)}
+  #operationSteps .step{cursor:default;min-height:50px;font-size:var(--type-11)}
+  #operationSteps .step .n,#operationSteps .step.done .n,#operationSteps .step.done .n::after{font-size:var(--type-11)!important}
+  #operationSteps .step.pending{opacity:.58}
+  #operationSteps .step.error{border-color:var(--danger);background:var(--danger-soft)}
+  #operationReason{font-size:var(--type-13);line-height:1.65}
+  #recoverAction{width:100%;min-height:44px;margin-top:8px}
+  .feedback-card.has-error{border-color:var(--danger)}
+  .feedback-card.has-error .phase-banner{background:var(--danger)}
+  .feedback-card.is-complete{border-color:var(--safe)}
+  .feedback-card.is-complete .phase-banner{background:var(--safe)}
+  #consequenceTape{position:static!important;inset:auto!important;width:100%;height:118px;display:block;border:1px solid var(--border);border-radius:8px;background:var(--surface-raised)}
+  .fixed-conditions p{font-size:var(--type-12);line-height:1.55}
+  #hotspotLayer{position:absolute;inset:0;z-index:5;pointer-events:none}
+  #hotspotLayer button{position:absolute;left:0;top:0;min-width:48px;min-height:48px;padding:7px 9px;pointer-events:auto;transform:translate(-50%,-50%);border:2px solid var(--viz-gravity);background:rgba(11,20,36,.92);color:var(--stage-text);box-shadow:0 0 0 5px rgba(246,196,83,.18),0 8px 20px rgba(0,0,0,.3);font-size:var(--type-11);touch-action:none}
+  #hotspotLayer button[hidden]{display:none}
+  #hotspotLayer button.is-unsafe{border-color:var(--danger);box-shadow:0 0 0 5px rgba(185,56,77,.18),0 8px 20px rgba(0,0,0,.3)}
+  #hotspotLayer button.is-dragging{transition:none;box-shadow:0 0 0 7px rgba(74,222,128,.22),0 10px 24px rgba(0,0,0,.35)}
+  #threadTarget{position:absolute;left:0;top:0;min-width:62px;min-height:62px;display:grid;place-items:center;transform:translate(-50%,-50%);border:2px dashed var(--viz-velocity);border-radius:50%;background:rgba(11,20,36,.72);color:var(--stage-text);font-size:var(--type-11);font-weight:800;pointer-events:none}
+  #threadTarget[hidden]{display:none}
+  #gestureHint{position:absolute;left:50%;bottom:76px;z-index:5;transform:translateX(-50%);max-width:76%;padding:7px 10px;border-radius:8px;background:rgba(11,20,36,.84);border:1px solid var(--stage-line);color:var(--stage-muted);font-size:var(--type-11);line-height:1.4;text-align:center;pointer-events:none}
+  #partTip{font-size:var(--type-11)}
+  .stage-toolbar{z-index:8}
+  .stage-hud span,.stage-hud strong,.stage-toolbar button{font-size:var(--type-11)!important}
+  .stage-toolbar .toolbar-reset{font-size:var(--type-14)!important}
+  .stage-toolbar #viewReset{min-width:82px}
+  .speed-control button{font-size:var(--type-11)}
+  @media (orientation:landscape) and (max-width:960px){
+    #experimentLayout[data-layout-lock="three-column"]{height:calc(100dvh - 56px);display:grid;grid-template-columns:216px minmax(0,1fr) 216px;grid-template-rows:minmax(0,1fr);overflow:hidden}
+    #experimentLayout[data-layout-lock="three-column"] .stage{grid-column:2;grid-row:1;order:initial;min-width:0;width:auto;height:auto;min-height:0;margin:6px;flex:none}
+    #experimentLayout[data-layout-lock="three-column"] .control-panel{grid-column:1;grid-row:1;order:initial;display:flex;width:auto;height:100%;min-height:0;padding:6px;overflow-y:auto;border-right:1px solid var(--border);border-top:0}
+    #experimentLayout[data-layout-lock="three-column"] .observe-panel{grid-column:3;grid-row:1;order:initial;display:flex;width:auto;height:100%;min-height:0;padding:6px;overflow-y:auto;border-left:1px solid var(--border);border-top:0}
+    #experimentLayout[data-layout-lock="three-column"] .mobile-tabs{display:none}
+    .stage-hud{left:7px;top:7px}.hud-metrics>div{min-width:70px;padding:7px}.hud-metrics>div:nth-child(2){display:none}
+    .stage-toolbar{left:6px;right:6px;bottom:6px;transform:none;gap:3px;padding:4px}
+    .stage-toolbar button{height:34px;min-height:34px;padding-inline:7px}
+    .stage-toolbar .toolbar-play{width:70px;min-width:70px}
+    .speed-control{height:34px}.speed-control button{width:35px;flex-basis:35px;height:28px;min-height:28px;padding:0}
+    .stage-toolbar #viewReset{min-width:68px}
+    #gestureHint{bottom:52px}
+  }
+  @media (orientation:landscape) and (max-width:960px) and (max-height:540px){
+    #experimentLayout[data-layout-lock="three-column"]{height:calc(100dvh - 46px);grid-template-columns:216px minmax(0,1fr) 216px;grid-template-rows:minmax(0,1fr)}
+  }
+</style>
 </head>
 <body>
 <header class="topbar template-header">
@@ -322,159 +376,106 @@
     <div class="brand-mark" aria-hidden="true">罗</div>
     <div class="brand-copy">
       <p class="eyebrow">老罗物理 · 探究实验</p>
-      <h1>打点计时器：结构、原理与使用</h1>
+      <h1>打点计时器：规范实验操作</h1>
     </div>
   </div>
 </header>
-<main id="experimentLayout" class="show-controls">
-  <div class="mobile-tabs" role="tablist" aria-label="切换参数与数据面板">
-    <button type="button" id="tabControls" role="tab" aria-selected="true">操作面板</button>
+<main id="experimentLayout" data-layout-lock="three-column">
+  <div class="mobile-tabs" role="tablist" aria-label="切换操作与观察面板">
+    <button type="button" id="tabControls" role="tab" aria-selected="true">参数设置</button>
     <button type="button" id="tabData" role="tab" aria-selected="false">观察数据</button>
   </div>
+
   <section class="stage" id="stage">
-    <canvas id="cv" tabindex="0" aria-label="打点计时器三维模型，可用鼠标拖拽旋转、滚轮缩放"></canvas>
-    <div id="toast" role="status" aria-live="polite"><span id="toastText"></span><span id="toastMath" class="formula-math" role="math" aria-label="电源频率改变，打点间隔 T 等于一除以 f" aria-hidden="true" hidden><span id="toastMathVisual" aria-hidden="true"></span></span></div>
+    <canvas id="cv" tabindex="0" aria-label="电磁打点计时器三维操作台，可拖拽旋转并用滚轮缩放"></canvas>
+    <div id="hotspotLayer" aria-label="三维场景操作">
+      <button type="button" data-scene-action="fixTimer" aria-label="固定打点计时器">固定</button>
+      <button type="button" data-scene-action="threadTape" aria-label="从小车纸带夹拖动纸带穿过限位孔">拖动穿带</button>
+      <button type="button" data-scene-action="powerOn" aria-label="接通电磁打点计时器电源">通电</button>
+      <button type="button" data-scene-action="releaseCar" aria-label="释放小车">放车</button>
+      <button type="button" data-scene-action="powerOff" aria-label="切断电磁打点计时器电源">断电</button>
+      <button type="button" data-scene-action="takeTape" aria-label="取下纸带">取带</button>
+      <span id="threadTarget" hidden>限位孔</span>
+    </div>
+    <div id="gestureHint" role="status">点击高亮操作点开始；穿带时把纸带夹拖向限位孔。</div>
+    <div id="toast" role="status" aria-live="polite"><span id="toastText"></span></div>
     <div id="partTip"></div>
     <div class="stage-hud" aria-hidden="true">
-      <div class="hud-phase"><span>当前机型</span><strong id="hudMachine">电磁打点计时器</strong></div>
+      <div class="hud-phase"><span>当前操作</span><strong id="hudStep">固定计时器</strong></div>
       <div class="hud-metrics">
-        <div><span>工作电源</span><b id="hudPower">4~6 V 交流</b></div>
-        <div><span>打点间隔 T</span><b id="hudT">0.02 s</b></div>
-        <div><span>已打点数</span><b id="hudDots">0</b></div>
+        <div><span>计时器</span><b>电磁式</b></div>
+        <div><span>固定条件</span><b>50 Hz · v₀=0 · a=2</b></div>
+        <div><span>电源状态</span><b id="hudPower">未接通</b></div>
       </div>
     </div>
     <div class="legend">
-      <div><i data-viz="circular"></i>电磁式部件　<i data-viz="transfer"></i>电火花式部件</div>
-      <div><i data-viz="velocity"></i>纸带与限位孔　<i data-viz="gravity"></i>当前高亮部件</div>
-      <div>拖拽旋转 · 滚轮缩放 · 点击部件看说明</div>
+      <div><i data-viz="gravity"></i>高亮按钮就是当前可操作对象</div>
+      <div><i data-viz="velocity"></i>纸带拖动与相机旋转互不冲突</div>
     </div>
-    <div class="drag-tip">按住拖动可 360° 观察，滚轮缩放</div>
-    <div class="stage-toolbar" aria-label="动画控制">
+    <div class="stage-toolbar" aria-label="物理过程控制">
       <button type="button" id="playPause" class="toolbar-play is-playing" aria-pressed="true">
         <span class="playback-icon" aria-hidden="true"></span><span id="playPauseLabel">暂停</span>
       </button>
       <div class="speed-control" role="group" aria-label="播放倍速">
-        <button type="button" data-speed="0.1" aria-pressed="false">0.1×</button>
-        <button type="button" data-speed="0.3" aria-pressed="false">0.3×</button>
+        <button type="button" data-speed="0.25" aria-pressed="false">0.25×</button>
+        <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
         <button type="button" data-speed="1" class="active" aria-pressed="true">1×</button>
+        <button type="button" data-speed="2" aria-pressed="false">2×</button>
       </div>
-      <button type="button" id="cutToggle">剖面透视</button>
-      <button type="button" id="labelToggle" class="on">部件标注</button>
-      <button type="button" id="reset" class="toolbar-reset" title="重置">↺</button>
+      <button type="button" id="viewReset">标准视角</button>
+      <button type="button" id="reset" class="toolbar-reset" title="重置实验" aria-label="重置实验">↺</button>
     </div>
   </section>
 
   <aside class="control-panel" id="controlPanel">
     <div class="card">
-      <p class="hint template-intro">三维模型可拖拽旋转、剖面观察，纸带会自动展开并计算速度与加速度。</p>
-      <h3><span>选择计时器</span><span class="kicker">STEP 1</span></h3>
-      <div class="machine-switch" role="group" aria-label="机型选择">
-        <button type="button" data-m="em" class="active" aria-pressed="true">电磁打点计时器<small>振针打点 · 复写纸</small></button>
-        <button type="button" data-m="spark" aria-pressed="false">电火花计时器<small>火花放电 · 墨粉纸盘</small></button>
+      <h3><span>学习模式</span><span class="kicker">MODE</span></h3>
+      <div class="mode-switch" role="group" aria-label="学习模式">
+        <button type="button" id="modeAuto" data-mode="auto">自动演示</button>
+        <button type="button" id="modeGuided" data-mode="guided" class="active">分步引导</button>
+        <button type="button" id="modeExplore" data-mode="explore">自由尝试</button>
       </div>
-      <div class="spec-grid">
-        <div><span>工作电压</span><b id="sPower">4~6 V 交流</b></div>
-        <div><span>电源频率</span><b id="sFreq">50 Hz</b></div>
-        <div><span>打点间隔</span><b id="sT">0.02 s</b></div>
-        <div><span>纸带阻力</span><b id="sFric">较大（振针压紧）</b></div>
-      </div>
-      <div class="hint" id="machineHint">
-        振针周期性下压，把复写纸的痕迹打在纸带上。<b>纸带受到的摩擦阻力较大</b>，测出的加速度会略偏小。
-      </div>
+      <button type="button" id="continueGuide" class="secondary" hidden>继续引导</button>
+    </div>
+
+    <div class="card task-card">
+      <h3><span>当前任务</span><span class="kicker">DO</span></h3>
+      <p id="currentTask">固定打点计时器</p>
+      <div class="completion-box"><span>完成条件</span><b id="completionCondition">计时器竖直固定，纸带通道与木板平行</b></div>
     </div>
 
     <div class="card">
-      <h3><span>操作步骤</span><span class="kicker">STEP 2</span></h3>
-      <div class="steps" id="stepList">
-        <button type="button" class="step active" data-step="0"><i class="n">1</i><span><b>固定计时器</b>用铁夹把计时器竖直固定在长木板末端</span></button>
-        <button type="button" class="step" data-step="1"><i class="n">2</i><span><b>穿纸带</b>纸带穿过限位孔，复写纸片压在纸带上方</span></button>
-        <button type="button" class="step" data-step="2"><i class="n">3</i><span><b>先接通电源</b>听到连续打点声、点迹稳定后再动小车</span></button>
-        <button type="button" class="step" data-step="3"><i class="n">4</i><span><b>后释放小车</b>小车拖着纸带做匀加速运动</span></button>
-        <button type="button" class="step" data-step="4"><i class="n">5</i><span><b>先断电再取带</b>小车停下立刻断电，然后取下纸带</span></button>
+      <h3><span>五步规范操作</span><span class="kicker">5 STEPS</span></h3>
+      <div class="steps" id="operationSteps" role="list">
+        <div class="step active" data-operation-step="fix" role="listitem"><i class="n">1</i><span><b>固定</b>固定计时器</span></div>
+        <div class="step" data-operation-step="thread" role="listitem"><i class="n">2</i><span><b>穿带</b>纸带穿过限位孔</span></div>
+        <div class="step" data-operation-step="power" role="listitem"><i class="n">3</i><span><b>通电</b>待打点稳定</span></div>
+        <div class="step" data-operation-step="release" role="listitem"><i class="n">4</i><span><b>放车</b>让小车运行至停止</span></div>
+        <div class="step" data-operation-step="finish" role="listitem"><i class="n">5</i><span><b>结束</b>先断电，再取带</span></div>
       </div>
-      <div class="action-stack">
-        <button type="button" class="secondary" id="prevStep">上一步</button>
-        <button type="button" class="confirm" id="nextStep">下一步</button>
-      </div>
-      <label class="chk"><input type="checkbox" id="autoRun" checked>播放到本步的动画演示</label>
-      <div class="hint">口诀：<b>先通电后放车，先断电后取带</b>。顺序颠倒会丢掉起始点迹或空打浪费纸带。</div>
+      <p class="hint">只记一条顺序：<b>先通电后放车，先断电后取带。</b></p>
     </div>
-
-    <div class="card">
-      <h3><span>小车运动参数</span><span class="kicker">STEP 3</span></h3>
-      <label class="rng" for="acc">加速度 a <span id="accVal">2.00 m/s²</span></label>
-      <input type="range" id="acc" min="0" max="6" step="0.05" value="2">
-      <label class="rng" for="v0">初速度 v₀ <span id="v0Val">0.00 m/s</span></label>
-      <input type="range" id="v0" min="0" max="1.5" step="0.01" value="0">
-      <label class="rng" for="freq">电源频率 f <span id="freqVal">50 Hz</span></label>
-      <input type="range" id="freq" min="10" max="60" step="1" value="50">
-      <div class="hint">打点间隔 <b class="formula-math" role="math" aria-label="T 等于一除以 f"><span aria-hidden="true">T = <span class="frac"><span class="num">1</span><span class="den">f</span></span></span></b>。频率 50 Hz 时 T = 0.02 s，这是纸带能当"计时尺"用的根本原因。</div>
-    </div>
-
-    <details class="card">
-      <summary>⚠ 错误操作演示</summary>
-      <div class="body">
-        <div class="btnrow two">
-          <button type="button" class="err" data-err="lateOn">先放车后通电</button>
-          <button type="button" class="err" data-err="lateOff">先取带后断电</button>
-          <button type="button" class="err" data-err="noHole">纸带没穿限位孔</button>
-          <button type="button" class="err" data-err="carbonFlip">复写纸装反</button>
-        </div>
-        <div class="hint" id="errHint">点一个按钮，模型会演示后果并说明为什么。</div>
-      </div>
-    </details>
-
-    <details class="card">
-      <summary>📖 知识要点</summary>
-      <div class="body">
-        <b>1. 本质：</b>打点计时器是<span class="f">计时仪器</span>，每隔 T 等于频率的倒数 打一个点。50 Hz 交流电 → <span class="f">T=0.02 s</span>。<br>
-        <b>2. 电磁式：</b>4~6 V <b>交流</b>电源，线圈使振针上下振动，靠<b>复写纸</b>打点；纸带阻力大。<br>
-        <b>3. 电火花式：</b>220 V <b>交流</b>电源，脉冲高压在放电针与纸盘间放电，<b>墨粉纸盘</b>留点；<b>阻力小、点迹清晰、误差更小</b>。<br>
-        <b>4. 计算：</b>取相邻计数点，<span class="f formula-math" role="math" aria-label="v n 等于 s n 加 s n 加一的和除以二 T"><span aria-hidden="true">v<sub>n</sub> = <span class="frac"><span class="num">s<sub>n</sub>+s<sub>n+1</sub></span><span class="den">2T</span></span></span></span>（中间时刻速度）；<span class="f formula-math" role="math" aria-label="a 等于 delta s 除以 T 的平方"><span aria-hidden="true">a = <span class="frac"><span class="num">Δs</span><span class="den">T²</span></span></span></span>，Δs 为连续相等时间内位移之差。<br>
-        <b>5. 每 5 个间隔取一个计数点</b>时，计时单位变为 <span id="countPointIntervalLaw" role="math" aria-label="T 撇等于五乘零点零二秒，等于零点一秒"><span aria-hidden="true">T' = 5×0.02 = 0.1 s</span></span>，公式里的 T 要换成 T'。<br>
-        <b>口诀：</b>先通电后放车，先断电后取带；电火花更准，电磁更常见。
-      </div>
-    </details>
   </aside>
+
   <aside class="observe-panel" id="observePanel">
     <div class="card judgement-card">
-      <h3><span>实时状态</span><span class="kicker">LIVE</span></h3>
-      <div class="phase-banner" id="dPhase">等待固定计时器</div>
-      <div class="decision-grid">
-        <div><span>小车位移 x</span><b id="dX">0.00 m</b></div>
-        <div><span>小车速度 v</span><b id="dV">0.00 m/s</b></div>
-        <div><span>运动时间 t</span><b id="dTime">0.00 s</b></div>
-        <div><span>纸带点数</span><b id="dDots">0</b></div>
-      </div>
-      <div class="trend-box" id="dTrend">按"先通电后放车"的顺序开始实验。</div>
+      <h3><span>为什么这样做</span><span class="kicker">WHY</span></h3>
+      <p id="operationReason">固定后纸带才能沿直线平稳通过，避免实验装置晃动。</p>
     </div>
-
+    <div class="card feedback-card" aria-live="polite">
+      <h3><span>即时反馈</span><span class="kicker">FEEDBACK</span></h3>
+      <div class="phase-banner" id="operationFeedback">等待你操作场景中的“固定”按钮。</div>
+      <button type="button" id="recoverAction" class="confirm" hidden>恢复本步</button>
+    </div>
     <div class="card" id="tapeCard">
-      <h3><span>纸带展开</span><span class="kicker">TAPE</span></h3>
-      <canvas id="tapeCv" width="480" height="192" aria-label="打出的纸带展开视图，标出计数点与间隔"></canvas>
-      <label class="chk"><input type="checkbox" id="everyFive" checked>每 5 个间隔取一个计数点（<span id="countPointRelation" role="math" aria-label="T 撇等于五 T"><span aria-hidden="true">T′=5T</span></span>）</label>
-      <table class="live">
-        <tr><td>计时单位 T′</td><td id="tT">0.10 s</td></tr>
-        <tr><td>s₁ 与 s₂</td><td id="tS12">—；—</td></tr>
-        <tr><td><span id="deltaDisplacementLaw" role="math" aria-label="delta s 等于 s 二减 s 一"><span aria-hidden="true">Δs = s₂−s₁</span></span></td><td id="tDs">—</td></tr>
-        <tr><td role="math" aria-label="v 等于 s 一加 s 二的和除以二 T 撇"><span aria-hidden="true">v = <span class="frac"><span class="num">s₁+s₂</span><span class="den">2T′</span></span></span></td><td id="tV">—</td></tr>
-        <tr><td role="math" aria-label="a 等于 delta s 除以 T 撇的平方"><span aria-hidden="true">a = <span class="frac"><span class="num">Δs</span><span class="den">T′²</span></span></span></td><td id="tA">—</td></tr>
-      </table>
-      <div class="hint">测得的 a 与设定值的偏差来自<b>纸带摩擦阻力</b>；电火花计时器阻力小，偏差明显更小。</div>
+      <h3><span>纸带后果</span><span class="kicker">TAPE</span></h3>
+      <canvas id="consequenceTape" width="480" height="192" aria-label="纸带记录；顺序错误时标出起始缺失或末端重复打点"></canvas>
+      <p id="tapeMeaning" class="hint">规范完成后显示完整点迹；顺序错误会在这里留下可辨认的后果。</p>
     </div>
-
-    <div class="card">
-      <h3><span>两种计时器对比</span><span class="kicker">对比</span></h3>
-      <table class="cmp">
-        <tr><th>项目</th><th class="em">电磁式</th><th class="sp">电火花式</th></tr>
-        <tr><td>电源</td><td>4~6 V 交流</td><td>220 V 交流</td></tr>
-        <tr><td>打点方式</td><td>振针+复写纸</td><td>放电+墨粉纸盘</td></tr>
-        <tr><td>纸带阻力</td><td>较大</td><td>很小</td></tr>
-        <tr><td>点迹</td><td>较粗</td><td>清晰细小</td></tr>
-        <tr><td>误差</td><td>偏大</td><td>较小</td></tr>
-        <tr><td>耗材</td><td>复写纸</td><td>墨粉纸盘</td></tr>
-      </table>
-      <div class="insight" id="cmpInsight">两者打点间隔都由电源频率决定：50 Hz 下同为 0.02 s。差别只在打点方式和阻力，不在计时精度的时间基准。</div>
+    <div class="card fixed-conditions">
+      <h3><span>本实验固定条件</span><span class="kicker">LOCKED</span></h3>
+      <p>电磁式 · 50 Hz · v₀ = 0 · a = 2.00 m/s²</p>
+      <p class="hint">倍速只改变观看时间，不改变小车终点和纸带结果。</p>
     </div>
   </aside>
 </main>
@@ -513,7 +514,55 @@ function isStepComplete(state, stepId) {
   return ({ fix: state.fixed, thread: state.threaded, power: state.markingStable, release: state.carStopped, finish: state.completed })[stepId] === true;
 }
 
-window.TimerOperationCore = Object.freeze({ STEP_IDS, createOperationState, reduceOperation, isStepComplete });
+function availableSceneActions(state, mode) {
+  let actions = [];
+  if (state.phase === 'fix') actions = ['fixTimer'];
+  else if (state.phase === 'thread') actions = ['threadTape'];
+  else if (state.phase === 'power' && !state.powered) actions = ['powerOn'];
+  else if (state.phase === 'release' && !state.running) actions = ['releaseCar'];
+  else if (state.phase === 'finish' && state.powered) actions = ['powerOff'];
+  else if (state.phase === 'finish' && !state.powered && !state.completed) actions = ['takeTape'];
+
+  if (mode === 'explore' && state.phase !== 'release' && state.phase !== 'finish' && !state.powered) actions.push('releaseCar');
+  if (mode === 'explore' && state.phase === 'finish' && state.powered) actions.push('takeTape');
+  return actions;
+}
+
+function generateOperationTape(options) {
+  const startDelay = options && options.startDelay > 0 ? options.startDelay : 0;
+  const endOverprint = Boolean(options && options.endOverprint);
+  const interval = 1 / 50;
+  const dots = [];
+  for (let time = startDelay; time <= 1.3 + 1e-12; time += interval) dots.push(time * time);
+  return {
+    dots,
+    missingStart: startDelay > 0,
+    endOverprint,
+    overprintPosition: endOverprint && dots.length ? dots[dots.length - 1] : null
+  };
+}
+
+function nextRecommendedAction(state) {
+  if (state.phase === 'fix') return { type: 'FIX_TIMER', aligned: true };
+  if (state.phase === 'thread') return { type: 'THREAD_TAPE', throughGuide: true, consumableReady: true };
+  if (state.phase === 'power' && !state.powered) return { type: 'POWER_ON' };
+  if (state.phase === 'power' && !state.markingStable) return { type: 'MARKING_STABLE' };
+  if (state.phase === 'release' && !state.running) return { type: 'RELEASE_CAR' };
+  if (state.phase === 'release' && state.running) return { type: 'CAR_STOP' };
+  if (state.phase === 'finish' && state.powered) return { type: 'POWER_OFF' };
+  if (state.phase === 'finish' && !state.completed) return { type: 'TAKE_TAPE' };
+  return null;
+}
+
+window.TimerOperationCore = Object.freeze({
+  STEP_IDS,
+  createOperationState,
+  reduceOperation,
+  isStepComplete,
+  availableSceneActions,
+  generateOperationTape,
+  nextRecommendedAction
+});
 </script>
 <script>
 (function(){
@@ -670,30 +719,26 @@ function litColor(f,ctr,hi){
 /* ---------- 部件说明（点击/悬停显示） ---------- */
 var PARTS={
   base:{n:'底座与固定夹',d:'用铁夹把计时器竖直固定在长木板末端，保证纸带水平通过。'},
-  coil:{n:'线圈（电磁铁）',d:'接 4~6 V 交流电。电流方向每 1/100 s 改变一次，线圈磁性随之变化。'},
-  magnet:{n:'永久磁铁',d:'与线圈配合，使振片被交替吸引和释放，从而周期性振动。'},
-  reed:{n:'振片与振针',d:'振片带动振针上下振动，每振动一次打一个点。50 Hz 下每 0.02 s 打一点。'},
   carbon:{n:'复写纸片',d:'必须放在纸带上方、有墨的一面朝下对着纸带。装反则打不出点迹。'},
   tape:{n:'纸带',d:'穿过限位孔并压在复写纸下方。纸带上的点迹记录了时间与位移。'},
   hole:{n:'限位孔',d:'约束纸带只能沿直线滑动，防止跑偏、卡带。纸带必须穿过它。'},
   plug:{n:'接线柱',d:'电磁式接 4~6 V 低压交流电源，绝不能接直流或 220 V。'},
-  spark:{n:'放电针',d:'脉冲高压在放电针与墨粉纸盘之间放电，火花在纸带上烧出细小墨点。'},
-  disc:{n:'墨粉纸盘',d:'套在中心轴上，随纸带转动。火花使墨粉转印到纸带，点迹清晰。'},
-  hv:{n:'脉冲高压电源',d:'220 V 交流经内部电路产生脉冲高压，每 0.02 s 放电一次。使用时注意安全。'},
-  body:{n:'外壳',d:'保护内部结构。开启剖面透视可以看到里面的工作部件。'},
-  car:{n:'小车',d:'拖着纸带做匀加速运动，纸带上间隔越来越大的点迹就是它的运动记录。'},
-  board:{n:'长木板',d:'实验平台。计时器固定在末端，板面贴有刻度尺，小车在板上运动。'},
-  table:{n:'实验台',d:'实验桌面。长木板放在桌面上，注意木板要水平，否则会引入额外的分力。'}
+  car:{n:'小车',d:'小车拖动纸带完成记录；规范顺序决定起点和末端是否完整。'},
+  board:{n:'长木板',d:'实验平台。计时器固定在末端，小车沿木板运动。'},
+  table:{n:'实验台',d:'长木板应保持水平，避免引入额外分力。'}
 };
 
 /* ---------- 全局状态 ---------- */
+var O=window.TimerOperationCore;
+var operationState=O.createOperationState();
 var S={
-  machine:'em',        // 'em' 电磁式 | 'spark' 电火花式
+  machine:'em',        // 02B 只使用电磁式打点计时器
   step:0,              // 0..4
+  mode:'guided',
   playing:true,
   speed:1,
-  cut:false,           // 剖面透视
-  labels:true,
+  cut:false,
+  labels:false,
   acc:2, v0:0, freq:50,
   t:0,                 // 小车运动时间
   running:false,       // 小车是否在跑
@@ -703,7 +748,6 @@ var S={
   sparkFlash:0,
   hover:null, picked:null,
   err:null, errT:0,
-  everyFive:true,
   tapeDone:false,
   msgTimer:0
 };
@@ -1046,6 +1090,7 @@ function render(){
   }
   drawLabels();
   drawSparkArc();
+  updateHotspotPositions();
 }
 /* ---------- 引线标注 ---------- */
 function labelSet(){
@@ -1244,9 +1289,9 @@ function showTip(part,x,y){
 function hideTip(){tipEl.style.display='none';}
 
 /* ---------- toast ---------- */
-var toastEl=document.getElementById('toast'),toastText=document.getElementById('toastText'),toastMath=document.getElementById('toastMath'),toastMathVisual=document.getElementById('toastMathVisual'),toastTimer=null;
+var toastEl=document.getElementById('toast'),toastText=document.getElementById('toastText'),toastTimer=null;
 function toast(msg,ms){
-  toastText.hidden=false;toastText.textContent=msg;toastMath.hidden=true;toastMath.setAttribute('aria-hidden','true');toastEl.style.opacity='1';
+  toastText.textContent=msg;toastEl.style.opacity='1';
   if(toastTimer)clearTimeout(toastTimer);
   toastTimer=setTimeout(function(){toastEl.style.opacity='0';},ms||3600);
 }
@@ -1276,11 +1321,11 @@ function tick(now){
       }
       if(S.sparkFlash>0) S.sparkFlash=Math.max(0,S.sparkFlash-sdt*14);
     }
-    if(S.running && carX()>CAR_STOP){ S.running=false; onCarStop(); }
+    if(S.running && S.t>=1.3){ S.t=1.3;S.running=false;onCarStop(); }
     if(S.errT>0){ S.errT=Math.max(0,S.errT-dt); if(S.errT===0) S.err=null; }
   }
   render();
-  if(S.tapeDirty){ S.tapeDirty=false; updateHUD(); drawTape(); }
+  if(S.tapeDirty){ S.tapeDirty=false; updateOperationUI(); renderCurrentTape(); }
   requestAnimationFrame(tick);
 }
 // td = 打点瞬间小车已运动的时刻
@@ -1303,10 +1348,11 @@ function onDot(td){
 }
 function onCarStop(){
   S.tapeDone=true;
-  toast('小车到达末端。按"先断电后取带"的顺序结束：现在应该先切断电源。');
-  setPhase('小车已停止');
-  drawTape();
+  S.dots=Array.from(O.generateOperationTape({startDelay:0,endOverprint:false}).dots);
+  dispatchOperation({type:'CAR_STOP'},'physics');
 }
+/* ---------- 已停用的原综合页控制层，仅保留渲染器所需上下文 ---------- */
+if(false){
 /* ---------- 纸带展开视图 + 数据分析 ---------- */
 var tcv=document.getElementById('tapeCv'),tctx=tcv.getContext('2d');
 function drawTape(){
@@ -1637,6 +1683,307 @@ applyStep();
 drawTape();
 requestAnimationFrame(function(t){lastMs=t;tick(t);});
 toast('拖拽画布可 360° 观察模型，点击部件查看说明。左侧按 5 个步骤走一遍完整实验。',5200);
+}
+
+/* ---------- 02B 规范操作控制层 ---------- */
+var PHASE_META={
+  fix:{task:'固定打点计时器',condition:'计时器竖直固定，纸带通道与木板平行',reason:'固定后纸带才能沿直线平稳通过，避免实验装置晃动。'},
+  thread:{task:'拖动纸带穿过限位孔',condition:'纸带穿过限位孔，并压在复写纸片下方',reason:'限位孔约束纸带沿直线运动，复写纸片必须压在纸带上方。'},
+  power:{task:'接通电源并等待打点稳定',condition:'电源已接通，振针连续稳定打点',reason:'先让打点稳定，再释放小车，才能从运动起点开始留下记录。'},
+  release:{task:'释放小车并观察至停止',condition:'小车运行到终点并停止',reason:'小车释放后纸带随车运动，计时器按固定时间间隔留下点迹。'},
+  finish:{task:'先断电，再取下纸带',condition:'小车已停、电源已断、纸带已取下',reason:'停车后先断电，避免振针在纸带末端原地重复打点。'}
+};
+var phaseOrder=['fix','thread','power','release','finish'];
+var autoTimer=null,autoPauseTimer=null;
+var threadGesture={active:false,pointerId:null,button:null};
+
+function el(id){return document.getElementById(id);}
+function setPlaybackState(on){
+  S.playing=on;
+  var button=el('playPause');
+  button.classList.toggle('is-playing',on);
+  button.setAttribute('aria-pressed',on?'true':'false');
+  el('playPauseLabel').textContent=on?'暂停':'播放';
+}
+function clearAutoTimers(){
+  if(autoTimer)clearTimeout(autoTimer);
+  if(autoPauseTimer)clearTimeout(autoPauseTimer);
+  autoTimer=null;autoPauseTimer=null;
+}
+function syncPhysicalState(action,previous){
+  S.step=phaseOrder.indexOf(operationState.phase);
+  S.powered=operationState.powered;
+  if(action.type==='FIX_TIMER')S.picked='base';
+  if(action.type==='THREAD_TAPE')S.picked='tape';
+  if(action.type==='POWER_ON'){S.vibPhase=0;S.picked='plug';}
+  if(action.type==='RELEASE_CAR'&&!operationState.lastError){S.t=0;S.dots=[];S.running=true;S.tapeDone=false;S.picked='car';}
+  if(action.type==='RELEASE_CAR'&&operationState.lastError==='lateOn'){
+    S.err='lateOn';S.running=false;S.t=.42;
+    S.dots=Array.from(O.generateOperationTape({startDelay:.42,endOverprint:false}).dots);
+  }
+  if(action.type==='CAR_STOP'){S.running=false;S.t=1.3;S.tapeDone=true;S.picked='car';}
+  if(action.type==='POWER_OFF'){S.running=false;S.picked='plug';}
+  if(action.type==='TAKE_TAPE'&&operationState.lastError==='lateOff'){
+    S.err='lateOff';S.running=false;
+    S.dots=Array.from(O.generateOperationTape({startDelay:0,endOverprint:true}).dots);
+  }
+  if(action.type==='TAKE_TAPE'&&!operationState.lastError)S.picked='tape';
+  if(action.type==='RECOVER_STEP'){
+    S.err=null;S.running=false;S.t=operationState.phase==='finish'?1.3:0;S.dots=[];S.picked=null;
+  }
+  if(action.type==='RESET'){
+    S.step=0;S.t=0;S.dots=[];S.running=false;S.powered=false;S.err=null;S.tapeDone=false;
+    S.vibPhase=0;S.picked=null;S.hover=null;
+  }
+  if(previous===operationState)S.running=false;
+}
+function dispatchOperation(action,source){
+  var previous=operationState;
+  operationState=O.reduceOperation(operationState,action);
+  syncPhysicalState(action,previous);
+  updateOperationUI();
+  if(operationState.lastError==='lateOn')toast('顺序错误：小车先运动，起始一段没有被记录。',5200);
+  else if(operationState.lastError==='lateOff')toast('顺序错误：未断电就取带，末端出现原地重复打点。',5200);
+  else if(operationState.completed)toast('五步操作完成：起点完整，末端没有重复打点。',4200);
+  else if(source==='scene')toast('操作有效，继续看当前高亮对象。',2200);
+  if(S.mode==='auto')scheduleAuto();
+  return operationState;
+}
+
+function tapeRecordForState(){
+  var hasOutcome=operationState.completed||operationState.consequences.missingStart||operationState.consequences.endOverprint;
+  if(hasOutcome){
+    return O.generateOperationTape({
+      startDelay:operationState.consequences.missingStart ? 0.42 : 0,
+      endOverprint:operationState.consequences.endOverprint,
+      playbackSpeed:S.speed
+    });
+  }
+  if(S.dots.length>1)return {dots:S.dots,missingStart:false,endOverprint:false,overprintPosition:null};
+  return null;
+}
+function renderCurrentTape(){renderConsequenceTape(tapeRecordForState());}
+function renderConsequenceTape(record){
+  var canvas=el('consequenceTape'),c=canvas.getContext('2d');
+  var cssW=canvas.clientWidth||260,cssH=118,dpr=Math.min(window.devicePixelRatio||1,2);
+  canvas.width=Math.round(cssW*dpr);canvas.height=Math.round(cssH*dpr);
+  c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,cssW,cssH);
+  c.fillStyle='#f6f3ea';c.fillRect(8,36,cssW-16,48);
+  c.strokeStyle='#d8d6cf';c.strokeRect(8.5,36.5,cssW-17,47);
+  c.font='600 11px '+TEMPLATE_CANVAS_FONT;c.textAlign='center';c.textBaseline='middle';
+  if(!record||record.dots.length<2){
+    c.fillStyle='#5c6678';c.fillText('等待纸带记录',cssW/2,60);return;
+  }
+  var maxPosition=1.69,usable=cssW-34,origin=17;
+  var xs=record.dots.map(function(dot){return origin+dot/maxPosition*usable;});
+  if(record.missingStart){
+    var blankEnd=xs[0];
+    c.fillStyle='rgba(185,56,77,.16)';c.fillRect(8,36,Math.max(0,blankEnd-8),48);
+    c.setLineDash([4,3]);c.strokeStyle='#b9384d';c.beginPath();c.moveTo(blankEnd,36);c.lineTo(blankEnd,84);c.stroke();c.setLineDash([]);
+    c.fillStyle='#b9384d';c.textAlign='left';c.fillText('未记录',11,24);
+  }
+  for(var i=0;i<xs.length;i+=2){
+    c.fillStyle='#202630';c.beginPath();c.arc(xs[i],60,2.7,0,Math.PI*2);c.fill();
+  }
+  if(record.endOverprint){
+    var last=xs[xs.length-1];
+    c.fillStyle='#202630';c.beginPath();c.arc(last,60,8,0,Math.PI*2);c.fill();
+    c.fillStyle='#b9384d';c.textAlign='right';c.fillText('原地重复打点',cssW-10,24);
+  }else if(!record.missingStart){
+    c.fillStyle='#277a51';c.textAlign='left';c.fillText('起点完整',11,24);
+  }
+  c.fillStyle='#5c6678';c.textAlign='right';c.fillText('运动方向 →',cssW-10,103);
+}
+window.renderConsequenceTape=renderConsequenceTape;
+
+function feedbackText(){
+  if(operationState.lastError==='lateOn')return '先放车后通电：纸带开头出现“未记录”空白。';
+  if(operationState.lastError==='lateOff')return '未断电就取带：纸带末端出现原地重复打点。';
+  if(operationState.completed)return '操作完成：完整记录了起点，末端也没有重复打点。';
+  if(operationState.phase==='fix')return '等待你操作场景中的“固定”按钮。';
+  if(operationState.phase==='thread')return '从小车纸带夹拖动到限位孔，完成穿带。';
+  if(operationState.phase==='power'&&!operationState.powered)return '点击接线柱旁的“通电”，然后等待打点稳定。';
+  if(operationState.phase==='power')return '电源已接通，正在等待打点稳定。';
+  if(operationState.phase==='release'&&operationState.running)return '小车正在运行；让它到达终点并停止。';
+  if(operationState.phase==='release')return '打点已稳定，现在释放小车。';
+  if(operationState.phase==='finish'&&operationState.powered)return '小车已停；现在必须先断电。';
+  return '电源已断，可以取下纸带。';
+}
+function updateOperationUI(){
+  var meta=PHASE_META[operationState.phase];
+  el('currentTask').textContent=meta.task;
+  el('completionCondition').textContent=meta.condition;
+  el('operationReason').textContent=meta.reason;
+  el('operationFeedback').textContent=feedbackText();
+  el('hudStep').textContent=meta.task;
+  el('hudPower').textContent=operationState.powered?'已接通':'未接通';
+  var feedbackCard=document.querySelector('.feedback-card');
+  feedbackCard.classList.toggle('has-error',Boolean(operationState.lastError));
+  feedbackCard.classList.toggle('is-complete',operationState.completed);
+  el('recoverAction').hidden=!operationState.lastError;
+  el('continueGuide').hidden=S.mode!=='explore';
+  document.querySelectorAll('[data-mode]').forEach(function(button){button.classList.toggle('active',button.dataset.mode===S.mode);});
+  document.querySelectorAll('[data-operation-step]').forEach(function(item){
+    var stepId=item.dataset.operationStep;
+    item.classList.toggle('active',stepId===operationState.phase&&!operationState.completed);
+    item.classList.toggle('done',O.isStepComplete(operationState,stepId));
+    item.classList.toggle('pending',phaseOrder.indexOf(stepId)>phaseOrder.indexOf(operationState.phase));
+    item.classList.toggle('error',stepId===operationState.phase&&Boolean(operationState.lastError));
+  });
+  updateHotspotAvailability();
+  setPlaybackState(S.playing);
+  renderCurrentTape();
+}
+
+function worldPointForAction(action){
+  if(action==='fixTimer')return v3(TIMER_X-1.06,BOARD_Y-.18,.5);
+  if(action==='threadTape')return v3(carX()-.52,BOARD_Y+.27,0);
+  if(action==='powerOn'||action==='powerOff')return v3(TIMER_X-.78,.22,.46);
+  if(action==='releaseCar')return v3(carX(),BOARD_Y+.42,0);
+  if(action==='takeTape')return v3(TIMER_X+.72,TAPE_Y+.05,0);
+  return v3(0,0,0);
+}
+function threadTargetPoint(){return v3(TIMER_X+1.02,TAPE_Y+.09,.25);}
+function updateHotspotAvailability(){
+  var mode=S.mode==='explore'?'explore':'guided';
+  var actions=operationState.lastError?[]:O.availableSceneActions(operationState,mode);
+  document.querySelectorAll('[data-scene-action]').forEach(function(button){
+    var action=button.dataset.sceneAction,on=actions.indexOf(action)>=0;
+    button.hidden=!on;
+    button.classList.toggle('is-unsafe',(action==='releaseCar'&&operationState.phase!=='release')||(action==='takeTape'&&operationState.powered));
+  });
+  el('threadTarget').hidden=actions.indexOf('threadTape')<0;
+}
+function updateHotspotPositions(){
+  if(!W||!H)return;
+  document.querySelectorAll('[data-scene-action]').forEach(function(button){
+    if(button.hidden||(threadGesture.active&&button===threadGesture.button))return;
+    var q=project(worldPointForAction(button.dataset.sceneAction),W,H);
+    button.style.left=clamp(q.x,34,W-34)+'px';button.style.top=clamp(q.y,34,H-76)+'px';
+  });
+  var target=el('threadTarget');
+  if(!target.hidden){
+    var tq=project(threadTargetPoint(),W,H);
+    target.style.left=clamp(tq.x,38,W-38)+'px';target.style.top=clamp(tq.y,38,H-80)+'px';
+  }
+}
+
+function takeOverAuto(){
+  if(S.mode!=='auto')return;
+  clearAutoTimers();S.mode='explore';setPlaybackState(true);updateOperationUI();
+  toast('你已接管自动演示，可以自由完成或尝试顺序错误。');
+}
+function completePowerStability(){
+  if(operationState.phase==='power'&&operationState.powered&&!operationState.markingStable)dispatchOperation({type:'MARKING_STABLE'},'system');
+}
+function handleSceneAction(action){
+  takeOverAuto();
+  if(operationState.lastError)return;
+  if(action==='fixTimer')dispatchOperation({type:'FIX_TIMER',aligned:true},'scene');
+  else if(action==='threadTape')dispatchOperation({type:'THREAD_TAPE',throughGuide:true,consumableReady:true},'scene');
+  else if(action==='powerOn'){
+    dispatchOperation({type:'POWER_ON'},'scene');
+    setTimeout(completePowerStability,650);
+  }
+  else if(action==='releaseCar')dispatchOperation({type:'RELEASE_CAR'},'scene');
+  else if(action==='powerOff')dispatchOperation({type:'POWER_OFF'},'scene');
+  else if(action==='takeTape')dispatchOperation({type:'TAKE_TAPE'},'scene');
+}
+
+document.querySelectorAll('[data-scene-action]').forEach(function(button){
+  button.addEventListener('click',function(event){
+    if(button.dataset.sceneAction==='threadTape'){
+      if(event.detail===0)handleSceneAction('threadTape');
+      return;
+    }
+    handleSceneAction(button.dataset.sceneAction);
+  });
+});
+var threadButton=document.querySelector('[data-scene-action="threadTape"]');
+threadButton.addEventListener('pointerdown',function(event){
+  if(threadButton.hidden)return;
+  takeOverAuto();event.preventDefault();event.stopPropagation();
+  threadGesture.active=true;threadGesture.pointerId=event.pointerId;threadGesture.button=threadButton;
+  threadButton.setPointerCapture(event.pointerId);threadButton.classList.add('is-dragging');
+});
+threadButton.addEventListener('pointermove',function(event){
+  if(!threadGesture.active||event.pointerId!==threadGesture.pointerId)return;
+  var rect=el('stage').getBoundingClientRect();
+  threadButton.style.left=clamp(event.clientX-rect.left,28,W-28)+'px';
+  threadButton.style.top=clamp(event.clientY-rect.top,28,H-72)+'px';
+});
+function endThreadGesture(event){
+  if(!threadGesture.active||event.pointerId!==threadGesture.pointerId)return;
+  var rect=el('stage').getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
+  var target=project(threadTargetPoint(),W,H),success=Math.hypot(x-target.x,y-target.y)<=72;
+  threadGesture.active=false;threadButton.classList.remove('is-dragging');
+  if(success)handleSceneAction('threadTape');
+  else toast('把纸带夹继续拖到“限位孔”目标圈内。');
+  updateHotspotPositions();
+}
+threadButton.addEventListener('pointerup',endThreadGesture);
+threadButton.addEventListener('pointercancel',function(event){
+  if(event.pointerId!==threadGesture.pointerId)return;
+  threadGesture.active=false;threadButton.classList.remove('is-dragging');updateHotspotPositions();
+});
+
+function scheduleAuto(){
+  clearAutoTimers();
+  if(S.mode!=='auto'||operationState.completed||operationState.lastError||!S.playing)return;
+  var action=O.nextRecommendedAction(operationState);
+  if(!action||action.type==='CAR_STOP')return;
+  if(action.type==='POWER_ON'||action.type==='POWER_OFF'){
+    autoTimer=setTimeout(function(){
+      if(S.mode!=='auto')return;
+      setPlaybackState(false);
+      el('operationFeedback').textContent=action.type==='POWER_ON'?'关键暂停：先通电，确认打点稳定。':'关键暂停：停车后先断电，再取带。';
+      autoPauseTimer=setTimeout(function(){
+        if(S.mode!=='auto')return;
+        setPlaybackState(true);dispatchOperation(action,'auto');
+      },850);
+    },500);
+    return;
+  }
+  autoTimer=setTimeout(function(){if(S.mode==='auto')dispatchOperation(action,'auto');},action.type==='MARKING_STABLE'?700:520);
+}
+function resetOperation(keepMode){
+  clearAutoTimers();operationState=O.createOperationState();
+  if(!keepMode)S.mode='guided';
+  dispatchOperation({type:'RESET'},'system');
+  cam.yaw=camDefault.yaw;cam.pitch=camDefault.pitch;cam.dist=camDefault.dist;
+  setPlaybackState(true);updateOperationUI();
+}
+function setMode(mode){
+  clearAutoTimers();S.mode=mode;
+  if(mode==='auto'){resetOperation(true);S.mode='auto';updateOperationUI();scheduleAuto();}
+  else{updateOperationUI();toast(mode==='guided'?'分步引导：只有满足当前完成条件后才会解锁下一步。':'自由尝试：红色操作点会触发并展示两种典型顺序错误。');}
+}
+el('modeAuto').addEventListener('click',function(){setMode('auto');});
+el('modeGuided').addEventListener('click',function(){setMode('guided');});
+el('modeExplore').addEventListener('click',function(){setMode('explore');});
+el('continueGuide').addEventListener('click',function(){setMode('guided');});
+el('recoverAction').addEventListener('click',function(){dispatchOperation({type:'RECOVER_STEP'},'system');toast('已恢复到当前步骤，不需要刷新页面。');});
+el('playPause').addEventListener('click',function(){setPlaybackState(!S.playing);if(S.playing&&S.mode==='auto')scheduleAuto();else if(!S.playing)clearAutoTimers();});
+document.querySelectorAll('.speed-control button').forEach(function(button){
+  button.addEventListener('click',function(){
+    S.speed=+button.dataset.speed;
+    document.querySelectorAll('.speed-control button').forEach(function(item){var active=item===button;item.classList.toggle('active',active);item.setAttribute('aria-pressed',active?'true':'false');});
+    renderCurrentTape();toast('播放速度设为 '+S.speed+'×；物理终点与纸带结果保持不变。');
+  });
+});
+el('viewReset').addEventListener('click',function(){cam.yaw=camDefault.yaw;cam.pitch=camDefault.pitch;cam.dist=camDefault.dist;toast('已恢复标准视角。');});
+el('reset').addEventListener('click',function(){resetOperation(false);toast('实验已重置，从“固定”开始。');});
+el('tabControls').addEventListener('click',function(){switchOperationTab('controls');});
+el('tabData').addEventListener('click',function(){switchOperationTab('data');});
+function switchOperationTab(which){
+  var layout=el('experimentLayout');layout.classList.toggle('show-controls',which==='controls');layout.classList.toggle('show-data',which==='data');
+  el('tabControls').setAttribute('aria-selected',which==='controls'?'true':'false');el('tabData').setAttribute('aria-selected',which==='data'?'true':'false');
+  if(which==='data')renderCurrentTape();
+}
+
+resize();updateOperationUI();renderCurrentTape();
+requestAnimationFrame(function(time){lastMs=time;tick(time);});
+toast('从场景中的“固定”按钮开始，按五步完成规范操作。',4200);
 })();
 </script>
 </body>
