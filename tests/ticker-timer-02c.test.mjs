@@ -25,6 +25,19 @@ function loadDifferenceCore() {
   return window.SuccessiveDifferenceCore;
 }
 
+function loadLessonRuntime() {
+  const window = {};
+  const context = { window, Object, Array, Math, Number };
+  vm.runInNewContext(loadInlineCore('data-successive-difference-core'), context);
+  vm.runInNewContext(loadInlineCore('data-successive-difference-teaching-core'), context);
+  vm.runInNewContext(loadInlineCore('data-successive-difference-view-core'), context);
+  return {
+    difference: window.SuccessiveDifferenceCore,
+    teaching: window.SuccessiveDifferenceTeaching,
+    view: window.SuccessiveDifferenceLesson,
+  };
+}
+
 test('protects the locked source and keeps 02C offline, silent, and self-contained', () => {
   const sourceHash = createHash('sha256')
     .update(readFileSync(sourcePath))
@@ -55,4 +68,80 @@ test('all three successive differences and both averages equal 2 m/s squared', (
 test('pairings use every segment exactly once on each side', () => {
   const D = loadDifferenceCore();
   assert.deepEqual(JSON.parse(JSON.stringify(D.PAIRINGS)), [[0, 3], [1, 4], [2, 5]]);
+});
+
+test('the teaching flow contains seven focused steps', () => {
+  const { teaching: T } = loadLessonRuntime();
+  assert.deepEqual(Array.from(T.DIFFERENCE_STEPS, step => step.id), [1, 2, 3, 4, 5, 6, 7]);
+  for (const step of T.DIFFERENCE_STEPS) assert.ok(step.observe.length > 0);
+});
+
+test('pairing answers must be completed in the approved order', () => {
+  const { teaching: T } = loadLessonRuntime();
+  let state = T.createDifferenceState();
+  state = T.differenceReducer(state, { type: 'CONFIRM_INTERVAL' });
+  state = T.differenceReducer(state, { type: 'CONFIRM_SEGMENTS' });
+  const blocked = T.differenceReducer(state, { type: 'SUBMIT_GROUP', index: 1, value: 2 });
+  assert.equal(blocked.activePair, 0);
+  const first = T.differenceReducer(state, { type: 'SUBMIT_GROUP', index: 0, value: 2 });
+  assert.equal(first.activePair, 1);
+  assert.equal(first.groupAnswers[0], 2);
+});
+
+test('only a correct average completes the method', () => {
+  const { teaching: T } = loadLessonRuntime();
+  const ready = { ...T.createDifferenceState(), intervalConfirmed: true, segmentsConfirmed: true, activePair: 3, groupAnswers: [2, 2, 2] };
+  assert.equal(T.differenceReducer(ready, { type: 'SUBMIT_AVERAGE', value: 1.9 }).completed, false);
+  assert.equal(T.differenceReducer(ready, { type: 'SUBMIT_AVERAGE', value: 2 }).completed, true);
+});
+
+test('automatic mode follows the same reducer path and reset restores step one', () => {
+  const { teaching: T } = loadLessonRuntime();
+  let state = T.differenceReducer(T.createDifferenceState(), { type: 'SET_MODE', mode: 'auto' });
+  for (let index = 0; index < 6; index += 1) {
+    state = T.differenceReducer(state, T.nextAutomaticAction(state));
+  }
+  assert.equal(state.completed, true);
+  assert.deepEqual(Array.from(state.groupAnswers), [2, 2, 2]);
+  assert.equal(state.averageAnswer, 2);
+  const reset = T.differenceReducer(state, { type: 'RESET' });
+  assert.equal(reset.step, 1);
+  assert.equal(reset.mode, 'guided');
+  assert.deepEqual(Array.from(reset.groupAnswers), [null, null, null]);
+});
+
+test('free segment inspection is available only in explore mode', () => {
+  const { teaching: T } = loadLessonRuntime();
+  const guided = T.differenceReducer(T.createDifferenceState(), { type: 'SELECT_SEGMENT', index: 4 });
+  assert.equal(guided.selectedSegment, null);
+  const explore = T.differenceReducer(
+    T.differenceReducer(T.createDifferenceState(), { type: 'SET_MODE', mode: 'explore' }),
+    { type: 'SELECT_SEGMENT', index: 4 },
+  );
+  assert.equal(explore.selectedSegment, 4);
+});
+
+test('lesson view derives fixed tape, pair denominator, and final results from the cores', () => {
+  const { teaching: T, view: V } = loadLessonRuntime();
+  const initial = V.createLessonView(T.createDifferenceState());
+  assert.deepEqual(Array.from(initial.segmentsCm), [3, 5, 7, 9, 11, 13]);
+  assert.deepEqual(Array.from(initial.pointLabels), ['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+  assert.equal(initial.interval, 0.1);
+  assert.equal(initial.denominator, 0.03);
+  assert.deepEqual(Array.from(initial.activePair), [0, 3]);
+
+  const complete = {
+    ...T.createDifferenceState(),
+    intervalConfirmed: true,
+    segmentsConfirmed: true,
+    activePair: 3,
+    groupAnswers: [2, 2, 2],
+    averageAnswer: 2,
+    completed: true,
+    step: 7,
+  };
+  const finalView = V.createLessonView(complete);
+  assert.deepEqual(Array.from(finalView.groupAccelerations), [2, 2, 2]);
+  assert.equal(finalView.average, 2);
+  assert.equal(finalView.combined, 2);
 });
