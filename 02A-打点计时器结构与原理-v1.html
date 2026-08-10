@@ -406,8 +406,7 @@
       <input type="range" id="acc" min="0" max="6" step="0.05" value="2">
       <label class="rng" for="v0">初速度 v₀ <span id="v0Val">0.00 m/s</span></label>
       <input type="range" id="v0" min="0" max="1.5" step="0.01" value="0">
-      <label class="rng" for="freq">电源频率 f <span id="freqVal">50 Hz</span></label>
-      <input type="range" id="freq" min="10" max="60" step="1" value="50">
+      <div class="rng">固定电源频率 f <span>50 Hz</span></div>
       <div class="hint">打点间隔 <b class="formula-math" role="math" aria-label="T 等于一除以 f"><span aria-hidden="true">T = <span class="frac"><span class="num">1</span><span class="den">f</span></span></span></b>。频率 50 Hz 时 T = 0.02 s，这是纸带能当"计时尺"用的根本原因。</div>
     </div>
 
@@ -478,6 +477,31 @@
     </div>
   </aside>
 </main>
+<script data-principle-core>
+(function () {
+  const MACHINES = Object.freeze({
+    em: Object.freeze({ id: 'em', power: '4~6 V 交流', marking: '振针与复写纸', tapeDrag: '较大' }),
+    spark: Object.freeze({ id: 'spark', power: '220 V 交流', marking: '脉冲放电与墨粉纸盘', tapeDrag: '较小' })
+  });
+  function intervalForFrequency(frequency) {
+    if (!Number.isFinite(frequency) || frequency <= 0) throw new RangeError('frequency must be positive');
+    return 1 / frequency;
+  }
+  function dotTimesBetween(startTime, endTime, frequency) {
+    if (endTime < startTime) throw new RangeError('endTime must not precede startTime');
+    const interval = intervalForFrequency(frequency);
+    const firstIndex = Math.floor((startTime + 1e-12) / interval) + 1;
+    const lastIndex = Math.floor((endTime + 1e-12) / interval);
+    const times = [];
+    for (let index = firstIndex; index <= lastIndex; index += 1) times.push(index * interval);
+    return times;
+  }
+  function advancePhase(phase, elapsedSeconds, frequency) {
+    return phase + elapsedSeconds * frequency;
+  }
+  window.TimerPrincipleCore = Object.freeze({ MACHINES, intervalForFrequency, dotTimesBetween, advancePhase });
+})();
+</script>
 <script>
 (function(){
 "use strict";
@@ -657,7 +681,7 @@ var S={
   speed:1,
   cut:false,           // 剖面透视
   labels:true,
-  acc:2, v0:0, freq:50,
+  acc:2, v0:0,
   t:0,                 // 小车运动时间
   running:false,       // 小车是否在跑
   powered:false,       // 是否通电
@@ -671,6 +695,7 @@ var S={
   msgTimer:0
 };
 var TAPE_LEN=1.1;      // 三维里纸带可见长度参考
+var TICK_FREQUENCY=50;
 /* ---------- 场景常量 ---------- */
 var TABLE_Y=-0.58;     // 桌面高度
 var BOARD_Y=-0.15;     // 长木板上表面
@@ -1228,15 +1253,13 @@ function tick(now){
     var t1=S.t;
     if(S.powered){
       var p0=S.vibPhase;
-      S.vibPhase = p0 + sdt*S.freq;
-      // 在这一帧内跨过的每个整数相位都对应一次打点；
-      // 用线性插值求出打点瞬间小车的时刻，保证间隔精确。
-      var n=Math.floor(p0)+1;
-      while(n<=S.vibPhase){
-        var frac=(S.vibPhase>p0)?((n-p0)/(S.vibPhase-p0)):0;
+      S.vibPhase = TimerPrincipleCore.advancePhase(p0,sdt,TICK_FREQUENCY);
+      var phaseStart=p0/TICK_FREQUENCY;
+      var phaseEnd=S.vibPhase/TICK_FREQUENCY;
+      TimerPrincipleCore.dotTimesBetween(phaseStart,phaseEnd,TICK_FREQUENCY).forEach(function(dotTime){
+        var frac=sdt>0?(dotTime-phaseStart)/sdt:0;
         onDot(t0+(t1-t0)*frac);
-        n++;
-      }
+      });
       if(S.sparkFlash>0) S.sparkFlash=Math.max(0,S.sparkFlash-sdt*14);
     }
     if(S.running && carX()>CAR_STOP){ S.running=false; onCarStop(); }
@@ -1342,11 +1365,11 @@ function drawTape(){
     dimLine(tctx,xs[i2],xs[i3],70,'s₂','#e66d26');
     tctx.fillStyle='#5c6678';tctx.font='11px '+TEMPLATE_CANVAS_FONT;
     tctx.textAlign='left';tctx.fillText('运动方向 →',4,16);
-    tctx.textAlign='right';tctx.fillText('计数点间隔 T′='+(step/S.freq).toFixed(3)+' s',cssW-4,16);
+    tctx.textAlign='right';tctx.fillText('计数点间隔 T′='+(step/TICK_FREQUENCY).toFixed(3)+' s',cssW-4,16);
   }
   var s1=view.length>=3?(view[view.length-2]-view[view.length-3]):null;
   var s2=view.length>=3?(view[view.length-1]-view[view.length-2]):null;
-  updateTable({s1:s1,s2:s2,T:step/S.freq});
+  updateTable({s1:s1,s2:s2,T:step/TICK_FREQUENCY});
 }
 function dimLine(c,xa,xb,y,label,col){
   c.strokeStyle=col;c.lineWidth=1.2;
@@ -1363,7 +1386,7 @@ function dimLine(c,xa,xb,y,label,col){
 function updateTable(d){
   var g=function(id){return document.getElementById(id);};
   var step=S.everyFive?5:1;
-  g('tT').textContent=(step/S.freq).toFixed(3)+' s';
+  g('tT').textContent=(step/TICK_FREQUENCY).toFixed(3)+' s';
   if(!d||d.s1==null){
     g('tS12').textContent='—；—';g('tDs').textContent='—';
     g('tV').textContent='—';g('tA').textContent='—';return;
@@ -1381,7 +1404,7 @@ function updateHUD(){
   var em=S.machine==='em';
   g('hudMachine').textContent=em?'电磁打点计时器':'电火花计时器';
   g('hudPower').textContent=em?'4~6 V 交流':'220 V 交流';
-  g('hudT').textContent=(1/S.freq).toFixed(3)+' s';
+  g('hudT').textContent=TimerPrincipleCore.intervalForFrequency(TICK_FREQUENCY).toFixed(3)+' s';
   g('hudDots').textContent=S.dots.length;
   var x=S.v0*S.t+0.5*S.acc*S.t*S.t;
   g('dX').textContent=x.toFixed(2)+' m';
@@ -1403,8 +1426,8 @@ function setTrend(t,cls){
 function updateMachineCard(){
   var em=S.machine==='em';
   g('sPower').textContent=em?'4~6 V 交流':'220 V 交流';
-  g('sFreq').textContent=S.freq+' Hz';
-  g('sT').textContent=(1/S.freq).toFixed(3)+' s';
+  g('sFreq').textContent=TICK_FREQUENCY+' Hz';
+  g('sT').textContent=TimerPrincipleCore.intervalForFrequency(TICK_FREQUENCY).toFixed(3)+' s';
   g('sFric').textContent=em?'较大（振针压紧）':'很小（无接触）';
   g('machineHint').innerHTML = em
     ? '振针周期性下压，把复写纸的痕迹打在纸带上。<b>纸带受到的摩擦阻力较大</b>，测出的加速度会略偏小。'
@@ -1501,7 +1524,7 @@ var ERRS={
 function synth(ta,tb){
   S.step=3;applyStep();
   S.dots=[];S.t=tb;
-  var T=1/S.freq;
+  var T=TimerPrincipleCore.intervalForFrequency(TICK_FREQUENCY);
   for(var t=ta;t<=tb+1e-9;t+=T){
     S.dots.push(S.v0*t+0.5*S.acc*t*t);
   }
@@ -1537,11 +1560,6 @@ g('acc').addEventListener('input',function(){
 g('v0').addEventListener('input',function(){
   S.v0=+this.value;g('v0Val').textContent=S.v0.toFixed(2)+' m/s';
   S.t=0;S.dots=[];drawTape();updateHUD();
-});
-g('freq').addEventListener('input',function(){
-  S.freq=+this.value;g('freqVal').textContent=S.freq+' Hz';
-  S.dots=[];S.t=0;updateMachineCard();drawTape();
-  if(S.freq!==50) toastFormula((1/S.freq).toFixed(3));
 });
 g('everyFive').addEventListener('change',function(){
   S.everyFive=this.checked;drawTape();
