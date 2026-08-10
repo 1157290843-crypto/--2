@@ -478,6 +478,43 @@
     </div>
   </aside>
 </main>
+<script data-operation-core>
+const STEP_IDS = Object.freeze(['fix', 'thread', 'power', 'release', 'finish']);
+
+function createOperationState() {
+  return {
+    phase: 'fix', fixed: false, threaded: false, powered: false, markingStable: false,
+    running: false, carStopped: false, tapeRemoved: false, completed: false,
+    lastError: null, errors: [], consequences: { missingStart: false, endOverprint: false }
+  };
+}
+
+function reduceOperation(state, action) {
+  if (action.type === 'RESET') return createOperationState();
+  if (action.type === 'RECOVER_STEP') return { ...state, lastError: null, running: false, tapeRemoved: false };
+  if (action.type === 'FIX_TIMER' && action.aligned) return { ...state, fixed: true, phase: 'thread' };
+  if (action.type === 'THREAD_TAPE' && state.fixed && action.throughGuide && action.consumableReady) return { ...state, threaded: true, phase: 'power' };
+  if (action.type === 'POWER_ON' && state.threaded) return { ...state, powered: true };
+  if (action.type === 'MARKING_STABLE' && state.powered) return { ...state, markingStable: true, phase: 'release' };
+  if (action.type === 'RELEASE_CAR' && (!state.powered || !state.markingStable)) {
+    return { ...state, running: true, lastError: 'lateOn', errors: [...state.errors, 'lateOn'], consequences: { ...state.consequences, missingStart: true } };
+  }
+  if (action.type === 'RELEASE_CAR' && state.powered && state.markingStable) return { ...state, running: true, phase: 'release' };
+  if (action.type === 'CAR_STOP' && state.running) return { ...state, running: false, carStopped: true, phase: 'finish' };
+  if (action.type === 'POWER_OFF') return { ...state, powered: false };
+  if (action.type === 'TAKE_TAPE' && state.powered) {
+    return { ...state, tapeRemoved: true, lastError: 'lateOff', errors: [...state.errors, 'lateOff'], consequences: { ...state.consequences, endOverprint: true } };
+  }
+  if (action.type === 'TAKE_TAPE' && state.carStopped && !state.powered) return { ...state, tapeRemoved: true, completed: true };
+  return state;
+}
+
+function isStepComplete(state, stepId) {
+  return ({ fix: state.fixed, thread: state.threaded, power: state.markingStable, release: state.carStopped, finish: state.completed })[stepId] === true;
+}
+
+window.TimerOperationCore = Object.freeze({ STEP_IDS, createOperationState, reduceOperation, isStepComplete });
+</script>
 <script>
 (function(){
 "use strict";
