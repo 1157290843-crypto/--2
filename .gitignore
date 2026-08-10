@@ -37,3 +37,7 @@ node_modules/
 dist/
 build/
 coverage/
+
+# Codex isolated development workspaces
+.worktrees/
+.superpowers/
