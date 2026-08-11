@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>打点计时器：纸带数据处理</title>
+<style>
+  :root{
+    --font-ui:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    --type-20:20px;--type-16:16px;--type-14:14px;--type-13:13px;--type-12:12px;--type-11:11px;
+    --surface-page:#f7f4ed;--surface-panel:#f7f4ed;--surface-raised:#fffdf8;--border:#d8d6cf;
+    --text-strong:#14213d;--text-muted:#5c6678;--action:#2557d6;--on-action:#fff;
+    --prograde:#e66d26;--safe:#277a51;--safe-soft:#e5f4eb;--warning:#8d5517;--warning-soft:#fff4e7;
+    --danger:#b9384d;--danger-soft:#fae9ec;--stage:#0b1424;--stage-line:#263650;
+    --stage-text:#f4f8ff;--stage-muted:#91a3bf;--viz-circular:#38bdf8;--viz-transfer:#fb923c;
+    --viz-reference:#55617c;--viz-required:#c084fc;--header-height:64px;
+    --shadow:0 16px 38px rgba(20,33,61,.12);--ease-out:cubic-bezier(.2,0,0,1);
+  }
+  *{box-sizing:border-box}
+  html,body{width:100%;height:100%;margin:0;overflow:hidden}
+  body{
+    height:100dvh;background:var(--surface-page);color:var(--text-strong);font-family:var(--font-ui);
+    font-size:var(--type-13);display:flex;flex-direction:column;letter-spacing:.01em;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;-webkit-text-size-adjust:100%;
+  }
+  button,input{font:inherit;touch-action:manipulation}
+  button{cursor:pointer}
+  sub,sup{font-size:1em}
+  header.topbar.template-header{
+    height:64px;min-height:64px;padding:8px 16px;display:flex;align-items:center;gap:12px;
+    justify-content:space-between;flex-wrap:nowrap;
+    background:rgba(255,253,248,.96);border-bottom:1px solid var(--border);color:var(--text-strong);
+  }
+  #headerBackSlot{flex:0 0 28px;width:28px;height:28px}
+  .template-header .brand{display:flex;align-items:center;gap:10px;min-width:0}
+  .template-header .brand-mark{
+    width:36px;height:36px;display:grid;place-items:center;flex:none;border-radius:10px;
+    background:var(--text-strong);color:var(--on-action);font-size:var(--type-16);font-weight:800;
+  }
+  .template-header .brand-copy{display:block;min-width:0}
+  .template-header .eyebrow{
+    margin:0 0 2px;color:var(--text-muted);font-size:var(--type-11);font-weight:650;line-height:1.2;
+  }
+  .template-header h1{
+    margin:0;color:var(--text-strong);font-size:var(--type-20);font-weight:800;line-height:1.2;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  #experimentLayout{
+    flex:1;min-width:0;min-height:0;display:grid;overflow:hidden;
+    grid-template-columns:clamp(216px,22vw,280px) minmax(480px,1fr) clamp(216px,21vw,280px);
+    grid-template-rows:minmax(0,1fr);background:var(--surface-page);
+  }
+  .control-panel,.observe-panel{
+    min-width:0;min-height:0;height:100%;padding:10px;overflow-y:auto;overscroll-behavior:contain;
+    background:var(--surface-panel);display:flex;flex-direction:column;gap:9px;scrollbar-gutter:stable;
+  }
+  .control-panel{grid-column:1;border-right:1px solid var(--border)}
+  .observe-panel{grid-column:3;border-left:1px solid var(--border)}
+  .stage{
+    grid-column:2;position:relative;min-width:0;min-height:0;margin:10px;overflow:hidden;
+    border:1px solid var(--stage-line);border-radius:16px;box-shadow:var(--shadow);
+    background:radial-gradient(circle at 50% 42%,rgba(42,75,126,.3),transparent 48%),var(--stage);
+    display:grid;grid-template-rows:auto minmax(180px,1fr) auto auto;color:var(--stage-text);
+  }
+  .stage::before{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:32px 32px;
+  }
+  .stage-heading{position:relative;z-index:1;padding:14px 16px 6px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+  .stage-heading h2{margin:0 0 3px;font-size:var(--type-14);line-height:1.35}
+  .stage-heading p{margin:0;color:var(--stage-muted);font-size:var(--type-11);line-height:1.5}
+  .stage-badge{
+    flex:none;padding:6px 9px;border:1px solid rgba(145,163,191,.34);border-radius:9px;
+    color:#dceaff;background:rgba(11,20,36,.72);font-size:var(--type-11);font-weight:800;
+  }
+  .canvas-wrap{position:relative;z-index:1;min-width:0;min-height:0;padding:4px 12px 0}
+  #tapeCanvas{display:block;width:100%;height:100%;min-height:180px;border-radius:12px;touch-action:manipulation}
+  #segmentValues{
+    position:relative;z-index:1;padding:7px 12px 9px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;
+  }
+  .segment-button{
+    min-width:0;min-height:48px;padding:5px 3px;border:1px solid #31425d;border-radius:8px;
+    background:#15233a;color:#dce7f7;font-size:var(--type-11);line-height:1.35;
+  }
+  .segment-button span{display:block;color:var(--stage-muted)}
+  .segment-button.is-left{border-color:var(--viz-circular);background:rgba(56,189,248,.12)}
+  .segment-button.is-right{border-color:var(--viz-transfer);background:rgba(251,146,60,.14)}
+  .segment-button.is-selected{outline:2px solid var(--viz-required);outline-offset:1px}
+  .teaching-controls{
+    position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;padding:8px 12px 12px;
+    border-top:1px solid rgba(145,163,191,.22);background:rgba(11,20,36,.72);
+  }
+  .teaching-controls button{
+    min-height:44px;padding:8px;border:1px solid #31425d;border-radius:9px;background:#15233a;
+    color:#dce7f7;font-size:var(--type-12);font-weight:800;
+  }
+  .teaching-controls button:last-child{border-color:#5a3426;background:#2a1b18;color:#ffd8c2}
+  .teaching-controls button:disabled{opacity:.42;cursor:not-allowed}
+  .card{background:var(--surface-raised);border:1px solid var(--border);border-radius:12px;padding:11px 12px}
+  .card h2,.card h3{margin:0 0 9px;font-size:var(--type-13);line-height:1.4}
+  .card h3{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .kicker{color:var(--action);font-size:var(--type-11);font-weight:800;letter-spacing:.05em}
+  .intro{margin:0;color:var(--text-muted);font-size:var(--type-11);line-height:1.7}
+  .mode-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+  .mode-switch button{
+    min-height:42px;padding:7px 4px;border:1px solid var(--border);border-radius:9px;
+    background:var(--surface-raised);color:var(--text-muted);font-size:var(--type-11);font-weight:800;
+  }
+  .mode-switch button[aria-pressed="true"]{border-color:var(--action);background:#eaf0ff;color:var(--action)}
+  .conditions-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .conditions-grid>div{padding:7px 8px;border:1px solid var(--border);border-radius:9px;background:#fff;min-height:48px}
+  .conditions-grid span{display:block;color:var(--text-muted);font-size:var(--type-11);margin-bottom:3px}
+  .conditions-grid b{font-size:var(--type-12);font-variant-numeric:tabular-nums}
+  #differenceSteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+  #differenceSteps li{
+    display:grid;grid-template-columns:22px 1fr;gap:7px;align-items:start;padding:6px 7px;
+    border:1px solid var(--border);border-radius:9px;background:#fff;color:var(--text-muted);font-size:var(--type-11);line-height:1.45;
+  }
+  #differenceSteps .step-number{
+    width:22px;height:22px;display:grid;place-items:center;border-radius:6px;background:#eceae2;color:var(--text-muted);font-weight:800;
+  }
+  #differenceSteps li.is-current{border-color:var(--action);background:#eef2ff;color:var(--text-strong)}
+  #differenceSteps li.is-current .step-number{background:var(--action);color:#fff}
+  #differenceSteps li.is-done{border-color:#bfe0cd;background:#f1f9f4;color:#237049}
+  #differenceSteps li.is-done .step-number{background:var(--safe);color:#fff}
+  .focus-card{border-top:3px solid var(--action)}
+  #currentPair{margin:0;color:var(--text-strong);font-size:var(--type-13);font-weight:800;line-height:1.5}
+  #pairHint{margin:5px 0 0;color:var(--text-muted);font-size:var(--type-11);line-height:1.65}
+  .pair-key{display:flex;gap:6px;margin-top:8px}
+  .pair-key span{padding:4px 7px;border-radius:7px;font-size:var(--type-11);font-weight:800}
+  .pair-key .left{background:#e6f8ff;color:#176078}.pair-key .right{background:#fff0e7;color:#9a461d}
+  #formulaWorkbench{font-size:var(--type-12);line-height:1.75}
+  .formula-line{
+    margin:0 0 7px;padding:8px 9px;border-radius:9px;background:#f2f5fb;border:1px solid #d7dfef;
+    color:var(--text-strong);font-variant-numeric:tabular-nums;
+  }
+  .formula-line strong{color:var(--action)}
+  .formula-note{margin:0 0 8px;color:var(--text-muted);font-size:var(--type-11);line-height:1.65}
+  .answer-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+  .answer-row input{
+    width:100%;min-width:0;min-height:42px;padding:8px 9px;border:1px solid var(--border);border-radius:9px;
+    background:#fff;color:var(--text-strong);font-size:var(--type-13);font-variant-numeric:tabular-nums;
+  }
+  .primary-button{
+    min-height:42px;padding:8px 11px;border:1px solid var(--action);border-radius:9px;
+    background:var(--action);color:#fff;font-size:var(--type-12);font-weight:800;
+  }
+  .feedback{min-height:34px;margin:8px 0 0;padding:6px 8px;border-radius:8px;background:var(--warning-soft);color:var(--warning);font-size:var(--type-11);line-height:1.55}
+  .feedback.is-success{background:var(--safe-soft);color:var(--safe)}
+  .result-list{display:grid;gap:5px}
+  .result-row{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border);font-size:var(--type-11)}
+  .result-row:last-child{border-bottom:0}.result-row span{color:var(--text-muted)}
+  .result-row b{font-variant-numeric:tabular-nums}
+  .result-row.is-ready b{color:var(--safe)}
+  #combinedFormula{font-size:var(--type-11);line-height:1.7;color:var(--text-muted)}
+  #combinedFormula .combined-result{margin-top:7px;padding:8px;border-radius:9px;background:var(--safe-soft);color:var(--safe);font-weight:800}
+  .method-note{margin:0;color:var(--text-muted);font-size:var(--type-11);line-height:1.7}
+  .method-note b{color:var(--prograde)}
+  .sr-only{
+    position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
+    overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+  }
+  button:focus-visible,input:focus-visible,#tapeCanvas:focus-visible{outline:3px solid var(--viz-required);outline-offset:2px}
+  @media (max-width:1100px){
+    #experimentLayout{grid-template-columns:224px minmax(480px,1fr) 224px}
+    .control-panel,.observe-panel{padding:8px;gap:7px}.stage{margin:8px}.card{padding:9px 10px}
+    .stage-heading{padding:10px 12px 4px}.stage-badge{display:none}
+  }
+  @media (orientation:landscape) and (max-width:960px){
+    :root{--header-height:46px}
+    header.topbar.template-header{height:46px;min-height:46px;padding:4px 10px}
+    #headerBackSlot{flex-basis:20px;width:20px;height:28px}
+    .template-header .brand-mark{width:30px;height:30px;font-size:var(--type-14)}
+    .template-header .eyebrow{display:block;font-size:var(--type-11)}
+    .template-header h1{font-size:var(--type-14)}
+    #experimentLayout{grid-template-columns:216px minmax(480px,1fr) 216px}
+    .control-panel,.observe-panel{padding:6px;gap:6px}.stage{margin:6px;border-radius:12px}
+    .card{padding:7px 8px;border-radius:10px}.card h2,.card h3{margin-bottom:6px}
+    .stage-heading{padding:7px 10px 2px}.canvas-wrap{padding-inline:8px}
+    #segmentValues{padding:5px 8px 6px;gap:3px}.segment-button{min-height:42px;padding:3px 1px}
+    .teaching-controls{padding:6px 8px 8px;gap:5px}
+    #differenceSteps{gap:3px}#differenceSteps li{padding:4px 5px;line-height:1.3}
+    .conditions-grid{gap:4px}.conditions-grid>div{padding:5px 6px;min-height:42px}
+  }
+</style>
+</head>
+<body>
+<header class="topbar template-header">
+  <div id="headerBackSlot" aria-hidden="true"></div>
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">罗</div>
+    <div class="brand-copy">
+      <p class="eyebrow">老罗物理 · 探究实验</p>
+      <h1>打点计时器：纸带数据处理</h1>
+    </div>
+  </div>
+</header>
+<main id="experimentLayout" data-layout-lock="three-column">
+  <aside class="control-panel" id="controlPanel" aria-label="固定条件与学习步骤">
+    <section class="card">
+      <h2>用逐差法求加速度</h2>
+      <p class="intro">一条固定的理想纸带，一次看清“错位三段作差、再取平均”的完整方法。</p>
+    </section>
+
+    <section class="card" aria-labelledby="modeHeading">
+      <h3 id="modeHeading"><span>学习方式</span><span class="kicker">MODE</span></h3>
+      <div class="mode-switch" role="group" aria-label="学习方式">
+        <button type="button" id="modeAuto" aria-pressed="false">自动演示</button>
+        <button type="button" id="modeGuided" aria-pressed="true">分步引导</button>
+        <button type="button" id="modeExplore" aria-pressed="false">自由探索</button>
+      </div>
+    </section>
+
+    <section class="card" id="fixedConditions" aria-labelledby="conditionsHeading">
+      <h3 id="conditionsHeading"><span>固定理想条件</span><span class="kicker">FIXED</span></h3>
+      <div class="conditions-grid">
+        <div><span>电源频率 f</span><b>50 Hz</b></div>
+        <div><span>间隔数 k</span><b>5</b></div>
+        <div><span>计时单位 T′</span><b>0.10 s</b></div>
+        <div><span>初速度 v₀</span><b>0.20 m/s</b></div>
+        <div><span>加速度 a</span><b>2.00 m/s²</b></div>
+        <div><span>计数点</span><b>A—G</b></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="stepsHeading">
+      <h3 id="stepsHeading"><span>七步逐差流程</span><span class="kicker">7 STEPS</span></h3>
+      <ol id="differenceSteps"></ol>
+    </section>
+
+    <section class="card">
+      <h3><span>方法抓手</span><span class="kicker">WHY</span></h3>
+      <p class="method-note">把相隔三段的位移配成一组，使每组时间差都是 <b>3T′</b>；三次独立求值后取平均，充分使用六段数据。</p>
+    </section>
+  </aside>
+
+  <section class="stage" id="stage" aria-label="理想化纸带逐差法工作台">
+    <div class="stage-heading">
+      <div>
+        <h2>理想化匀加速纸带</h2>
+        <p>A—G 为相邻计数点，每个计时单位 T′ = 5 / 50 = 0.10 s</p>
+      </div>
+      <div class="stage-badge" id="stageMode">分步引导 · 第 1 步</div>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="tapeCanvas" tabindex="0" aria-label="理想化匀加速纸带，A 到 G 七个计数点，六段位移依次为 3、5、7、9、11、13 厘米"></canvas>
+    </div>
+    <div id="segmentValues" aria-label="六段位移，可在自由探索中选择查看"></div>
+    <div class="teaching-controls" aria-label="教学步骤控制">
+      <button type="button" id="previousTeachingStep">上一步</button>
+      <button type="button" id="nextTeachingStep">下一步</button>
+      <button type="button" id="resetLesson">重置</button>
+    </div>
+    <table class="sr-only">
+      <caption>理想化纸带点位与相邻位移</caption>
+      <thead><tr><th>起点</th><th>终点</th><th>位移</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>B</td><td>3.0 cm</td></tr>
+        <tr><td>B</td><td>C</td><td>5.0 cm</td></tr>
+        <tr><td>C</td><td>D</td><td>7.0 cm</td></tr>
+        <tr><td>D</td><td>E</td><td>9.0 cm</td></tr>
+        <tr><td>E</td><td>F</td><td>11.0 cm</td></tr>
+        <tr><td>F</td><td>G</td><td>13.0 cm</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <aside class="observe-panel" id="observePanel" aria-label="当前配对与计算结果">
+    <section class="card focus-card">
+      <h3><span>当前观察</span><span class="kicker">FOCUS</span></h3>
+      <p id="currentPair">先确认计时单位 T′</p>
+      <p id="pairHint">逐差法的每一步只突出一组关系。</p>
+      <div class="pair-key" aria-label="配对颜色说明">
+        <span class="left">较早位移</span><span class="right">较晚位移</span>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="workbenchHeading">
+      <h3 id="workbenchHeading"><span>公式工作台</span><span class="kicker">CALC</span></h3>
+      <div id="formulaWorkbench"></div>
+      <p id="lessonFeedback" class="feedback" role="status" aria-live="polite">从 T′ = k / f 开始。</p>
+    </section>
+
+    <section class="card" aria-labelledby="resultsHeading">
+      <h3 id="resultsHeading"><span>三组结果与平均</span><span class="kicker">RESULT</span></h3>
+      <div id="groupResults" class="result-list"></div>
+    </section>
+
+    <section class="card" aria-labelledby="combinedHeading">
+      <h3 id="combinedHeading"><span>合并式验证</span><span class="kicker">CHECK</span></h3>
+      <div id="combinedFormula">完成三组逐差并求平均后，合并式将在这里验证同一结果。</div>
+    </section>
+  </aside>
+</main>
+
+<script data-successive-difference-core>
+(function () {
+  const CONFIG = Object.freeze({ frequency: 50, intervalCount: 5, interval: 0.1, initialVelocity: 0.2, acceleration: 2, pointCount: 7 });
+  const PAIRINGS = Object.freeze([Object.freeze([0, 3]), Object.freeze([1, 4]), Object.freeze([2, 5])]);
+  function generatePositions(config) {
+    return Array.from({ length: config.pointCount }, (_, index) => {
+      const time = index * config.interval;
+      return config.initialVelocity * time + 0.5 * config.acceleration * time * time;
+    });
+  }
+  function segmentDisplacements(positions) {
+    return positions.slice(1).map((position, index) => position - positions[index]);
+  }
+  function analyzeSuccessiveDifferences(segments, interval) {
+    if (segments.length !== 6) throw new RangeError('six segments are required');
+    const denominator = 3 * interval * interval;
+    const groupAccelerations = PAIRINGS.map(([left, right]) => (segments[right] - segments[left]) / denominator);
+    const average = groupAccelerations.reduce((sum, value) => sum + value, 0) / groupAccelerations.length;
+    const combined = ((segments[3] + segments[4] + segments[5]) - (segments[0] + segments[1] + segments[2])) / (9 * interval * interval);
+    return { groupAccelerations, average, combined };
+  }
+  window.SuccessiveDifferenceCore = Object.freeze({ CONFIG, PAIRINGS, generatePositions, segmentDisplacements, analyzeSuccessiveDifferences });
+})();
+</script>
+
+<script data-successive-difference-teaching-core>
+(function () {
+  const DIFFERENCE_STEPS = Object.freeze([
+    Object.freeze({ id: 1, observe: '确认 T′ = 5 / 50 = 0.10 s' }),
+    Object.freeze({ id: 2, observe: '读取 A—G 七点间的六段位移' }),
+    Object.freeze({ id: 3, observe: '配对 s₁ 与 s₄' }),
+    Object.freeze({ id: 4, observe: '配对 s₂ 与 s₅' }),
+    Object.freeze({ id: 5, observe: '配对 s₃ 与 s₆' }),
+    Object.freeze({ id: 6, observe: '对 a₁、a₂、a₃ 取平均' }),
+    Object.freeze({ id: 7, observe: '验证合并式与分组平均一致' })
+  ]);
+  const MODES = Object.freeze(['auto', 'guided', 'explore']);
+  function createDifferenceState() {
+    return {
+      step: 1,
+      mode: 'guided',
+      intervalConfirmed: false,
+      segmentsConfirmed: false,
+      activePair: 0,
+      groupAnswers: [null, null, null],
+      averageAnswer: null,
+      completed: false,
+      selectedSegment: null,
+      feedback: '从 T′ = k / f 开始。'
+    };
+  }
+  function isTwo(value) {
+    return Number.isFinite(Number(value)) && Math.abs(Number(value) - 2) <= 0.005;
+  }
+  function maxUnlockedStep(state) {
+    if (!state.intervalConfirmed) return 1;
+    if (!state.segmentsConfirmed) return 2;
+    if (state.activePair < 3) return 3 + state.activePair;
+    if (!state.completed) return 6;
+    return 7;
+  }
+  function differenceReducer(state, action) {
+    if (!action || !action.type) return state;
+    if (action.type === 'RESET') return createDifferenceState();
+    if (action.type === 'SET_MODE' && MODES.includes(action.mode)) {
+      return { ...state, mode: action.mode, feedback: action.mode === 'explore' ? '可选择任一段查看；逐差配对顺序保持不变。' : state.feedback };
+    }
+    if (action.type === 'SELECT_SEGMENT' && state.mode === 'explore' && Number.isInteger(action.index) && action.index >= 0 && action.index < 6) {
+      return { ...state, selectedSegment: action.index, feedback: `已选择 s${action.index + 1}。` };
+    }
+    if (action.type === 'CONFIRM_INTERVAL') {
+      return { ...state, intervalConfirmed: true, step: 2, feedback: '计时单位正确：T′ = 0.10 s。现在读取六段位移。' };
+    }
+    if (action.type === 'CONFIRM_SEGMENTS' && state.intervalConfirmed) {
+      return { ...state, segmentsConfirmed: true, step: 3, feedback: '六段位移已确认。先配对 s₁ 与 s₄。' };
+    }
+    if (action.type === 'SUBMIT_GROUP') {
+      if (!state.segmentsConfirmed || action.index !== state.activePair) {
+        return { ...state, feedback: '请按 s₁↔s₄、s₂↔s₅、s₃↔s₆ 的顺序完成。' };
+      }
+      if (!isTwo(action.value)) {
+        return { ...state, feedback: '再检查单位换算和分母 3T′²。' };
+      }
+      const answers = state.groupAnswers.slice();
+      answers[action.index] = Number(action.value);
+      const nextPair = state.activePair + 1;
+      const nextText = nextPair < 3 ? `第 ${action.index + 1} 组正确。继续下一组。` : '三组都得到 2.00 m/s²，现在求平均。';
+      return { ...state, groupAnswers: answers, activePair: nextPair, step: Math.min(6, 3 + nextPair), feedback: nextText };
+    }
+    if (action.type === 'SUBMIT_AVERAGE' && state.activePair === 3) {
+      if (!isTwo(action.value)) return { ...state, feedback: '平均值应由 a₁、a₂、a₃ 相加后除以 3。' };
+      return { ...state, averageAnswer: Number(action.value), completed: true, step: 7, feedback: '完成：平均式与合并式都得到 2.00 m/s²。' };
+    }
+    if (action.type === 'VIEW_PREVIOUS') return { ...state, step: Math.max(1, state.step - 1) };
+    if (action.type === 'VIEW_NEXT') return { ...state, step: Math.min(maxUnlockedStep(state), state.step + 1) };
+    return state;
+  }
+  function nextAutomaticAction(state) {
+    if (!state.intervalConfirmed) return { type: 'CONFIRM_INTERVAL' };
+    if (!state.segmentsConfirmed) return { type: 'CONFIRM_SEGMENTS' };
+    if (state.activePair < 3) return { type: 'SUBMIT_GROUP', index: state.activePair, value: 2 };
+    if (!state.completed) return { type: 'SUBMIT_AVERAGE', value: 2 };
+    return { type: 'NOOP' };
+  }
+  window.SuccessiveDifferenceTeaching = Object.freeze({ DIFFERENCE_STEPS, MODES, createDifferenceState, differenceReducer, nextAutomaticAction, maxUnlockedStep });
+})();
+</script>
+
+<script data-successive-difference-view-core>
+(function () {
+  const D = window.SuccessiveDifferenceCore;
+  const positions = D.generatePositions(D.CONFIG);
+  const segments = D.segmentDisplacements(positions);
+  const analysis = D.analyzeSuccessiveDifferences(segments, D.CONFIG.interval);
+  const pointLabels = Object.freeze(['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+  const round = value => +value.toFixed(12);
+  function createLessonView(state) {
+    const pairIndex = Math.min(state.activePair, D.PAIRINGS.length - 1);
+    const activePair = D.PAIRINGS[pairIndex];
+    return {
+      frequency: D.CONFIG.frequency,
+      intervalCount: D.CONFIG.intervalCount,
+      interval: D.CONFIG.interval,
+      initialVelocity: D.CONFIG.initialVelocity,
+      acceleration: D.CONFIG.acceleration,
+      pointLabels,
+      positionsCm: positions.map(value => round(value * 100)),
+      segmentsCm: segments.map(value => round(value * 100)),
+      activePair,
+      denominator: round(3 * D.CONFIG.interval * D.CONFIG.interval),
+      numeratorCm: round((segments[activePair[1]] - segments[activePair[0]]) * 100),
+      groupAccelerations: analysis.groupAccelerations.map(round),
+      average: round(analysis.average),
+      combined: round(analysis.combined),
+      state
+    };
+  }
+  window.SuccessiveDifferenceLesson = Object.freeze({ createLessonView });
+})();
+</script>
+
+<script>
+(function () {
+  'use strict';
+  const D = window.SuccessiveDifferenceCore;
+  const T = window.SuccessiveDifferenceTeaching;
+  const L = window.SuccessiveDifferenceLesson;
+  const elements = {
+    canvas: document.getElementById('tapeCanvas'),
+    steps: document.getElementById('differenceSteps'),
+    segments: document.getElementById('segmentValues'),
+    currentPair: document.getElementById('currentPair'),
+    pairHint: document.getElementById('pairHint'),
+    workbench: document.getElementById('formulaWorkbench'),
+    feedback: document.getElementById('lessonFeedback'),
+    results: document.getElementById('groupResults'),
+    combined: document.getElementById('combinedFormula'),
+    stageMode: document.getElementById('stageMode'),
+    previous: document.getElementById('previousTeachingStep'),
+    next: document.getElementById('nextTeachingStep'),
+    reset: document.getElementById('resetLesson'),
+    modes: {
+      auto: document.getElementById('modeAuto'),
+      guided: document.getElementById('modeGuided'),
+      explore: document.getElementById('modeExplore')
+    }
+  };
+  let state = T.createDifferenceState();
+  let autoTimer = null;
+  let tapeGeometry = null;
+
+  function stopAuto() {
+    if (autoTimer !== null) window.clearTimeout(autoTimer);
+    autoTimer = null;
+  }
+
+  function dispatch(action) {
+    state = T.differenceReducer(state, action);
+    render();
+  }
+
+  function format(value, digits) {
+    return Number(value).toFixed(digits);
+  }
+
+  function modeLabel(mode) {
+    return mode === 'auto' ? '自动演示' : mode === 'explore' ? '自由探索' : '分步引导';
+  }
+
+  function stepDone(id) {
+    if (id === 1) return state.intervalConfirmed;
+    if (id === 2) return state.segmentsConfirmed;
+    if (id >= 3 && id <= 5) return state.groupAnswers[id - 3] !== null;
+    if (id === 6) return state.completed;
+    return state.completed && id === 7;
+  }
+
+  function renderSteps() {
+    elements.steps.innerHTML = T.DIFFERENCE_STEPS.map(step => {
+      const classes = [step.id === state.step ? 'is-current' : '', stepDone(step.id) ? 'is-done' : ''].filter(Boolean).join(' ');
+      return `<li class="${classes}" data-step="${step.id}"${step.id === state.step ? ' aria-current="step"' : ''}><span class="step-number">${stepDone(step.id) ? '✓' : step.id}</span><span>${step.observe}</span></li>`;
+    }).join('');
+  }
+
+  function renderSegments(view) {
+    const highlighted = state.step >= 3 && state.step <= 5 ? view.activePair : [];
+    elements.segments.innerHTML = view.segmentsCm.map((value, index) => {
+      const classes = ['segment-button'];
+      if (highlighted[0] === index) classes.push('is-left');
+      if (highlighted[1] === index) classes.push('is-right');
+      if (state.selectedSegment === index) classes.push('is-selected');
+      return `<button type="button" class="${classes.join(' ')}" data-segment="${index}" aria-pressed="${state.selectedSegment === index}"${state.mode === 'explore' ? '' : ' disabled'}><b>s<sub>${index + 1}</sub></b><span>${format(value, 1)} cm</span></button>`;
+    }).join('');
+  }
+
+  function pairCopy(view) {
+    if (state.step === 1) return ['确认计时单位 T′', '5 个打点间隔对应一个计时单位。'];
+    if (state.step === 2) return ['读取六段位移', '从 A 到 G，共有 s₁ 到 s₆ 六段。'];
+    if (state.step >= 3 && state.step <= 5) {
+      const [left, right] = view.activePair;
+      return [`配对 s${left + 1} 与 s${right + 1}`, `用较晚位移减较早位移，时间差固定为 3T′。`];
+    }
+    if (state.step === 6) return ['对三组加速度取平均', '三个结果独立使用了六段位移。'];
+    return ['用合并式复核', '分组平均与一次合并计算应完全一致。'];
+  }
+
+  function renderFormula(view) {
+    if (state.step === 1) {
+      elements.workbench.innerHTML = `
+        <p class="formula-line"><strong>T′</strong> = k / f = 5 / 50 = 0.10 s</p>
+        <p class="formula-note">一个计时单位跨过 5 个原始打点间隔。</p>
+        <button type="button" class="primary-button" data-action="confirm-interval">确认 T′ = 0.10 s</button>`;
+      return;
+    }
+    if (state.step === 2) {
+      elements.workbench.innerHTML = `
+        <p class="formula-line">s₁…s₆ = 3.0，5.0，7.0，9.0，11.0，13.0 cm</p>
+        <p class="formula-note">相等时间内位移依次增加 2.0 cm，纸带符合匀加速运动。</p>
+        <button type="button" class="primary-button" data-action="confirm-segments">确认六段位移</button>`;
+      return;
+    }
+    if (state.step >= 3 && state.step <= 5) {
+      const pairIndex = state.step - 3;
+      const [left, right] = D.PAIRINGS[pairIndex];
+      const leftCm = view.segmentsCm[left];
+      const rightCm = view.segmentsCm[right];
+      elements.workbench.innerHTML = `
+        <p class="formula-line">a<sub>${pairIndex + 1}</sub> = (s<sub>${right + 1}</sub> − s<sub>${left + 1}</sub>) / 3T′²</p>
+        <p class="formula-line">= (${format(rightCm, 1)} − ${format(leftCm, 1)}) cm / [3 × (0.10 s)²]<br>= 0.060 m / 0.030 s²</p>
+        <p class="formula-note">先把 6.0 cm 换成 0.060 m，再除以固定分母 3T′²。</p>
+        <div class="answer-row"><input id="answerInput" inputmode="decimal" aria-label="输入第 ${pairIndex + 1} 组加速度，单位米每二次方秒" placeholder="输入数值"><button type="button" class="primary-button" data-action="submit-group" data-index="${pairIndex}">验证</button></div>`;
+      return;
+    }
+    if (state.step === 6) {
+      elements.workbench.innerHTML = `
+        <p class="formula-line">ā = (a₁ + a₂ + a₃) / 3</p>
+        <p class="formula-line">= (2.00 + 2.00 + 2.00) / 3</p>
+        <div class="answer-row"><input id="answerInput" inputmode="decimal" aria-label="输入平均加速度，单位米每二次方秒" placeholder="输入平均值"><button type="button" class="primary-button" data-action="submit-average">验证</button></div>`;
+      return;
+    }
+    elements.workbench.innerHTML = `
+      <p class="formula-line"><strong>ā = 2.00 m/s²</strong></p>
+      <p class="formula-note">三组逐差的平均值已经完成，最后核对合并式。</p>`;
+  }
+
+  function renderResults(view) {
+    const rows = state.groupAnswers.map((answer, index) => `
+      <div class="result-row ${answer !== null ? 'is-ready' : ''}"><span>a<sub>${index + 1}</sub></span><b>${answer !== null ? `${format(view.groupAccelerations[index], 2)} m/s²` : '待完成'}</b></div>`);
+    rows.push(`<div class="result-row ${state.completed ? 'is-ready' : ''}"><span>平均值 ā</span><b>${state.completed ? `${format(view.average, 2)} m/s²` : '待完成'}</b></div>`);
+    elements.results.innerHTML = rows.join('');
+  }
+
+  function renderCombined(view) {
+    if (!state.completed) {
+      elements.combined.textContent = '完成三组逐差并求平均后，合并式将在这里验证同一结果。';
+      return;
+    }
+    elements.combined.innerHTML = `
+      <div>[(s₄+s₅+s₆) − (s₁+s₂+s₃)] / 9T′²</div>
+      <div>=[(9+11+13) − (3+5+7)] cm / [9×(0.10 s)²]</div>
+      <div>= 0.180 m / 0.090 s²</div>
+      <div class="combined-result">= ${format(view.combined, 2)} m/s²，与分组平均一致</div>`;
+  }
+
+  function renderModes() {
+    Object.entries(elements.modes).forEach(([mode, button]) => button.setAttribute('aria-pressed', String(state.mode === mode)));
+  }
+
+  function renderControls() {
+    const unlocked = T.maxUnlockedStep(state);
+    elements.previous.disabled = state.step <= 1;
+    elements.next.disabled = state.step >= unlocked;
+  }
+
+  function render() {
+    const view = L.createLessonView(state);
+    const copy = pairCopy(view);
+    elements.currentPair.textContent = copy[0];
+    elements.pairHint.textContent = copy[1];
+    elements.feedback.textContent = state.feedback;
+    elements.feedback.classList.toggle('is-success', state.completed || state.groupAnswers.some(value => value !== null));
+    elements.stageMode.textContent = `${modeLabel(state.mode)} · 第 ${state.step} 步`;
+    renderModes();
+    renderSteps();
+    renderSegments(view);
+    renderFormula(view);
+    renderResults(view);
+    renderCombined(view);
+    renderControls();
+    renderTape(state);
+  }
+
+  function canvasColors() {
+    const style = getComputedStyle(document.documentElement);
+    return {
+      stage: style.getPropertyValue('--stage').trim(),
+      line: style.getPropertyValue('--stage-line').trim(),
+      text: style.getPropertyValue('--stage-text').trim(),
+      muted: style.getPropertyValue('--stage-muted').trim(),
+      paper: style.getPropertyValue('--surface-raised').trim(),
+      border: style.getPropertyValue('--border').trim(),
+      left: style.getPropertyValue('--viz-circular').trim(),
+      right: style.getPropertyValue('--viz-transfer').trim(),
+      selected: style.getPropertyValue('--viz-required').trim()
+    };
+  }
+
+  function renderTape(currentState) {
+    const canvas = elements.canvas;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const pixelWidth = Math.round(rect.width * dpr);
+    const pixelHeight = Math.round(rect.height * dpr);
+    if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const width = rect.width;
+    const height = rect.height;
+    const colors = canvasColors();
+    const view = L.createLessonView(currentState);
+    const pad = Math.max(24, Math.min(42, width * .055));
+    const usable = width - pad * 2;
+    const totalCm = view.positionsCm[view.positionsCm.length - 1];
+    const xFor = cm => pad + cm / totalCm * usable;
+    const tapeHeight = Math.max(104, Math.min(148, height * .5));
+    const tapeTop = Math.max(38, (height - tapeHeight) * .46);
+    const tapeBottom = tapeTop + tapeHeight;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = colors.stage;
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.fillStyle = colors.paper;
+    ctx.strokeStyle = colors.border;
+    ctx.lineWidth = 1;
+    roundRect(ctx, pad - 12, tapeTop, usable + 24, tapeHeight, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    const active = currentState.step >= 3 && currentState.step <= 5 ? view.activePair : [];
+    view.segmentsCm.forEach((segment, index) => {
+      const x0 = xFor(view.positionsCm[index]);
+      const x1 = xFor(view.positionsCm[index + 1]);
+      const isLeft = active[0] === index;
+      const isRight = active[1] === index;
+      const selected = currentState.selectedSegment === index;
+      if (isLeft || isRight || selected) {
+        ctx.globalAlpha = selected ? .24 : .16;
+        ctx.fillStyle = selected ? colors.selected : isLeft ? colors.left : colors.right;
+        ctx.fillRect(x0, tapeTop + 1, x1 - x0, tapeHeight - 2);
+        ctx.globalAlpha = 1;
+      }
+    });
+
+    ctx.strokeStyle = colors.line;
+    ctx.lineWidth = 1;
+    for (let tenth = 0; tenth <= Math.round(totalCm * 10); tenth += 1) {
+      const cm = tenth / 10;
+      const x = xFor(cm);
+      const isCentimeter = tenth % 10 === 0;
+      const isFiveMillimeter = tenth % 5 === 0;
+      const tick = isCentimeter ? 14 : isFiveMillimeter ? 9 : 5;
+      ctx.beginPath();
+      ctx.moveTo(x, tapeTop + 3);
+      ctx.lineTo(x, tapeTop + 3 + tick);
+      ctx.stroke();
+    }
+
+    const uiFont = getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    view.positionsCm.forEach((position, index) => {
+      const x = xFor(position);
+      ctx.strokeStyle = colors.line;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, tapeTop + 18);
+      ctx.lineTo(x, tapeBottom - 15);
+      ctx.stroke();
+      ctx.fillStyle = colors.stage;
+      ctx.beginPath();
+      ctx.arc(x, tapeTop + tapeHeight * .48, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = colors.stage;
+      ctx.font = `800 13px ${uiFont}`;
+      ctx.fillText(view.pointLabels[index], x, tapeTop + 31);
+    });
+
+    view.segmentsCm.forEach((value, index) => {
+      const mid = (xFor(view.positionsCm[index]) + xFor(view.positionsCm[index + 1])) / 2;
+      const isLeft = active[0] === index;
+      const isRight = active[1] === index;
+      ctx.fillStyle = isLeft ? colors.left : isRight ? colors.right : colors.stage;
+      ctx.font = `800 11px ${uiFont}`;
+      ctx.fillText(`s${index + 1}`, mid, tapeTop + tapeHeight * .68);
+      ctx.font = `700 11px ${uiFont}`;
+      ctx.fillText(`${format(value, 1)}`, mid, tapeTop + tapeHeight * .82);
+    });
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = colors.muted;
+    ctx.font = `700 11px ${uiFont}`;
+    ctx.fillText('毫米刻度', pad - 2, tapeTop - 13);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = colors.text;
+    ctx.fillText('T′ = 0.10 s · 位移单位：cm', width - pad + 2, tapeTop - 13);
+    tapeGeometry = { pad, usable, totalCm, positionsCm: view.positionsCm };
+  }
+
+  function roundRect(ctx, x, y, width, height, radius) {
+    const r = Math.min(radius, width / 2, height / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + width, y, x + width, y + height, r);
+    ctx.arcTo(x + width, y + height, x, y + height, r);
+    ctx.arcTo(x, y + height, x, y, r);
+    ctx.arcTo(x, y, x + width, y, r);
+    ctx.closePath();
+  }
+
+  function runAuto() {
+    stopAuto();
+    if (state.mode !== 'auto' || state.completed) return;
+    autoTimer = window.setTimeout(() => {
+      dispatch(T.nextAutomaticAction(state));
+      runAuto();
+    }, 850);
+  }
+
+  elements.workbench.addEventListener('click', event => {
+    const button = event.target.closest('[data-action]');
+    if (!button) return;
+    const action = button.dataset.action;
+    if (action === 'confirm-interval') dispatch({ type: 'CONFIRM_INTERVAL' });
+    if (action === 'confirm-segments') dispatch({ type: 'CONFIRM_SEGMENTS' });
+    if (action === 'submit-group') {
+      const input = document.getElementById('answerInput');
+      dispatch({ type: 'SUBMIT_GROUP', index: Number(button.dataset.index), value: input ? input.value : '' });
+    }
+    if (action === 'submit-average') {
+      const input = document.getElementById('answerInput');
+      dispatch({ type: 'SUBMIT_AVERAGE', value: input ? input.value : '' });
+    }
+  });
+
+  elements.workbench.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && event.target.id === 'answerInput') {
+      const button = elements.workbench.querySelector('[data-action^="submit-"]');
+      if (button) button.click();
+    }
+  });
+
+  elements.segments.addEventListener('click', event => {
+    const button = event.target.closest('[data-segment]');
+    if (button) dispatch({ type: 'SELECT_SEGMENT', index: Number(button.dataset.segment) });
+  });
+
+  elements.canvas.addEventListener('click', event => {
+    if (!tapeGeometry) return;
+    const rect = elements.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const cm = Math.max(0, Math.min(tapeGeometry.totalCm, (x - tapeGeometry.pad) / tapeGeometry.usable * tapeGeometry.totalCm));
+    const positions = tapeGeometry.positionsCm;
+    let index = positions.findIndex((position, item) => item < positions.length - 1 && cm >= position && cm <= positions[item + 1]);
+    if (index < 0) index = positions.length - 2;
+    dispatch({ type: 'SELECT_SEGMENT', index });
+  });
+
+  elements.previous.addEventListener('click', () => dispatch({ type: 'VIEW_PREVIOUS' }));
+  elements.next.addEventListener('click', () => dispatch({ type: 'VIEW_NEXT' }));
+  elements.reset.addEventListener('click', () => {
+    stopAuto();
+    dispatch({ type: 'RESET' });
+  });
+
+  Object.entries(elements.modes).forEach(([mode, button]) => {
+    button.addEventListener('click', () => {
+      stopAuto();
+      if (mode === 'auto') {
+        state = T.differenceReducer(state, { type: 'RESET' });
+        state = T.differenceReducer(state, { type: 'SET_MODE', mode: 'auto' });
+        render();
+        runAuto();
+        return;
+      }
+      dispatch({ type: 'SET_MODE', mode });
+    });
+  });
+
+  if ('ResizeObserver' in window) new ResizeObserver(() => renderTape(state)).observe(elements.canvas);
+  else window.addEventListener('resize', () => renderTape(state));
+  render();
+})();
+</script>
+</body>
+</html>

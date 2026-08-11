@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>打点计时器：结构与工作原理</title>
+<style>
+  :root{
+    --bg:#f7f4ed;--panel:#f7f4ed;--panel2:#fffdf8;--line:#d8d6cf;
+    --txt:#14213d;--dim:#5c6678;--cyan:#2557d6;--orange:#e66d26;
+    --purple:#7a69d8;--green:#2f9b63;--red:#c54c5d;--yellow:#ad721e;
+    --stage:#0b1424;--stage-line:#263650;--shadow:0 16px 38px rgba(20,33,61,.12);
+    --ease-out:cubic-bezier(.2,0,0,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    height:100dvh;overflow:hidden;background:var(--bg);color:var(--txt);
+    font-family:ui-sans-serif,system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    display:flex;flex-direction:column;letter-spacing:.01em;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  /* ---------- header ---------- */
+  header{
+    min-height:64px;padding:7px 16px;display:flex;align-items:center;gap:18px;
+    justify-content:space-between;flex-wrap:nowrap;
+    background:rgba(255,253,248,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(14px);
+  }
+  .brand{display:flex;align-items:center;gap:11px;min-width:218px}
+  .brand-mark{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:#fff;background:var(--txt);font-size:17px;font-weight:800}
+  .brand-copy{display:flex;flex-direction:column;gap:1px}
+  .brand-name{font-size:15px;font-weight:800;letter-spacing:.03em}
+  .brand-meta{font-size:11px;color:var(--dim)}
+  .lesson-title{min-width:0;flex:1}
+  .lesson-title .crumb{font-size:11px;color:var(--cyan);font-weight:700;margin-bottom:2px}
+  header h1{font-size:18px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header h1 b{color:var(--txt)}
+  header .sub{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .experiment-badge{flex:none;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--dim);font-size:11px;font-weight:700}
+  /* ---------- layout ---------- */
+  main{
+    flex:1;min-height:0;display:grid;overflow:hidden;background:var(--bg);
+    grid-template-columns:clamp(240px,22vw,286px) minmax(420px,1fr) clamp(232px,21vw,272px);
+    grid-template-rows:minmax(0,1fr);
+  }
+  .control-panel,.observe-panel{
+    min-width:0;height:100%;padding:10px;overflow-y:auto;overscroll-behavior:contain;
+    background:var(--panel);display:flex;flex-direction:column;gap:9px;scrollbar-gutter:stable;
+  }
+  .control-panel{grid-area:1/1;border-right:1px solid var(--line)}
+  .observe-panel{grid-area:1/3;border-left:1px solid var(--line)}
+  .stage{
+    grid-area:1/2;position:relative;min-width:0;min-height:0;margin:10px;overflow:hidden;
+    border:1px solid var(--stage-line);border-radius:16px;box-shadow:var(--shadow);
+    background:radial-gradient(circle at 50% 42%,rgba(42,75,126,.30),transparent 46%),var(--stage);
+  }
+  .stage::before{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;z-index:1;
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:32px 32px;
+  }
+  canvas#cv{display:block;position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+  canvas#cv.dragging{cursor:grabbing}
+  /* ---------- cards ---------- */
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+  .card h3{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:9px;line-height:1.4}
+  .card h3 .kicker{font-size:10px;color:var(--cyan);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .card label{display:block;font-size:12px;line-height:1.45;margin-bottom:4px}
+  .card label span{color:var(--cyan);font-weight:700;font-variant-numeric:tabular-nums}
+  label.rng{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  input[type=range]{width:100%;margin:4px 0 8px;accent-color:var(--cyan);min-height:26px}
+  .hint{font-size:11px;line-height:1.7;color:var(--dim);margin-top:4px}
+  .hint b{color:var(--yellow)}
+  button{
+    cursor:pointer;border:none;border-radius:9px;padding:8px;font-family:inherit;
+    font-size:12.5px;font-weight:700;background:#e7e5dd;color:var(--txt);line-height:1.2;
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
+    transition:filter .12s var(--ease-out),transform .1s var(--ease-out),background-color .18s,border-color .18s,color .18s;
+  }
+  button:hover{filter:brightness(1.05)}button:active{transform:scale(.97)}
+  button:disabled{opacity:.42;cursor:not-allowed}
+  /* 机型切换 */
+  .machine-switch{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:2px}
+  .machine-switch button{
+    min-height:52px;flex-direction:column;gap:2px;padding:7px 5px;
+    border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-size:12px;white-space:normal;
+  }
+  .machine-switch button small{font-size:9.5px;font-weight:600;opacity:.85}
+  .machine-switch button[data-m="em"].active{border-color:var(--cyan);background:#e7edff;color:var(--cyan)}
+  .machine-switch button[data-m="spark"].active{border-color:var(--orange);background:rgba(230,109,38,.1);color:var(--orange)}
+  .spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+  .spec-grid>div{min-height:50px;padding:7px 8px;border:1px solid var(--line);border-radius:9px;background:#fff;display:flex;flex-direction:column;justify-content:center}
+  .spec-grid span{display:block;font-size:9.5px;color:var(--dim);margin-bottom:3px;line-height:1.3}
+  .spec-grid b{font-size:11px;line-height:1.4;font-variant-numeric:tabular-nums}
+  /* 步骤流程 */
+  .steps{display:flex;flex-direction:column;gap:5px}
+  .step{
+    display:flex;align-items:flex-start;gap:8px;padding:7px 8px;border:1px solid var(--line);
+    border-radius:9px;background:#fff;font-size:11px;line-height:1.5;color:var(--dim);cursor:pointer;text-align:left;
+    transition:border-color .18s,background-color .18s;
+  }
+  .step .n{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;background:#eceae2;color:var(--dim);font-size:10px;font-weight:800}
+  .step b{display:block;color:var(--txt);font-size:11.5px;margin-bottom:1px}
+  .step.active{border-color:var(--cyan);background:#eef2ff}
+  .step.active .n{background:var(--cyan);color:#fff}
+  .step.done{border-color:#bfe0cd;background:#f1f9f4}
+  .step.done .n{background:var(--green);color:#fff;font-size:0}
+  .step.done .n::after{content:"✓";font-size:10px}
+  .action-stack{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+  .action-stack button{min-height:40px}
+  button.confirm{background:var(--cyan);color:#fff;box-shadow:0 8px 17px rgba(37,87,214,.2)}
+  button.secondary{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
+  .chk{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:11.5px;cursor:pointer;color:var(--txt)}
+  .chk input{accent-color:var(--cyan);width:15px;height:15px;flex:none}
+  .btnrow{display:grid;gap:6px;margin-top:7px}
+  .btnrow.two{grid-template-columns:1fr 1fr}
+  .btnrow button{min-height:36px;font-size:11.5px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);white-space:normal;line-height:1.3}
+  .btnrow button.err{border-color:#eec4cb;color:#a8404f;background:#fdf3f4}
+  details.card summary{cursor:pointer;font-size:12.5px;font-weight:700;line-height:1.45;outline:none}
+  details.card .body{font-size:11.5px;line-height:1.85;margin-top:9px}
+  details.card .body b{color:var(--yellow)}
+  details.card .body .f{color:var(--purple);font-weight:700}
+  /* ---------- stage overlays ---------- */
+  .stage-hud{position:absolute;left:12px;top:12px;z-index:4;display:flex;gap:6px;pointer-events:none}
+  .hud-phase,.hud-metrics>div{
+    border:1px solid rgba(122,143,177,.3);background:rgba(11,20,36,.82);
+    backdrop-filter:blur(9px);color:#dceaff;
+  }
+  .hud-phase{min-width:128px;padding:8px 10px;border-radius:10px}
+  .hud-phase span,.hud-metrics span{display:block;color:#91a3bf;font-size:9px;margin-bottom:2px}
+  .hud-phase strong{font-size:11.5px}
+  .hud-metrics{display:flex;gap:4px}
+  .hud-metrics>div{min-width:86px;padding:8px 9px;border-radius:10px}
+  .hud-metrics b{font-size:11px;color:#f4f8ff;font-variant-numeric:tabular-nums}
+  .stage-toolbar{
+    position:absolute;z-index:6;left:50%;bottom:13px;transform:translateX(-50%);
+    display:flex;align-items:center;gap:6px;min-height:52px;padding:6px;white-space:nowrap;
+    border:1px solid rgba(121,145,183,.32);border-radius:12px;background:rgba(11,20,36,.86);
+    backdrop-filter:blur(12px);box-shadow:0 12px 28px rgba(0,0,0,.25);
+  }
+  .stage-toolbar button{
+    flex:0 0 auto;height:38px;min-height:38px;padding:0 11px;border:1px solid #31425d;
+    border-radius:8px;background:#15233a;color:#cbd7e9;font-size:11px;font-weight:750;line-height:1;
+  }
+  .stage-toolbar button.on{background:#1b3153;border-color:#6685ea;color:#fff}
+  .stage-toolbar .toolbar-play{width:92px;min-width:92px;background:var(--cyan);border-color:#6685ea;color:#fff;font-weight:800}
+  .stage-toolbar .toolbar-reset{width:38px;min-width:38px;padding:0;font-size:15px}
+  .speed-control{display:flex;height:38px;padding:3px;gap:2px;align-items:center;border:1px solid #31425d;border-radius:9px;background:#0e1a2d}
+  .speed-control button{flex:0 0 46px;width:46px;height:30px;min-height:30px;padding:0;border:0;background:transparent;color:#8293ad;font-size:10.5px;font-variant-numeric:tabular-nums}
+  .speed-control button.active{background:#fff;color:var(--txt);font-weight:800}
+  .playback-icon{position:relative;display:inline-block;flex:0 0 11px;width:11px;height:12px}
+  .playback-icon::before,.playback-icon::after{content:"";position:absolute;top:1px;bottom:1px;width:3px;border-radius:1px;background:currentColor}
+  .playback-icon::before{left:1px}.playback-icon::after{right:1px}
+  .toolbar-play:not(.is-playing) .playback-icon::before{
+    left:2px;top:0;bottom:auto;width:0;height:0;border-top:6px solid transparent;
+    border-bottom:6px solid transparent;border-left:9px solid currentColor;border-radius:0;background:transparent;
+  }
+  .toolbar-play:not(.is-playing) .playback-icon::after{display:none}
+  .legend{
+    position:absolute;right:12px;top:12px;z-index:4;padding:8px 10px;border-radius:10px;
+    background:rgba(11,20,36,.78);border:1px solid #2e3e58;color:#98a9c2;font-size:9.5px;line-height:1.9;
+  }
+  .legend i{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+  #toast{
+    position:absolute;left:50%;top:76px;transform:translateX(-50%);z-index:7;
+    max-width:72%;padding:8px 14px;border-radius:10px;text-align:center;
+    background:rgba(11,20,36,.9);border:1px solid #7899ff;color:#edf3ff;
+    font-size:12px;line-height:1.6;opacity:0;transition:opacity .3s;pointer-events:none;
+  }
+  #partTip{
+    position:absolute;z-index:5;padding:6px 9px;border-radius:8px;pointer-events:none;
+    background:rgba(11,20,36,.92);border:1px solid #45618d;color:#eaf2ff;
+    font-size:10.5px;line-height:1.5;max-width:190px;display:none;
+  }
+  #partTip b{display:block;color:#8fb7ff;font-size:11px;margin-bottom:2px}
+  .drag-tip{
+    position:absolute;left:50%;bottom:74px;transform:translateX(-50%);z-index:4;
+    font-size:10px;color:#7f90aa;pointer-events:none;letter-spacing:.04em;
+  }
+  /* ---------- observe panel ---------- */
+  .judgement-card{border-top:3px solid var(--cyan)}
+  .phase-banner{
+    margin-bottom:8px;padding:8px 9px;border-radius:9px;background:var(--txt);color:#fff;
+    font-size:12px;font-weight:800;text-align:center;min-height:38px;
+    display:flex;align-items:center;justify-content:center;line-height:1.35;
+  }
+  .decision-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .decision-grid>div{min-height:52px;padding:8px;border:1px solid var(--line);border-radius:9px;background:#fff;display:flex;flex-direction:column;justify-content:center}
+  .decision-grid span{display:block;color:var(--dim);font-size:9.5px;margin-bottom:3px;line-height:1.35}
+  .decision-grid b{display:block;font-size:11px;line-height:1.4;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .trend-box{
+    margin-top:7px;padding:9px;border:1px solid #c9d4f6;border-radius:9px;
+    background:#eef2ff;color:#24499e;font-size:11px;font-weight:750;line-height:1.55;
+  }
+  .trend-box.is-warn{border-color:#eec4cb;background:#fdf3f4;color:#a8404f}
+  .trend-box.is-ok{border-color:#bfe0cd;background:#f1f9f4;color:#237049}
+  /* ---------- 响应式 ---------- */
+  .mobile-tabs{display:none}
+  @media (min-width:960px) and (max-width:1180px){
+    main{grid-template-columns:232px minmax(400px,1fr) 224px}
+    .control-panel,.observe-panel{padding:8px}.stage{margin:8px}
+    .brand{min-width:180px}.brand-name{font-size:13px}.lesson-title .sub{display:none}
+    .hud-metrics>div{min-width:72px;padding-inline:7px}.hud-metrics>div:nth-child(3){display:none}
+    .legend{display:none}
+    .stage-toolbar{min-height:46px;gap:5px;padding:5px}
+    .stage-toolbar button{height:34px;min-height:34px;font-size:10px;padding-inline:8px}
+    .stage-toolbar .toolbar-play{width:76px;min-width:76px}
+    .speed-control{height:34px}.speed-control button{flex-basis:40px;width:40px;height:28px;min-height:28px;font-size:9.5px}
+  }
+  @media (max-width:959px){
+    body{height:100dvh;overflow:hidden}
+    header{min-height:56px;padding:6px 10px}.brand-copy,.lesson-title .crumb,.lesson-title .sub,.experiment-badge{display:none}
+    .lesson-title h1{font-size:15px}
+    main{display:flex;flex-direction:column;overflow:hidden}
+    .stage{order:1;flex:0 0 clamp(300px,48svh,480px);margin:8px;border-radius:13px}
+    .mobile-tabs{order:2;display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:0 0 auto;padding:4px 8px}
+    .mobile-tabs button{min-height:36px;border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-size:12px}
+    .mobile-tabs button[aria-selected="true"]{border-color:var(--txt);background:var(--txt);color:#fff}
+    .control-panel,.observe-panel{order:3;display:none;flex:1 1 auto;width:100%;border:0;border-top:1px solid var(--line);padding:8px 10px 18px}
+    main.show-controls .control-panel{display:flex}main.show-data .observe-panel{display:flex}
+    .legend{display:none}.stage-hud{left:8px;top:8px}.hud-metrics>div:nth-child(3){display:none}
+    .stage-toolbar{left:8px;right:8px;bottom:8px;transform:none;justify-content:center;gap:4px;padding:5px}
+    #toast{top:58px;max-width:88%}.drag-tip{display:none}
+  }
+</style>
+<style id="template-system-v2">
+  :root{
+    --font-ui:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    --type-20:20px;--type-16:16px;--type-14:14px;--type-13:13px;--type-12:12px;--type-11:11px;
+    --surface-page:#f7f4ed;--surface-panel:#f7f4ed;--surface-raised:#fffdf8;--border:#d8d6cf;
+    --text-strong:#14213d;--text-muted:#5c6678;--action:#2557d6;--on-action:#fff;
+    --prograde:#e66d26;--retrograde:#2557d6;--safe:#277a51;--safe-soft:#e5f4eb;
+    --danger:#b9384d;--danger-soft:#fae9ec;--warning:#8d5517;--warning-soft:#fff4e7;
+    --rising:#a84d19;--rising-soft:#fff0e7;--falling:#24569d;--falling-soft:#edf4ff;
+    --stage:#0b1424;--stage-line:#263650;--stage-text:#f4f8ff;--stage-muted:#91a3bf;
+    --viz-circular:#38bdf8;--viz-transfer:#fb923c;--viz-reference:#55617c;--viz-velocity:#4ade80;
+    --viz-gravity:#f6c453;--viz-required:#c084fc;--viz-apsis:#f8fafc;--viz-escape:#fb7185;
+    --bg:var(--surface-page);--panel:var(--surface-panel);--panel2:var(--surface-raised);--surface:var(--surface-raised);--line:var(--border);
+    --txt:var(--text-strong);--ink:var(--text-strong);--dim:var(--text-muted);--muted:var(--text-muted);--cyan:var(--action);--blue:var(--action);--blue-soft:#eaf0ff;
+    --orange:var(--prograde);--purple:var(--viz-required);--green:var(--safe);--red:var(--danger);--yellow:var(--warning);
+  }
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--surface-page);color:var(--text-strong);font-family:var(--font-ui);font-size:var(--type-13);touch-action:manipulation}
+  button,input,select,textarea,a{touch-action:manipulation;font-family:var(--font-ui)}
+  button,input,select,textarea{font-size:var(--type-13)}
+  sub{font-size:1em}
+  canvas,.stage,#left,#chartWrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  input[type=range]{min-height:28px}
+  header.topbar.template-header{height:64px;min-height:64px;padding:8px 16px;display:flex;align-items:center;gap:12px;background:rgba(255,253,248,.96);border-bottom:1px solid var(--border);color:var(--text-strong)}
+  #headerBackSlot{flex:0 0 28px;width:28px;height:28px}
+  .template-header .brand{display:flex;align-items:center;gap:10px;min-width:0}
+  .template-header .brand-mark{width:36px;height:36px;display:grid;place-items:center;flex:none;border-radius:10px;background:var(--text-strong);color:var(--on-action);font-size:var(--type-16);font-weight:800}
+  .template-header .brand-copy{display:block;min-width:0}.template-header .eyebrow{margin:0 0 2px;color:var(--text-muted);font-size:var(--type-11);font-weight:650;line-height:1.2}
+  .template-header h1{margin:0;color:var(--text-strong);font-size:var(--type-20);font-weight:800;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brand-name{font-size:var(--type-14)}.brand-meta,.lesson-title .crumb,header .sub,.experiment-badge,.badge{font-size:var(--type-11)}
+  main,.control-panel,.observe-panel,.panel{background:var(--surface-page)}
+  .control-panel,.observe-panel,.panel{border-color:var(--border)}
+  .card,.workflow,.quick-presets button,.direction-row button,button.secondary,button.demo,.decision-grid>div,.relation div,.preset,.mode,.choice,.focus-btn{background:var(--surface-raised);border-color:var(--border);color:var(--text-strong)}
+  .card{border-color:var(--border)}.card h2,.card h3{font-size:var(--type-13);color:var(--text-strong)}
+  .card h2 .kicker,.card h3 .kicker,.workflow-step,.workflow>div,.status-pill,.preview-metric span,.preview-note,.hint,.chk,details.card .body,.tag,.focus-note,.cursor-help,.drag-tip,.stage-note{font-size:var(--type-11)!important}
+  .card label,details.card summary,details summary,.preview-metric b,.preview-head strong,.direction-row button,.phase-banner,.banner,.phase{font-size:var(--type-12)!important}
+  .workflow-step b,.workflow>div b,.decision-grid b,.target-apsis b,.hud-phase strong,.hud-metrics b,.relation b{font-size:var(--type-12)!important}
+  .quick-presets button,.btnrow button,.stage-toolbar button,.toolbar button,.speed-control button,.speed button,.observe-popover button,.mobile-tabs button,table.cmp,.compact-details table.live td,.next-event b,.data-row,.formula,.formula-row,.formula-live,.formula-card,.details-body,.tips li,.tip-list li{font-size:var(--type-11)!important}
+  .decision-grid span,.metric-grid span,.next-event span,.target-apsis span,.hud-phase span,.hud-metrics span,.hud span,.observe-popover span,.legend,.slider-label,.data-row span{font-size:var(--type-11)!important}
+  table.live,.fbar .lb,#verdict,.trend-box,.trend,.insight,.conclusion,.warning{font-size:var(--type-12)!important}
+  button.primary,button.confirm,.stage-toolbar .toolbar-play,.toolbar .play,.play{background:var(--action)!important;border-color:var(--action)!important;color:var(--on-action)!important}
+  .quick-presets button.active,.mobile-tabs button[aria-selected="true"],.mobile-tabs button[aria-selected=true],.workflow-step.active,.workflow>div.active,.preset.active,.mode.active,.choice.active{background:var(--action)!important;border-color:var(--action)!important;color:var(--on-action)!important}
+  .direction-row button[data-dir="pro"].active,button.pro{background:var(--prograde);border-color:var(--prograde);color:var(--on-action)}
+  .direction-row button[data-dir="ret"].active,button.ret{background:var(--retrograde);border-color:var(--retrograde);color:var(--on-action)}
+  .workflow-step.done,.workflow>div.done,.status-pill{background:var(--safe-soft);color:var(--safe)}
+  .status-pill.warn{background:var(--danger-soft);color:var(--danger)}
+  .up,.trend-box.is-up{border-color:var(--rising);background:var(--rising-soft);color:var(--rising)}
+  .down,.trend-box.is-down{border-color:var(--falling);background:var(--falling-soft);color:var(--falling)}
+  .insight,.formula-live{background:var(--warning-soft);border-color:var(--warning);color:var(--warning)}
+  .stage{background:radial-gradient(circle at 50% 46%,rgba(38,54,80,.72),transparent 44%),var(--stage);border-color:var(--stage-line)}
+  .hud,.hud-main,.hud-phase,.hud-metrics>div,.stage-toolbar,.toolbar,.observe-popover,.focus-menu,.legend,#toast,#centerMsg,.stage-note{background:rgba(11,20,36,.88);border-color:var(--stage-line);color:var(--stage-text)}
+  #centerMsg{font-size:var(--type-14)}
+  .hud span,.hud-main span,.hud-phase span,.hud-metrics span,.observe-popover span,.legend{color:var(--stage-muted)}
+  .stage-toolbar button,.toolbar button{background:#15233a;border-color:#31425d;color:var(--stage-text);font-size:var(--type-11)!important}
+  .speed-control,.speed{background:#0e1a2d;border-color:#31425d}.speed-control button,.speed button{color:var(--stage-muted);font-size:var(--type-11)!important}
+  .speed-control button.active,.speed button.active{background:var(--stage-text);color:var(--text-strong)}
+  .observe-popover button,.focus-menu button{color:var(--stage-text)}.observe-popover button.active,.focus-menu button.active{background:#1b3153;border-color:#45618d;color:var(--on-action)}
+  .legend{font-size:var(--type-11)!important;line-height:1.7}.legend i[data-viz="circular"]{background:var(--viz-circular)}.legend i[data-viz="transfer"]{background:var(--viz-transfer)}.legend i[data-viz="reference"]{background:var(--viz-reference)}.legend i[data-viz="gravity"]{background:var(--viz-gravity)}.legend i[data-viz="required"]{background:var(--viz-required)}.legend i[data-viz="velocity"]{background:var(--viz-velocity)}.legend i[data-viz="escape"]{background:var(--viz-escape)}
+  .stage-hud{transform:none!important}.stage-toolbar #observeToggle,#observeLabel,.toolbar-observe,#focusBtn{font-size:var(--type-11)!important}#observeLabel::after,.stage-toolbar #observeToggle::after{content:none}
+  .frac{display:inline-flex;flex-direction:column;align-items:stretch;vertical-align:middle;text-align:center;line-height:1.05;margin:0 .12em}.frac>.num{padding:0 .18em .08em;border-bottom:1px solid currentColor}.frac>.den{padding:.08em .18em 0}.formula-math{white-space:nowrap}.formula math{font-family:var(--font-ui);font-size:1em}.formula-overlay{position:absolute;z-index:8;padding:6px 10px;border:1px solid var(--stage-line);border-radius:9px;background:rgba(11,20,36,.9);color:var(--stage-text);font-size:var(--type-11);pointer-events:none}
+  .step .n,.step.done .n{font-size:var(--type-11)!important}
+  #sceneCanvas{position:absolute;inset:0;width:100%;height:100%}#chartCanvas,#chartXT,#chartMom,#chartPath,#chartInt,#tapeCv{position:static!important;inset:auto!important;width:100%;height:100%}
+  @media (max-width:960px){header.topbar.template-header{height:56px;min-height:56px;padding:6px 10px}.template-header h1{font-size:var(--type-16)}#headerBackSlot{flex-basis:20px;width:20px}.template-header .brand-mark{width:32px;height:32px}.template-header .eyebrow{display:block}.toolbar-observe,#focusBtn{width:auto!important;min-width:56px!important;font-size:var(--type-11)!important}.toolbar-observe::after,#focusBtn::after{content:none!important}}
+  @media (orientation:landscape) and (max-width:960px) and (max-height:540px){header.topbar.template-header{height:46px;min-height:46px;padding-block:4px}.template-header h1{font-size:var(--type-14)}.stage-hud{transform:none!important}.mobile-tabs button{font-size:var(--type-11)!important}}
+  @media (orientation:landscape) and (max-width:960px) and (max-height:540px){#experimentLayout{height:calc(100dvh - 46px);display:grid;grid-template-columns:minmax(0,1fr) 258px;grid-template-rows:42px minmax(0,1fr);overflow:hidden}.stage{grid-column:1;grid-row:1/3;width:auto;height:auto;min-height:0;margin:6px;flex:none}.mobile-tabs{grid-column:2;grid-row:1;order:initial;padding:4px 6px}.control-panel,.observe-panel{grid-column:2;grid-row:2;order:initial;width:auto;height:auto;min-height:0;padding:6px 8px 12px;overflow-y:auto}.stage-toolbar{left:6px;right:6px;bottom:6px}.stage-toolbar button{min-height:32px;height:32px}}
+
+  small,.machine-switch small,.next span,.mode span,.live-grid span,.probe-grid span,.chart-btn{font-size:var(--type-11)!important}
+
+  .spec-grid span,.next b,.focus-actions button,.quiz-head span,.formula-row .sub,.progress-info,.data-row b,.metric-grid span,.live-grid span,.probe-grid span{font-size:var(--type-11)!important}
+
+  .answer,.sync-row,.sync-row span{font-size:var(--type-11)!important}
+
+  table th,.result-strip,.pt-body{font-size:var(--type-11)!important}
+</style>
+<style id="principle-lesson-ui">
+  #experimentLayout[data-layout-lock="three-column"]{
+    display:grid;grid-template-columns:clamp(240px,21vw,260px) minmax(0,1fr) clamp(240px,21vw,260px);
+    grid-template-rows:minmax(0,1fr);overflow:hidden;
+  }
+  .control-panel,.observe-panel{min-height:0;overflow-y:auto}
+  .stage{min-width:0;min-height:0}
+  .mode-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .mode-switch button{min-width:0;min-height:44px;padding:6px 3px;white-space:normal;font-size:var(--type-11);border:1px solid var(--border);background:var(--surface-raised)}
+  .mode-switch button.active{background:var(--action);border-color:var(--action);color:var(--on-action)}
+  .next-principle,.power-toggle{width:100%;min-height:44px;margin-top:7px;background:var(--action);color:var(--on-action)}
+  .power-toggle[aria-pressed="true"]{background:var(--safe)}
+  .principle-equation{margin-top:9px;padding:9px;border-radius:9px;background:var(--warning-soft);color:var(--warning);font-size:var(--type-14);font-weight:800;text-align:center}
+  .view-preset-bar{position:absolute;z-index:6;top:76px;left:50%;transform:translateX(-50%);display:flex;gap:5px;padding:5px;border:1px solid rgba(121,145,183,.32);border-radius:11px;background:rgba(11,20,36,.86);backdrop-filter:blur(12px)}
+  .view-preset-bar button{min-height:40px;padding:0 9px;border:1px solid #31425d;background:#15233a;color:#cbd7e9;font-size:var(--type-11)}
+  .view-preset-bar button.active{background:var(--action);border-color:#6685ea;color:#fff}
+  .stage-toolbar{min-height:58px}
+  .stage-toolbar button{height:44px;min-height:44px}
+  .stage-toolbar .toolbar-play{width:78px;min-width:78px}
+  .stage-toolbar .toolbar-reset{width:44px;min-width:44px}
+  .speed-control{height:44px;padding:3px}
+  .speed-control button{flex:0 0 38px;width:38px;height:36px;min-height:36px;font-size:var(--type-11)}
+  .focus-copy{padding:9px;border:1px solid var(--border);border-radius:9px;background:#fff;line-height:1.55}
+  .focus-copy span{display:block;margin-bottom:4px;color:var(--text-muted);font-size:var(--type-11)}
+  .focus-copy strong{display:block;font-size:var(--type-12)}
+  .focus-parts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .focus-parts span{padding:5px 8px;border-radius:999px;background:var(--warning-soft);color:var(--warning);font-size:var(--type-11);font-weight:800}
+  .chain-row{display:grid;grid-template-columns:1fr;gap:5px;margin-top:7px;padding:9px;border-radius:9px;font-size:var(--type-11);line-height:1.45}
+  .chain-row span{display:block;padding:5px 7px;border-radius:7px;background:rgba(255,255,255,.72)}
+  .chain-row i{text-align:center;font-style:normal;font-weight:900}
+  .em-chain{background:#eaf0ff;color:#24499e}.spark-chain{background:#fff0e7;color:#a84d19}
+  .shared-result{margin-top:9px;padding:10px;border:1px solid #bfe0cd;border-radius:9px;background:var(--safe-soft);color:var(--safe)}
+  .shared-result span,.shared-result strong{display:block}.shared-result span{font-size:var(--type-11);margin-bottom:3px}.shared-result strong{font-size:var(--type-13)}
+  .selected-part{padding:8px 10px;border-radius:9px;background:var(--text-strong);color:#fff;font-weight:800}
+  .part-card p{margin:8px 0 0;font-size:var(--type-12);line-height:1.6}
+  #partTip{font-size:var(--type-11);line-height:1.5}#partTip b{font-size:var(--type-12)}
+  @media (min-width:961px) and (max-width:1180px){
+    #experimentLayout[data-layout-lock="three-column"]{grid-template-columns:232px minmax(0,1fr) 224px}
+  }
+  @media (orientation:landscape) and (max-width:960px){
+    #experimentLayout[data-layout-lock="three-column"]{display:grid;grid-template-columns:216px minmax(0,1fr) 216px;grid-template-rows:minmax(0,1fr)}
+    #experimentLayout[data-layout-lock="three-column"] .control-panel{display:flex;grid-area:1/1;width:auto;order:initial;border-right:1px solid var(--border);border-top:0;padding:6px}
+    #experimentLayout[data-layout-lock="three-column"] .stage{display:block;grid-area:1/2;order:initial;min-width:0;min-height:0;margin:6px;flex:none}
+    #experimentLayout[data-layout-lock="three-column"] .observe-panel{display:flex;grid-area:1/3;width:auto;order:initial;border-left:1px solid var(--border);border-top:0;padding:6px}
+    .view-preset-bar{top:68px;gap:3px;padding:4px}.view-preset-bar button{padding:0 5px}
+    .stage-hud{left:7px;top:7px}.hud-phase{min-width:112px}.hud-metrics>div{min-width:72px}.hud-metrics>div:nth-child(3){display:none}
+    .stage-toolbar{left:5px;right:5px;bottom:5px;transform:none;gap:3px;padding:4px}
+    .stage-toolbar .toolbar-play{width:66px;min-width:66px}.stage-toolbar button{padding:0 6px}
+    .speed-control button{flex-basis:34px;width:34px}
+    .legend,.drag-tip{display:none}
+  }
+</style>
+</head>
+<body>
+<header class="topbar template-header">
+  <div id="headerBackSlot" aria-hidden="true"></div>
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">罗</div>
+    <div class="brand-copy">
+      <p class="eyebrow">老罗物理 · 探究实验</p>
+      <h1>打点计时器：结构与工作原理</h1>
+    </div>
+  </div>
+</header>
+<main id="experimentLayout" data-layout-lock="three-column">
+  <section class="stage" id="stage">
+    <canvas id="cv" tabindex="0" aria-label="打点计时器三维内部结构，可有限旋转、缩放并点击部件"></canvas>
+    <div id="toast" role="status" aria-live="polite"><span id="toastText"></span></div>
+    <div id="partTip"></div>
+    <div class="stage-hud" aria-hidden="true">
+      <div class="hud-phase"><span>当前机型</span><strong id="hudMachine">电磁打点计时器</strong></div>
+      <div class="hud-metrics">
+        <div><span>工作电源</span><b id="hudPower">4~6 V 交流</b></div>
+        <div><span>固定频率</span><b>50 Hz</b></div>
+        <div><span>打点间隔</span><b id="hudT">0.02 s</b></div>
+      </div>
+    </div>
+    <div class="view-preset-bar" role="group" aria-label="教学视角">
+      <button type="button" id="standardView" class="active" data-view="standard" aria-label="标准视角">标准视角</button>
+      <button type="button" id="emSectionView" data-view="emSection">电磁剖面</button>
+      <button type="button" id="sparkSectionView" data-view="sparkSection">电火花剖面</button>
+      <button type="button" id="tapeAxisView" data-view="tapeAxis">沿纸带方向</button>
+    </div>
+    <div class="legend">
+      <div><i data-viz="circular"></i>电磁部件　<i data-viz="transfer"></i>放电部件</div>
+      <div><i data-viz="velocity"></i>纸带通道　<i data-viz="gravity"></i>本步焦点</div>
+    </div>
+    <div class="drag-tip">拖动有限旋转 · 双指或滚轮缩放 · 点击部件查看作用</div>
+    <div class="stage-toolbar" aria-label="动画控制">
+      <button type="button" id="playPause" class="toolbar-play is-playing" aria-label="播放、暂停" aria-pressed="true">
+        <span class="playback-icon" aria-hidden="true"></span><span id="playPauseLabel">暂停</span>
+      </button>
+      <div class="speed-control" role="group" aria-label="播放倍速">
+        <button type="button" data-speed="0.25" aria-pressed="false">0.25×</button>
+        <button type="button" data-speed="0.5" aria-pressed="false">0.5×</button>
+        <button type="button" data-speed="1" class="active" aria-pressed="true">1×</button>
+        <button type="button" data-speed="2" aria-pressed="false">2×</button>
+      </div>
+      <button type="button" id="cutToggle">剖面</button>
+      <button type="button" id="labelToggle" class="on">标注</button>
+      <button type="button" id="reset" class="toolbar-reset" aria-label="重置结构课">↺</button>
+    </div>
+  </section>
+
+  <aside class="control-panel" id="controlPanel">
+    <div class="card">
+      <p class="hint template-intro">唯一任务：看清两种结构怎样把 50 Hz 电源节拍变成每隔 0.02 s 的点迹。</p>
+      <h3><span>学习模式</span><span class="kicker">MODE</span></h3>
+      <div class="mode-switch" role="group" aria-label="学习模式">
+        <button type="button" id="modeAuto" data-mode="auto" aria-pressed="false">自动演示</button>
+        <button type="button" id="modeGuided" data-mode="guided" class="active" aria-pressed="true">分步引导</button>
+        <button type="button" id="modeExplore" data-mode="explore" aria-pressed="false">自由探索</button>
+      </div>
+    </div>
+
+    <div class="card" id="machineSelect">
+      <h3><span>机型选择</span><span class="kicker">STRUCTURE</span></h3>
+      <div class="machine-switch" role="group" aria-label="机型选择">
+        <button type="button" data-m="em" class="active" aria-pressed="true">电磁打点计时器<small>振针 · 复写纸</small></button>
+        <button type="button" data-m="spark" aria-pressed="false">电火花计时器<small>放电针 · 墨粉纸盘</small></button>
+      </div>
+      <div class="spec-grid">
+        <div><span>工作电压</span><b id="sPower">4~6 V 交流</b></div>
+        <div><span>电源频率</span><b id="sFreq">50 Hz</b></div>
+        <div><span>打点间隔</span><b id="sT">0.02 s</b></div>
+        <div><span>形成方式</span><b id="sMarking">振针与复写纸</b></div>
+      </div>
+      <div class="hint" id="machineHint">交流电使电磁状态周期变化，振片带动振针通过复写纸留下点迹。</div>
+    </div>
+
+    <div class="card">
+      <h3><span>五步原理</span><span class="kicker">FOCUS</span></h3>
+      <div class="steps" id="principleSteps">
+        <button type="button" class="step active" data-principle-step="1"><i class="n">1</i><span><b>纸带通道</b>找到纸带与打点位置</span></button>
+        <button type="button" class="step" data-principle-step="2"><i class="n">2</i><span><b>电磁驱动</b>线圈怎样驱动振片</span></button>
+        <button type="button" class="step" data-principle-step="3"><i class="n">3</i><span><b>振针留点</b>一次下压形成一个点</span></button>
+        <button type="button" class="step" data-principle-step="4"><i class="n">4</i><span><b>脉冲放电</b>放电怎样形成点迹</span></button>
+        <button type="button" class="step" data-principle-step="5"><i class="n">5</i><span><b>共同节拍</b>结构不同，时间间隔相同</span></button>
+      </div>
+      <div class="action-stack">
+        <button type="button" class="secondary" id="prevPrinciple">上一步</button>
+        <button type="button" class="confirm" id="confirmObservation">我已观察</button>
+      </div>
+      <button type="button" class="next-principle" id="nextPrinciple">进入下一步</button>
+    </div>
+
+    <div class="card power-card">
+      <h3><span>周期打点</span><span class="kicker">50 Hz</span></h3>
+      <button type="button" class="power-toggle" id="powerToggle" aria-pressed="false">接通电源，观察周期打点</button>
+      <div class="principle-equation" role="math" aria-label="T 等于一除以 f，等于零点零二秒">T = 1 / f = 0.02 s</div>
+      <div class="hint">倍速只改变观看快慢，不改变每个点对应的物理时刻。</div>
+    </div>
+
+  </aside>
+  <aside class="observe-panel" id="observePanel">
+    <div class="card judgement-card" id="focusCard">
+      <h3><span>当前观察焦点</span><span class="kicker" id="stepKicker">STEP 1 / 5</span></h3>
+      <div class="phase-banner" id="focusTitle">找到纸带通道和打点位置</div>
+      <div class="focus-copy">
+        <span>重点观察</span>
+        <strong id="focusObserve">纸带经过限位孔，并从打点位置正下方穿过。</strong>
+      </div>
+      <div class="focus-parts" id="focusParts" aria-label="当前高亮部件"></div>
+      <div class="trend-box" id="observationState">观察后点击“我已观察”，再进入下一步。</div>
+    </div>
+
+    <div class="card" id="principleChain">
+      <h3><span>工作原理链</span><span class="kicker">WHY</span></h3>
+      <div class="chain-row em-chain"><b>电磁式</b><span>50 Hz 交流</span><i>→</i><span>线圈磁性变化</span><i>→</i><span>振针留点</span></div>
+      <div class="chain-row spark-chain"><b>电火花式</b><span>50 Hz 交流</span><i>→</i><span>脉冲高压</span><i>→</i><span>放电留点</span></div>
+      <div class="shared-result"><span>共同时间基准</span><strong>每隔 0.02 s 形成一个点</strong></div>
+    </div>
+
+    <div class="card part-card">
+      <h3><span>部件与作用</span><span class="kicker">PART</span></h3>
+      <div class="selected-part" id="selectedPartName">纸带</div>
+      <p id="selectedPartRole">纸带从打点位置通过，承接周期形成的点迹。</p>
+      <div class="hint">可直接点击三维部件查看；引导模式每步只突出 1–2 个核心部件。</div>
+    </div>
+  </aside>
+</main>
+<script data-principle-core>
+(function () {
+  const MACHINES = Object.freeze({
+    em: Object.freeze({ id: 'em', power: '4~6 V 交流', marking: '振针与复写纸', tapeDrag: '较大' }),
+    spark: Object.freeze({ id: 'spark', power: '220 V 交流', marking: '脉冲放电与墨粉纸盘', tapeDrag: '较小' })
+  });
+  function intervalForFrequency(frequency) {
+    if (!Number.isFinite(frequency) || frequency <= 0) throw new RangeError('frequency must be positive');
+    return 1 / frequency;
+  }
+  function dotTimesBetween(startTime, endTime, frequency) {
+    if (endTime < startTime) throw new RangeError('endTime must not precede startTime');
+    const interval = intervalForFrequency(frequency);
+    const firstIndex = Math.floor((startTime + 1e-12) / interval) + 1;
+    const lastIndex = Math.floor((endTime + 1e-12) / interval);
+    const times = [];
+    for (let index = firstIndex; index <= lastIndex; index += 1) times.push(index * interval);
+    return times;
+  }
+  function advancePhase(phase, elapsedSeconds, frequency) {
+    return phase + elapsedSeconds * frequency;
+  }
+  window.TimerPrincipleCore = Object.freeze({ MACHINES, intervalForFrequency, dotTimesBetween, advancePhase });
+})();
+</script>
+<script data-principle-lesson-core>
+(function () {
+  const PLAYBACK_SPEEDS = Object.freeze([0.25, 0.5, 1, 2]);
+  const CAMERA_PRESETS = Object.freeze({
+    standard: Object.freeze({ yaw: -0.58, pitch: 0.38, dist: 5.8, cut: false }),
+    emSection: Object.freeze({ yaw: -0.18, pitch: 0.24, dist: 4.7, cut: true, machine: 'em' }),
+    sparkSection: Object.freeze({ yaw: -0.12, pitch: 0.28, dist: 4.9, cut: true, machine: 'spark' }),
+    tapeAxis: Object.freeze({ yaw: -1.48, pitch: 0.12, dist: 6.2, cut: false })
+  });
+  const CAMERA_LIMITS = Object.freeze({ pitchMin: 0.04, pitchMax: 1.24, yawSpan: Math.PI * 0.72 });
+  function createClockState() {
+    return { physicalTime: 0, phase: 0, dotTimes: [] };
+  }
+  function advanceClock(state, viewingSeconds, speed, powered) {
+    if (!PLAYBACK_SPEEDS.includes(speed)) throw new RangeError('unsupported playback speed');
+    if (!Number.isFinite(viewingSeconds) || viewingSeconds < 0) throw new RangeError('viewingSeconds must not be negative');
+    if (!powered) return { physicalTime: state.physicalTime, phase: state.phase, dotTimes: [] };
+    const elapsed = viewingSeconds * speed;
+    const nextTime = state.physicalTime + elapsed;
+    return {
+      physicalTime: nextTime,
+      phase: window.TimerPrincipleCore.advancePhase(state.phase, elapsed, 50),
+      dotTimes: window.TimerPrincipleCore.dotTimesBetween(state.physicalTime, nextTime, 50)
+    };
+  }
+  function viewForPreset(view, id) {
+    const preset = CAMERA_PRESETS[id];
+    if (!preset) return null;
+    return {
+      yaw: preset.yaw,
+      pitch: Math.max(CAMERA_LIMITS.pitchMin, Math.min(CAMERA_LIMITS.pitchMax, preset.pitch)),
+      dist: preset.dist,
+      cut: preset.cut,
+      machine: preset.machine || view.machine
+    };
+  }
+  function layoutForViewport(width, height) {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) throw new RangeError('viewport must be positive');
+    if (width <= 960 && height <= 540) return { kind: 'three-column', columns: [216, width - 432, 216] };
+    if (width <= 1024) return { kind: 'three-column', columns: [232, width - 456, 224] };
+    const side = Math.min(260, Math.max(240, Math.round(width * 0.21)));
+    return { kind: 'three-column', columns: [side, width - side * 2, side] };
+  }
+  window.TimerPrincipleLesson = Object.freeze({ PLAYBACK_SPEEDS, CAMERA_PRESETS, CAMERA_LIMITS, createClockState, advanceClock, viewForPreset, layoutForViewport });
+})();
+</script>
+<script data-principle-teaching-core>
+(function () {
+  const PRINCIPLE_STEPS = Object.freeze([
+    Object.freeze({ id: 1, task: '找到纸带通道和打点位置', observe: '纸带经过限位孔，并从打点位置正下方穿过。', machine: 'em', camera: 'standard', focusParts: ['tape', 'hole'] }),
+    Object.freeze({ id: 2, task: '观察电磁式内部结构', observe: '线圈的电磁状态变化，驱动振片周期振动。', machine: 'em', camera: 'emSection', focusParts: ['coil', 'reed'] }),
+    Object.freeze({ id: 3, task: '慢放一次振针打点', observe: '振针每完成一次下压，便通过复写纸形成一个点。', machine: 'em', camera: 'emSection', focusParts: ['reed', 'carbon'] }),
+    Object.freeze({ id: 4, task: '观察电火花式放电', observe: '放电针通过墨粉纸盘放电，在纸带上形成点迹。', machine: 'spark', camera: 'sparkSection', focusParts: ['spark', 'disc'] }),
+    Object.freeze({ id: 5, task: '比较两种打点方式', observe: '结构不同，但 50 Hz 时都每隔 0.02 s 形成一个点。', machine: 'both', camera: 'standard', focusParts: ['reed', 'spark'] })
+  ]);
+  function createTeachingState(mode) {
+    const nextMode = mode || 'guided';
+    return { mode: nextMode, step: 1, observationConfirmed: false, completed: [], running: nextMode === 'auto' };
+  }
+  function principleReducer(state, action) {
+    if (action.type === 'CONFIRM_OBSERVATION') return { ...state, observationConfirmed: true };
+    if (action.type === 'NEXT' && state.observationConfirmed && state.step < PRINCIPLE_STEPS.length) {
+      return { ...state, step: state.step + 1, observationConfirmed: false, completed: [...state.completed, state.step] };
+    }
+    if (action.type === 'PREVIOUS' && state.step > 1) return { ...state, step: state.step - 1, observationConfirmed: false };
+    if (action.type === 'SET_MODE') return { ...state, mode: action.mode, running: action.mode === 'auto' };
+    if (action.type === 'SET_RUNNING') return { ...state, running: Boolean(action.running) };
+    if (action.type === 'SELECT_STEP' && state.mode === 'explore' && action.step >= 1 && action.step <= PRINCIPLE_STEPS.length) {
+      return { ...state, step: action.step, observationConfirmed: false };
+    }
+    if (action.type === 'AUTO_TICK' && state.mode === 'auto' && state.running) {
+      if (!state.observationConfirmed) return { ...state, observationConfirmed: true };
+      if (state.step < PRINCIPLE_STEPS.length) return principleReducer(state, { type: 'NEXT' });
+      return { ...state, running: false };
+    }
+    if (action.type === 'RESET') return createTeachingState(state.mode);
+    return state;
+  }
+  window.TimerPrincipleTeaching = Object.freeze({ PRINCIPLE_STEPS, createTeachingState, principleReducer });
+})();
+</script>
+<script>
+(function(){
+"use strict";
+var TEMPLATE_ROOT_STYLE=getComputedStyle(document.documentElement);
+var TEMPLATE_CANVAS_FONT=getComputedStyle(document.body).fontFamily||TEMPLATE_ROOT_STYLE.getPropertyValue('--font-ui');
+var TEMPLATE_VIZ={circular:TEMPLATE_ROOT_STYLE.getPropertyValue('--viz-circular').trim(),transfer:TEMPLATE_ROOT_STYLE.getPropertyValue('--viz-transfer').trim(),velocity:TEMPLATE_ROOT_STYLE.getPropertyValue('--viz-velocity').trim(),gravity:TEMPLATE_ROOT_STYLE.getPropertyValue('--viz-gravity').trim()};
+/* =========================================================
+   打点计时器三维互动实验
+   自写极简 3D 渲染管线（画布 2D + 手写投影/深度排序），
+   无外部依赖，可离线运行。
+   ========================================================= */
+
+/* ---------- 数学工具 ---------- */
+function v3(x,y,z){return {x:x,y:y,z:z};}
+function add(a,b){return v3(a.x+b.x,a.y+b.y,a.z+b.z);}
+function sub(a,b){return v3(a.x-b.x,a.y-b.y,a.z-b.z);}
+function mul(a,s){return v3(a.x*s,a.y*s,a.z*s);}
+function cross(a,b){return v3(a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x);}
+function dot(a,b){return a.x*b.x+a.y*b.y+a.z*b.z;}
+function norm(a){var l=Math.hypot(a.x,a.y,a.z)||1;return v3(a.x/l,a.y/l,a.z/l);}
+function clamp(v,a,b){return v<a?a:(v>b?b:v);}
+function lerp(a,b,t){return a+(b-a)*t;}
+
+/* ---------- 相机 ---------- */
+/* 注意：eye.y = target.y + sin(pitch)*dist，故 pitch 为正才是俯视 */
+var cam={yaw:-0.58,pitch:0.38,dist:5.8,target:v3(-1.95,0.04,0),fov:620};
+var camDefault={yaw:-0.58,pitch:0.38,dist:5.8};
+var PITCH_MIN=TimerPrincipleLesson.CAMERA_LIMITS.pitchMin, PITCH_MAX=TimerPrincipleLesson.CAMERA_LIMITS.pitchMax;
+var YAW_CENTER=-0.55, YAW_MIN=YAW_CENTER-TimerPrincipleLesson.CAMERA_LIMITS.yawSpan/2, YAW_MAX=YAW_CENTER+TimerPrincipleLesson.CAMERA_LIMITS.yawSpan/2;
+
+function camBasis(){
+  var cy=Math.cos(cam.yaw),sy=Math.sin(cam.yaw);
+  var cp=Math.cos(cam.pitch),sp=Math.sin(cam.pitch);
+  var fwd=v3(-sy*cp,-sp,-cy*cp);          // 相机朝向
+  var right=norm(cross(fwd,v3(0,1,0)));
+  var up=cross(right,fwd);
+  var eye=sub(cam.target,mul(fwd,cam.dist));
+  return {fwd:fwd,right:right,up:up,eye:eye};
+}
+var B=camBasis();
+
+function project(p,w,h){
+  var d=sub(p,B.eye);
+  var z=dot(d,B.fwd);
+  if(z<0.05) z=0.05;
+  var x=dot(d,B.right), y=dot(d,B.up);
+  var s=cam.fov/z;
+  return {x:w/2+x*s, y:h/2-y*s, z:z, s:s};
+}
+/* =========================================================
+   材质与光照：每个面片带真实法向，着色在渲染时计算
+   face = {pts:[v3...], rgb:[r,g,b], n:法向, mat:材质名, part, alpha, outline, glow}
+   ========================================================= */
+var MAT={
+  bakelite:{gloss:0.10,shin:16,amb:0.30},   // 胶木外壳（哑光）
+  plastic :{gloss:0.20,shin:26,amb:0.34},
+  metal   :{gloss:0.60,shin:62,amb:0.28},   // 抛光金属
+  steel   :{gloss:0.44,shin:44,amb:0.30},
+  brass   :{gloss:0.52,shin:50,amb:0.34},
+  paper   :{gloss:0.04,shin:8, amb:0.46},
+  wood    :{gloss:0.09,shin:12,amb:0.38},
+  rubber  :{gloss:0.05,shin:10,amb:0.26},
+  felt    :{gloss:0.02,shin:6, amb:0.40}
+};
+var LKEY=norm(v3(-0.44,0.82,0.37));   // 主光：左上前
+var LFIL=norm(v3(0.74,0.24,-0.60));   // 补光：右后
+function hex2rgb(h){var n=parseInt(h.slice(1),16);return [(n>>16)&255,(n>>8)&255,n&255];}
+
+function pushBox(faces,cx,cy,cz,sx,sy,sz,color,part,opt){
+  opt=opt||{};
+  var hx=sx/2,hy=sy/2,hz=sz/2,rgb=hex2rgb(color);
+  var F=[
+    [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[0,0,-1]],
+    [[-1,-1, 1],[-1,1, 1],[1,1, 1],[1,-1, 1],[0,0, 1]],
+    [[-1,-1,-1],[-1,1,-1],[-1,1,1],[-1,-1,1],[-1,0,0]],
+    [[ 1,-1,-1],[ 1,-1,1],[1,1,1],[1,1,-1],[ 1,0,0]],
+    [[-1, 1,-1],[ 1,1,-1],[1,1,1],[-1,1,1],[0, 1,0]],
+    [[-1,-1,-1],[-1,-1,1],[1,-1,1],[1,-1,-1],[0,-1,0]]
+  ];
+  for(var i=0;i<6;i++){
+    if(opt.skip && opt.skip.indexOf(i)>=0) continue;   // 可跳过指定面（如顶面另行细分）
+    var f=F[i],pts=[];
+    for(var j=0;j<4;j++) pts.push(v3(cx+f[j][0]*hx, cy+f[j][1]*hy, cz+f[j][2]*hz));
+    faces.push({pts:pts,rgb:rgb,n:v3(f[4][0],f[4][1],f[4][2]),part:part,mat:opt.mat||'plastic',
+                alpha:opt.alpha==null?1:opt.alpha,outline:opt.outline!==false,glow:opt.glow,layer:opt.layer});
+  }
+}
+// 圆柱：axis 'y'|'x'|'z'
+function pushCyl(faces,cx,cy,cz,r,len,axis,color,part,opt){
+  opt=opt||{};var seg=opt.seg||20,rgb=hex2rgb(color),h=len/2;
+  function P(ang,t){
+    var a=Math.cos(ang)*r,b=Math.sin(ang)*r;
+    if(axis==='y')return v3(cx+a,cy+t,cz+b);
+    if(axis==='x')return v3(cx+t,cy+a,cz+b);
+    return v3(cx+a,cy+b,cz+t);
+  }
+  function N(ang){
+    var a=Math.cos(ang),b=Math.sin(ang);
+    if(axis==='y')return v3(a,0,b);
+    if(axis==='x')return v3(0,a,b);
+    return v3(a,b,0);
+  }
+  var A=axis==='y'?v3(0,1,0):(axis==='x'?v3(1,0,0):v3(0,0,1));
+  var mt=opt.mat||'plastic',al=opt.alpha==null?1:opt.alpha;
+  for(var i=0;i<seg;i++){
+    var a0=i/seg*Math.PI*2,a1=(i+1)/seg*Math.PI*2;
+    faces.push({pts:[P(a0,-h),P(a1,-h),P(a1,h),P(a0,h)],rgb:rgb,n:N((a0+a1)/2),
+      part:part,mat:mt,alpha:al,outline:false,glow:opt.glow});
+  }
+  if(opt.caps!==false){
+    var top=[],bot=[];
+    for(var k=0;k<seg;k++){var a=k/seg*Math.PI*2;top.push(P(a,h));bot.push(P(-a,-h));}
+    faces.push({pts:top,rgb:rgb,n:A,part:part,mat:mt,alpha:al,outline:false,glow:opt.glow});
+    faces.push({pts:bot,rgb:rgb,n:mul(A,-1),part:part,mat:mt,alpha:al,outline:false,glow:opt.glow});
+  }
+}
+function pushQuad(faces,a,b,c,d,color,part,opt){
+  opt=opt||{};
+  faces.push({pts:[a,b,c,d],rgb:hex2rgb(color),n:norm(cross(sub(b,a),sub(d,a))),
+              part:part,mat:opt.mat||'plastic',alpha:opt.alpha==null?1:opt.alpha,
+              outline:opt.outline||false,glow:opt.glow,layer:opt.layer});
+}
+/* 接触阴影：叠三层同心四边形近似软阴影，作为普通面片参与深度排序 */
+function pushShadow(F,y,x0,x1,z0,z1,a,lay0){
+  var cx=(x0+x1)/2, cz=(z0+z1)/2, hw=(x1-x0)/2, hd=(z1-z0)/2;
+  var lay=[[1.34,0.30],[1.12,0.42],[0.94,1.00]];
+  var NS=Math.max(1,Math.min(24,Math.round((x1-x0)*3)));   // 长阴影沿 x 分段，保证深度排序
+  for(var i=0;i<3;i++){
+    var k=lay[i][0], yy=y+i*0.0016, ax=hw*k, az=hd*k;
+    for(var s=0;s<NS;s++){
+      var xa=cx-ax+2*ax*s/NS, xb=cx-ax+2*ax*(s+1)/NS;
+      F.push({pts:[v3(xa,yy,cz-az),v3(xb,yy,cz-az),v3(xb,yy,cz+az),v3(xa,yy,cz+az)],
+              rgb:[4,9,16],n:v3(0,1,0),part:null,mat:'felt',layer:(lay0||3)+i*0.01,
+              alpha:a*lay[i][1],outline:false,flat:true});
+    }
+  }
+}
+/* 面片着色：Lambert 主光 + 补光 + 天光环境 + Blinn 高光 */
+function litColor(f,ctr,hi,dim){
+  if(f.flat) return 'rgb('+f.rgb[0]+','+f.rgb[1]+','+f.rgb[2]+')';
+  var m=MAT[f.mat]||MAT.plastic, n=f.n;
+  var V=norm(sub(B.eye,ctr));
+  if(dot(n,V)<0) n=mul(n,-1);                   // 双面光照：法向始终朝向相机
+  var d1=Math.max(0,dot(n,LKEY)), d2=Math.max(0,dot(n,LFIL));
+  var sky=0.5+0.5*n.y;                          // 上方天光更亮，下方地面反射更暗
+  var k=m.amb*(0.72+0.42*sky)+0.74*d1+0.24*d2;
+  var Hh=norm(add(LKEY,V));
+  var sp=Math.pow(Math.max(0,dot(n,Hh)),m.shin)*m.gloss;
+  var r=f.rgb[0]*k+sp*255, g=f.rgb[1]*k+sp*252, b=f.rgb[2]*k+sp*240;
+  if(hi){ r=r*0.55+255*0.45; g=g*0.55+206*0.45; b=b*0.55+96*0.45; }
+  if(dim){var gray=(r+g+b)/3;r=r*.38+gray*.62;g=g*.38+gray*.62;b=b*.38+gray*.62;}
+  return 'rgb('+(clamp(r,0,255)|0)+','+(clamp(g,0,255)|0)+','+(clamp(b,0,255)|0)+')';
+}
+
+/* ---------- 部件说明（点击/悬停显示） ---------- */
+var PARTS={
+  base:{n:'底座',d:'承托并固定两种计时器的完整结构。'},
+  coil:{n:'线圈（电磁铁）',d:'4~6 V 交流使线圈的电磁状态周期变化。'},
+  magnet:{n:'永久磁铁',d:'与线圈共同作用，使振片周期振动。'},
+  reed:{n:'振片与振针',d:'振片带动振针周期下压，每次下压通过复写纸形成一个点。'},
+  carbon:{n:'复写纸片',d:'位于振针与纸带之间，把振针的下压转化为点迹。'},
+  tape:{n:'纸带',d:'从打点位置通过，承接周期形成的点迹。'},
+  hole:{n:'限位孔',d:'限定纸带通道，使纸带经过准确的打点位置。'},
+  plug:{n:'接线柱',d:'把 4~6 V 交流电接入电磁式计时器。'},
+  spark:{n:'放电针',d:'脉冲高压在放电针与墨粉纸盘之间放电，形成一个点。'},
+  disc:{n:'墨粉纸盘',d:'把放电产生的墨粉痕迹转印到纸带。'},
+  hv:{n:'脉冲高压电源',d:'把 220 V 交流转换为周期脉冲高压。'},
+  body:{n:'外壳',d:'保护内部结构；剖面视角会弱化外壳以展示内部部件。'}
+};
+
+/* ---------- 全局状态 ---------- */
+var S={
+  machine:'em',
+  playing:true,
+  speed:1,
+  cut:false,
+  labels:true,
+  powered:false,
+  dots:[],
+  vibPhase:0,
+  sparkFlash:0,
+  hover:null, picked:null,
+  focusParts:new Set(['tape','hole']),
+  pulseCount:0,
+  tapeTravel:0
+};
+var TICK_FREQUENCY=50;
+/* ---------- 场景常量 ---------- */
+var TABLE_Y=-0.58;     // 桌面高度
+var BOARD_Y=-0.15;     // 长木板上表面
+var TAPE_Y=0.075;      // 纸带所在高度（贴着计时器底板通过）
+var TIMER_X=-1.95;     // 计时器中心 x
+function buildScene(){
+  var F=[];
+  pushBox(F,TIMER_X,BOARD_Y-0.16,0,3.4,0.30,2.20,'#6d5c48','base',{mat:'wood',layer:4});
+  pushShadow(F,BOARD_Y+0.008,TIMER_X-1.25,TIMER_X+1.25,-0.82,0.82,0.34,8);
+  buildTimer(F);
+  buildTape(F);
+  return F;
+}
+
+/* ---------- 计时器主体 ---------- */
+function buildTimer(F){
+  var em = S.machine==='em';
+  var cx = TIMER_X;
+  var shellA = S.cut?0.17:1;              // 剖面时外壳半透明
+  var accent = em?'#2f6bbf':'#c9691f';
+
+  /* --- 铁夹：把计时器压在长木板末端 --- */
+  pushBox(F,cx-1.06,BOARD_Y+0.02,0, 0.13,0.50,1.44,'#828d9c','base',{mat:'metal'});
+  pushBox(F,cx-1.06,BOARD_Y-0.32,0, 0.38,0.11,1.44,'#74808f','base',{mat:'metal'});
+  pushCyl(F,cx-1.06,BOARD_Y-0.44,0.50, 0.065,0.30,'y','#9aa4b2','base',{mat:'metal',seg:12});
+  pushCyl(F,cx-1.06,BOARD_Y-0.60,0.50, 0.115,0.05,'y','#b3bcc8','base',{mat:'metal',seg:14});
+
+  /* --- 胶木底板（两级台阶）：排在纸带之前，纸带才能压在台面上 --- */
+  pushBox(F,cx,BOARD_Y+0.085,0, 2.02,0.17,1.52,'#4a5361','base',{mat:'bakelite',layer:9.4});
+  pushBox(F,cx,0.035,0, 1.86,0.03,1.38,'#555f6e','base',{mat:'bakelite',layer:9.5});
+  for(var sv=0;sv<4;sv++){                       // 底板四角螺钉
+    var sx=cx+(sv<2?-0.88:0.88), sz=(sv%2?0.62:-0.62);
+    pushCyl(F,sx,0.058,sz, 0.045,0.03,'y','#9aa4b2','base',{mat:'metal',seg:10});
+  }
+  if(em){
+    /* ===== 电磁打点计时器 ===== */
+    var vy=vibOffset();
+    /* 线圈柱：胶木外壳 + 内部绕线 */
+    pushCyl(F,cx-0.44,0.28,0, 0.40,0.46,'y','#39414d','body',{alpha:shellA,mat:'bakelite',seg:26});
+    pushCyl(F,cx-0.44,0.545,0, 0.43,0.07,'y','#8b95a3','body',{mat:'metal',seg:26});
+    pushCyl(F,cx-0.44,0.28,0, 0.27,0.42,'y','#a9782f','coil',{mat:'brass',seg:20});
+    for(var i=0;i<6;i++){
+      pushCyl(F,cx-0.44,0.11+i*0.07,0, 0.305,0.045,'y','#c08a35','coil',{seg:18,caps:false,mat:'brass'});
+    }
+    /* 永久磁铁（剖面可见） */
+    pushBox(F,cx-0.44,0.28,-0.30, 0.52,0.40,0.10,'#9099a6','magnet',{mat:'steel'});
+    pushBox(F,cx-0.44,0.28, 0.30, 0.52,0.40,0.10,'#9099a6','magnet',{mat:'steel'});
+    /* 振片：钢片一端固定在线圈柱顶，另一端随电流上下振动 */
+    pushBox(F,cx-0.44,0.585,0, 0.30,0.05,0.26,'#c4ccd8','reed',{mat:'steel'});
+    pushBox(F,cx+0.14,0.565+vy*0.45,0, 1.20,0.035,0.22,'#cfd6e2','reed',{mat:'steel'});
+    /* 振针 + 针尖：下压时针尖压在复写纸片上，把墨迹打到纸带上 */
+    pushCyl(F,cx+0.66,0.365+vy,0, 0.022,0.34,'y','#dfe5ee','reed',{mat:'metal',seg:12});
+    pushCyl(F,cx+0.66,0.185+vy,0, 0.012,0.05,'y','#e8c46a','reed',{mat:'brass',seg:10});
+    /* 复写纸片：圆片压在纸带【上方】，有墨的一面朝下 */
+    pushDisc(F,cx+0.66,TAPE_Y+0.032,0, 0.22,'#2c2536','carbon',0.4,'felt');
+    pushCyl(F,cx+0.66,TAPE_Y+0.076,0, 0.030,0.05,'y','#8b95a3','carbon',{mat:'metal',seg:10});
+    /* 接线柱：红黑两个，接 4~6V 交流 */
+    var pz=[-0.46,0.46],pc=['#b8352f','#26262c'];
+    for(var t=0;t<2;t++){
+      pushCyl(F,cx-0.78,0.11,pz[t], 0.05,0.15,'y','#b9903c','plug',{mat:'brass',seg:12});
+      pushCyl(F,cx-0.78,0.215,pz[t], 0.082,0.08,'y',pc[t],'plug',{mat:'plastic',seg:14});
+    }
+    /* 铭牌：平贴在胶木底板上（纸带走中线，铭牌贴在靠前的空白处） */
+    pushQuad(F,v3(cx-0.06,0.053,0.30),v3(cx+0.86,0.053,0.30),
+               v3(cx+0.86,0.053,0.66),v3(cx-0.06,0.053,0.66),'#ded8c6','body',{mat:'paper'});
+    pushQuad(F,v3(cx-0.06,0.055,0.30),v3(cx+0.86,0.055,0.30),
+               v3(cx+0.86,0.055,0.37),v3(cx-0.06,0.055,0.37),accent,'body',{mat:'paper'});
+  }else{
+    /* ===== 电火花计时器 ===== */
+    /* 脉冲高压电源模块（机身左半，靠后布置，把中线让给纸带通道） */
+    pushBox(F,cx-0.46,0.31,-0.42, 1.02,0.52,0.52,'#a2571d','body',{alpha:shellA,mat:'bakelite'});
+    pushBox(F,cx-0.46,0.585,-0.42, 1.06,0.04,0.56,'#8c4a18','body',{alpha:shellA,mat:'bakelite'});
+    /* 面板：铭牌 + 电源指示灯 + 开关 */
+    pushQuad(F,v3(cx-0.92,0.20,-0.155),v3(cx-0.10,0.20,-0.155),
+               v3(cx-0.10,0.46,-0.155),v3(cx-0.92,0.46,-0.155),'#e8dcc4','hv',{mat:'paper'});
+    pushCyl(F,cx-0.24,0.33,-0.150, 0.055,0.03,'z',S.powered?'#ff5f4a':'#7d3b32','hv',
+            {mat:'plastic',seg:14,glow:S.powered?0.55:0});
+    pushBox(F,cx-0.72,0.33,-0.138, 0.16,0.13,0.05,'#2a2a30','hv',{mat:'plastic'});
+    /* 220V 电源线 */
+    pushCyl(F,cx-1.06,0.16,-0.40, 0.05,0.34,'x','#22222a','hv',{mat:'rubber',seg:12});
+    /* 铭牌：平贴在底板靠前的空白处 */
+    pushQuad(F,v3(cx-0.88,0.053,0.24),v3(cx-0.04,0.053,0.24),
+               v3(cx-0.04,0.053,0.58),v3(cx-0.88,0.053,0.58),'#ded8c6','body',{mat:'paper'});
+    pushQuad(F,v3(cx-0.88,0.055,0.24),v3(cx-0.04,0.055,0.24),
+               v3(cx-0.04,0.055,0.31),v3(cx-0.88,0.055,0.31),accent,'body',{mat:'paper'});
+    /* 墨粉纸盘：套在定位轴上、压在纸带【上方】，随纸带转动
+       放电顺序：放电针 → 墨粉纸盘 → 纸带 → 下极板 */
+    var rot=S.pulseCount*0.32, dy0=TAPE_Y+0.030;
+    pushDisc(F,cx+0.62,dy0,0, 0.32,'#2a2d35','disc',rot,'felt');
+    pushCyl(F,cx+0.62,dy0+0.032,0, 0.048,0.04,'y','#a7b0bc','disc',{mat:'metal',seg:14});
+    /* 放电针支架 + 放电针（针尖悬在纸盘上方，留出放电间隙） */
+    pushBox(F,cx+0.62,0.34,-0.52, 0.14,0.58,0.12,'#3a414c','spark',{mat:'bakelite'});
+    pushBox(F,cx+0.62,0.56,-0.26, 0.12,0.07,0.64,'#3a414c','spark',{mat:'bakelite'});
+    pushCyl(F,cx+0.62,0.40,0, 0.026,0.30,'y','#dde3ec','spark',{mat:'metal',seg:12});
+    pushCyl(F,cx+0.62,0.222,0, 0.012,0.05,'y','#f0d68e','spark',{mat:'brass',seg:10});
+    /* 火花：放电瞬间在针尖与纸盘之间的间隙里高亮 */
+    if(S.sparkFlash>0){
+      var a=S.sparkFlash;
+      pushCyl(F,cx+0.62,0.178,0, 0.030+0.042*a,0.06,'y','#fff6d4','spark',{seg:12,glow:a,mat:'metal'});
+    }
+  }
+  /* --- 限位孔：纸带从这里穿过，只能沿直线滑动 --- */
+  var hx=cx+(em?1.02:0.98);
+  pushBox(F,hx,TAPE_Y+0.035,-0.24, 0.20,0.13,0.09,'#57c48c','hole',{mat:'plastic'});
+  pushBox(F,hx,TAPE_Y+0.035, 0.24, 0.20,0.13,0.09,'#57c48c','hole',{mat:'plastic'});
+  pushBox(F,hx,TAPE_Y+0.088,0,     0.20,0.03,0.57,'#49b57e','hole',{mat:'plastic'});
+  pushBox(F,hx,TAPE_Y-0.022,0,     0.20,0.02,0.57,'#3fa471','hole',{mat:'plastic'});
+}
+// 薄圆盘（墨粉纸盘 / 复写纸片）：rot 表示随纸带转过的角度
+function pushDisc(F,cx,cy,cz,r,color,part,rot,mat,lay){
+  var seg=26,th=0.018,rgb=hex2rgb(color),top=[],bot=[];
+  mat=mat||'felt';
+  for(var i=0;i<seg;i++){
+    var a=i/seg*Math.PI*2+rot;
+    top.push(v3(cx+Math.cos(a)*r, cy+th, cz+Math.sin(a)*r));
+    bot.push(v3(cx+Math.cos(-a)*r, cy-th, cz+Math.sin(-a)*r));
+  }
+  F.push({pts:top,rgb:rgb,n:v3(0,1,0),part:part,mat:mat,alpha:1,outline:false,layer:lay});
+  F.push({pts:bot,rgb:rgb,n:v3(0,-1,0),part:part,mat:mat,alpha:1,outline:false,layer:lay});
+  for(var k=0;k<seg;k++){
+    var a0=k/seg*Math.PI*2+rot,a1=(k+1)/seg*Math.PI*2+rot,am=(a0+a1)/2;
+    F.push({pts:[
+      v3(cx+Math.cos(a0)*r,cy-th,cz+Math.sin(a0)*r),
+      v3(cx+Math.cos(a1)*r,cy-th,cz+Math.sin(a1)*r),
+      v3(cx+Math.cos(a1)*r,cy+th,cz+Math.sin(a1)*r),
+      v3(cx+Math.cos(a0)*r,cy+th,cz+Math.sin(a0)*r)],
+      rgb:rgb,n:v3(Math.cos(am),0,Math.sin(am)),part:part,mat:mat,alpha:1,outline:false,layer:lay});
+  }
+  // 盘面放射刻纹：转动时能看出来
+  var mr=Math.min(255,rgb[0]+46),mg=Math.min(255,rgb[1]+46),mb=Math.min(255,rgb[2]+46);
+  for(var m=0;m<10;m++){
+    var a=m/10*Math.PI*2+rot;
+    F.push({pts:[
+      v3(cx+Math.cos(a)*r*0.30, cy+th+0.001, cz+Math.sin(a)*r*0.30),
+      v3(cx+Math.cos(a+0.06)*r*0.94, cy+th+0.001, cz+Math.sin(a+0.06)*r*0.94),
+      v3(cx+Math.cos(a+0.12)*r*0.94, cy+th+0.001, cz+Math.sin(a+0.12)*r*0.94),
+      v3(cx+Math.cos(a+0.05)*r*0.30, cy+th+0.001, cz+Math.sin(a+0.05)*r*0.30)],
+      rgb:[mr,mg,mb],n:v3(0,1,0),part:part,mat:mat,alpha:1,outline:false,layer:lay});
+  }
+}
+/* 振针偏移：随电源频率上下振动 */
+function vibOffset(){
+  if(!S.powered) return 0;
+  // 下压快、回弹慢：更像振片被吸下再弹起
+  var u=S.vibPhase-Math.floor(S.vibPhase);
+  var s=u<0.34 ? (u/0.34) : (1-(u-0.34)/0.66);
+  return -0.055*s*s*(3-2*s);
+}
+
+/* ---------- 纸带 ---------- */
+function strikeX(){ return TIMER_X+(S.machine==='em'?0.66:0.62); }
+function buildTape(F){
+  var y=TAPE_Y, z0=-0.19, z1=0.19, th=0.014;
+  var xL=TIMER_X-1.55, xR=TIMER_X+1.55;
+  var segs=22;
+  for(var s=0;s<segs;s++){
+    var t0=s/segs, t1=(s+1)/segs;
+    var xa=lerp(xL,xR,t0), xb=lerp(xL,xR,t1);
+    var ya=y+Math.sin(t0*7.1+1.2)*0.004;
+    var yb=y+Math.sin(t1*7.1+1.2)*0.004;
+    pushQuad(F,v3(xa,ya,z0),v3(xb,yb,z0),v3(xb,yb,z1),v3(xa,ya,z1),
+             '#eae5d6','tape',{mat:'paper',layer:10});
+    pushQuad(F,v3(xa,ya,z1),v3(xb,yb,z1),v3(xb,yb-th,z1),v3(xa,ya-th,z1),
+             '#cdc7b6','tape',{mat:'paper',layer:10});
+    pushQuad(F,v3(xa,ya-th,z0),v3(xb,yb-th,z0),v3(xb,yb,z0),v3(xa,ya,z0),
+             '#cdc7b6','tape',{mat:'paper',layer:10});
+  }
+  var sx=strikeX(), em=S.machine==='em';
+  var r=em?0.038:0.023, rgb=em?[34,37,45]:[12,14,19];
+  for(var i=0;i<S.dots.length;i++){
+    var px=sx-(S.tapeTravel-S.dots[i])*0.58;
+    if(px<xL+0.03||px>xR-0.03) continue;
+    var ring=[];
+    for(var k=0;k<10;k++){
+      var a=k/10*Math.PI*2;
+      ring.push(v3(px+Math.cos(a)*r, y+0.005, Math.sin(a)*r*0.92));
+    }
+    F.push({pts:ring,rgb:rgb,n:v3(0,1,0),part:'tape',mat:'paper',alpha:1,outline:false,layer:11});
+  }
+}
+
+/* ---------- 渲染 ---------- */
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var W=0,H=0,DPR=1;
+function resize(){
+  var st=document.getElementById('stage');
+  var lessonLayout=document.getElementById('experimentLayout');
+  if(window.innerWidth>=960||window.innerWidth>window.innerHeight){
+    var resolved=TimerPrincipleLesson.layoutForViewport(window.innerWidth,window.innerHeight);
+    lessonLayout.style.gridTemplateColumns=resolved.columns[0]+'px minmax(0,1fr) '+resolved.columns[2]+'px';
+    lessonLayout.dataset.resolvedLayout=resolved.kind;
+  }else{
+    lessonLayout.style.removeProperty('grid-template-columns');delete lessonLayout.dataset.resolvedLayout;
+  }
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=st.clientWidth; H=st.clientHeight;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resize);
+
+var faceCache=[];
+function render(){
+  ctx.clearRect(0,0,W,H);
+  B=camBasis();
+  var F=buildScene();
+  // 投影 + 深度 + 面心（供高光计算）
+  var list=[];
+  for(var i=0;i<F.length;i++){
+    var f=F[i],p=[],zs=0,ok=true,cxx=0,cyy=0,czz=0,L=f.pts.length;
+    for(var j=0;j<L;j++){
+      var pt=f.pts[j],q=project(pt,W,H);
+      if(q.z<=0.06){ok=false;break;}
+      p.push(q); zs+=q.z; cxx+=pt.x; cyy+=pt.y; czz+=pt.z;
+    }
+    if(!ok||p.length<3) continue;
+    list.push({p:p,z:zs/p.length,f:f,c:v3(cxx/L,cyy/L,czz/L)});
+  }
+  /* 底座—纸带—点迹这些几乎共面的贴花用固定图层号强制先后，
+     其余计时器立体物件统一为 20，仍按深度排序。 */
+  list.sort(function(a,b){
+    var la=a.f.layer==null?20:a.f.layer, lb=b.f.layer==null?20:b.f.layer;
+    if(la!==lb) return la-lb;
+    return b.z-a.z;
+  });
+  faceCache=list;
+
+  for(var m=0;m<list.length;m++){
+    var it=list[m],f=it.f,pp=it.p;
+    ctx.beginPath();
+    ctx.moveTo(pp[0].x,pp[0].y);
+    for(var n=1;n<pp.length;n++) ctx.lineTo(pp[n].x,pp[n].y);
+    ctx.closePath();
+    var isHi = (S.picked&&f.part===S.picked)||(S.hover&&f.part===S.hover);
+    var isDim=Boolean(S.focusParts.size&&f.part&&!S.focusParts.has(f.part)&&f.part!=='body'&&f.part!=='base');
+    ctx.globalAlpha=f.alpha*(isDim?0.28:1);
+    if(f.glow){
+      ctx.shadowColor='rgba(255,230,150,.95)'; ctx.shadowBlur=26*f.glow;
+    }
+    ctx.fillStyle=litColor(f,it.c,isHi,isDim);
+    ctx.fill();
+    ctx.shadowBlur=0;
+    if(f.outline||isHi){
+      ctx.lineWidth=isHi?1.5:0.6;
+      ctx.strokeStyle=isHi?'rgba(255,215,107,.92)':'rgba(6,10,18,.30)';
+      ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+  }
+  drawLabels();
+  drawSparkArc();
+}
+/* ---------- 引线标注 ---------- */
+function labelSet(){
+  var cx=TIMER_X;
+  if(S.machine==='em'){
+    var L=[
+      {p:v3(cx-0.44,0.52,0),  t:'线圈外壳',   part:'body', dx:-84,dy:-56},
+      {p:v3(cx+0.66,0.42,0),  t:'振针',       part:'reed', dx:46, dy:-74},
+      {p:v3(cx+0.66,TAPE_Y+0.05,0),t:'复写纸片',part:'carbon',dx:60,dy:-30},
+      {p:v3(cx+1.02,TAPE_Y+0.09,0.28),t:'限位孔',part:'hole',dx:86, dy:26},
+      {p:v3(cx-0.78,0.22,0),  t:'接线柱 4~6V交流',part:'plug',dx:-112,dy:26},
+      {p:v3(cx-1.06,BOARD_Y,0),t:'铁夹',      part:'base', dx:-58,dy:52}
+    ];
+    if(S.cut){
+      L.push({p:v3(cx-0.44,0.28,0),    t:'线圈（电磁铁）',part:'coil',  dx:-132,dy:-4});
+      L.push({p:v3(cx-0.44,0.28, 0.30),t:'永久磁铁',      part:'magnet',dx:-96, dy:58});
+      L.push({p:v3(cx+0.14,0.57,0),    t:'振片',          part:'reed',  dx:-30,dy:-86});
+    }
+    return L;
+  }
+  var L2=[
+    {p:v3(cx-0.46,0.60,-0.42),t:'脉冲高压电源 220V',part:'hv',dx:-116,dy:-52},
+    {p:v3(cx+0.62,TAPE_Y+0.05,0.30),t:'墨粉纸盘',part:'disc',dx:88, dy:-14},
+    {p:v3(cx+0.62,0.36,0),  t:'放电针',      part:'spark',dx:54, dy:-76},
+    {p:v3(cx+0.98,TAPE_Y+0.09,0.28),t:'限位孔',part:'hole',dx:52, dy:72},
+    {p:v3(cx-0.24,0.33,-0.14),t:'电源指示灯', part:'hv',   dx:-44,dy:54},
+    {p:v3(cx-1.06,BOARD_Y,0),t:'铁夹',       part:'base', dx:-58,dy:52}
+  ];
+  return L2;
+}
+function drawLabels(){
+  if(!S.labels) return;
+  var L=labelSet();
+  ctx.save();
+  ctx.font='600 11px '+TEMPLATE_CANVAS_FONT;
+  ctx.textBaseline='middle';
+  for(var i=0;i<L.length;i++){
+    var it=L[i],q=project(it.p,W,H);
+    if(S.focusParts.size&&!S.focusParts.has(it.part)&&S.picked!==it.part) continue;
+    if(q.z<=0.1) continue;
+    var tx=q.x+it.dx, ty=q.y+it.dy;
+    var hi=(S.picked===it.part||S.hover===it.part);
+    var wid=ctx.measureText(it.t).width+12;
+    // 引线
+    ctx.beginPath();
+    ctx.moveTo(q.x,q.y);
+    ctx.lineTo(tx+(it.dx<0?wid/2:-wid/2), ty);
+    ctx.strokeStyle=hi?'rgba(255,215,107,.9)':'rgba(180,200,230,.42)';
+    ctx.lineWidth=hi?1.4:1;
+    ctx.stroke();
+    // 锚点
+    ctx.beginPath();ctx.arc(q.x,q.y,2.6,0,6.283);
+    ctx.fillStyle=hi?TEMPLATE_VIZ.gravity:'#9fb6d8';ctx.fill();
+    // 文字底
+    ctx.beginPath();
+    var bx=tx-wid/2, by=ty-9;
+    roundRect(ctx,bx,by,wid,18,6);
+    ctx.fillStyle=hi?'rgba(60,48,16,.92)':'rgba(11,20,36,.80)';ctx.fill();
+    ctx.strokeStyle=hi?'rgba(255,215,107,.8)':'rgba(120,142,178,.34)';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle=hi?'#ffe9a8':'#d6e3f6';
+    ctx.textAlign='center';
+    ctx.fillText(it.t,tx,ty+.5);
+  }
+  ctx.restore();
+}
+function roundRect(c,x,y,w,h,r){
+  c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();
+}
+/* 火花电弧（电火花式打点瞬间） */
+function drawSparkArc(){
+  if(S.machine!=='spark'||S.sparkFlash<=0) return;
+  var cx=TIMER_X;
+  var a=project(v3(cx+0.62,0.197,0),W,H);          // 针尖
+  var b=project(v3(cx+0.62,TAPE_Y+0.048,0),W,H);   // 墨粉纸盘上表面
+  if(a.z<=0.1) return;
+  var k=S.sparkFlash;
+  ctx.save();
+  ctx.globalCompositeOperation='lighter';
+  ctx.globalAlpha=k;
+  var R=34*(0.6+0.4*k);
+  var g=ctx.createRadialGradient(a.x,a.y,0,a.x,a.y,R);
+  g.addColorStop(0,'rgba(255,252,232,.95)');
+  g.addColorStop(.28,'rgba(255,228,150,.60)');
+  g.addColorStop(.62,'rgba(255,186,72,.22)');
+  g.addColorStop(1,'rgba(255,170,50,0)');
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(a.x,a.y,R,0,6.283);ctx.fill();
+  // 锯齿电弧：两条细支，模拟放电通道
+  for(var s=0;s<2;s++){
+    ctx.beginPath();ctx.moveTo(a.x,a.y);
+    for(var i=1;i<=5;i++){
+      ctx.lineTo(a.x+(Math.random()-0.5)*8, a.y+(b.y-a.y)*i/5);
+    }
+    ctx.strokeStyle=s?'rgba(255,226,150,.72)':'rgba(255,255,246,.96)';
+    ctx.lineWidth=s?2.6:1.4;ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ---------- 拾取：点击选中部件 ---------- */
+function pickAt(mx,my){
+  for(var i=faceCache.length-1;i>=0;i--){
+    var it=faceCache[i];
+    if(it.f.alpha<0.3) continue;
+    if(pointInPoly(mx,my,it.p)) return it.f.part;
+  }
+  return null;
+}
+function pointInPoly(x,y,p){
+  var inside=false;
+  for(var i=0,j=p.length-1;i<p.length;j=i++){
+    if(((p[i].y>y)!==(p[j].y>y)) &&
+       (x < (p[j].x-p[i].x)*(y-p[i].y)/(p[j].y-p[i].y)+p[i].x)) inside=!inside;
+  }
+  return inside;
+}
+/* ---------- 拖拽 / 缩放 ---------- */
+var drag={on:false,x:0,y:0,moved:0};
+function localXY(e){
+  var r=cv.getBoundingClientRect();
+  return {x:e.clientX-r.left, y:e.clientY-r.top};
+}
+cv.addEventListener('pointerdown',function(e){
+  cv.setPointerCapture(e.pointerId);
+  var p=localXY(e);
+  drag.on=true;drag.x=p.x;drag.y=p.y;drag.moved=0;
+  cv.classList.add('dragging');
+});
+cv.addEventListener('pointermove',function(e){
+  var p=localXY(e);
+  if(drag.on){
+    var dx=p.x-drag.x, dy=p.y-drag.y;
+    drag.moved+=Math.abs(dx)+Math.abs(dy);
+    cam.yaw   = clamp(cam.yaw-dx*0.0072,YAW_MIN,YAW_MAX);
+    cam.pitch  = clamp(cam.pitch + dy*0.0058, PITCH_MIN, PITCH_MAX);
+    drag.x=p.x;drag.y=p.y;
+  }else{
+    var part=pickAt(p.x,p.y);
+    if(part!==S.hover){ S.hover=part; }
+    showTip(part,p.x,p.y);
+  }
+});
+function endDrag(e){
+  if(!drag.on) return;
+  drag.on=false;cv.classList.remove('dragging');
+  if(drag.moved<5){                      // 视为点击
+    var p=localXY(e);
+    var part=pickAt(p.x,p.y);
+    S.picked=(part===S.picked)?null:part;
+    if(part&&PARTS[part]){updateSelectedPart(part);toast('【'+PARTS[part].n+'】'+PARTS[part].d);}
+  }
+}
+cv.addEventListener('pointerup',endDrag);
+cv.addEventListener('pointercancel',function(){drag.on=false;cv.classList.remove('dragging');});
+cv.addEventListener('pointerleave',function(){S.hover=null;hideTip();});
+cv.addEventListener('wheel',function(e){
+  e.preventDefault();
+  cam.dist=clamp(cam.dist*(1+Math.sign(e.deltaY)*0.09), 6.5, 30);
+},{passive:false});
+// 双指缩放
+var pinch=null;
+cv.addEventListener('touchstart',function(e){
+  if(e.touches.length===2){
+    pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    drag.on=false;
+  }
+},{passive:true});
+cv.addEventListener('touchmove',function(e){
+  if(e.touches.length===2&&pinch){
+    e.preventDefault();
+    var d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    cam.dist=clamp(cam.dist*(pinch/d), 6.5, 30);
+    pinch=d;
+  }
+},{passive:false});
+cv.addEventListener('touchend',function(){pinch=null;},{passive:true});
+// 键盘可达性
+cv.addEventListener('keydown',function(e){
+  var k=e.key;
+  if(k==='ArrowLeft'){cam.yaw=clamp(cam.yaw+0.09,YAW_MIN,YAW_MAX);e.preventDefault();}
+  else if(k==='ArrowRight'){cam.yaw=clamp(cam.yaw-0.09,YAW_MIN,YAW_MAX);e.preventDefault();}
+  else if(k==='ArrowUp'){cam.pitch=clamp(cam.pitch+0.07,PITCH_MIN,PITCH_MAX);e.preventDefault();}
+  else if(k==='ArrowDown'){cam.pitch=clamp(cam.pitch-0.07,PITCH_MIN,PITCH_MAX);e.preventDefault();}
+  else if(k==='+'||k==='='){cam.dist=clamp(cam.dist*0.9,6.5,30);}
+  else if(k==='-'){cam.dist=clamp(cam.dist*1.1,6.5,30);}
+});
+
+var tipEl=document.getElementById('partTip');
+function showTip(part,x,y){
+  if(!part||!PARTS[part]){hideTip();return;}
+  tipEl.innerHTML='<b>'+PARTS[part].n+'</b>'+PARTS[part].d;
+  tipEl.style.display='block';
+  var tw=tipEl.offsetWidth,th=tipEl.offsetHeight;
+  tipEl.style.left=clamp(x+14,6,W-tw-6)+'px';
+  tipEl.style.top =clamp(y+14,6,H-th-6)+'px';
+}
+function hideTip(){tipEl.style.display='none';}
+
+/* ---------- toast ---------- */
+var toastEl=document.getElementById('toast'),toastText=document.getElementById('toastText'),toastTimer=null;
+function toast(msg,ms){
+  toastText.textContent=msg;toastEl.style.opacity='1';
+  if(toastTimer)clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){toastEl.style.opacity='0';},ms||3600);
+}
+
+/* ---------- 物理与打点 ---------- */
+var lastMs=performance.now();
+var clockState=TimerPrincipleLesson.createClockState();
+var teachingState=TimerPrincipleTeaching.createTeachingState('guided');
+var autoElapsed=0;
+function tick(now){
+  var dt=Math.min((now-lastMs)/1000,0.05);
+  lastMs=now;
+  if(S.playing&&S.powered){
+    var advanced=TimerPrincipleLesson.advanceClock(clockState,dt,S.speed,true);
+    var physicalElapsed=advanced.physicalTime-clockState.physicalTime;
+    clockState=advanced;S.vibPhase=advanced.phase;S.tapeTravel+=physicalElapsed;
+    advanced.dotTimes.forEach(onDot);
+    if(S.sparkFlash>0) S.sparkFlash=Math.max(0,S.sparkFlash-dt*14);
+  }
+  if(teachingState.mode==='auto'&&teachingState.running&&S.playing){
+    autoElapsed+=dt;
+    if(autoElapsed>=1.1){autoElapsed=0;dispatchTeaching({type:'AUTO_TICK'});}
+  }
+  render();
+  requestAnimationFrame(tick);
+}
+function onDot(dotTime){
+  if(S.machine==='spark') S.sparkFlash=1;
+  S.pulseCount+=1;S.dots.push(dotTime);
+  if(S.dots.length>80) S.dots.shift();
+}
+
+/* ---------- 面板更新 ---------- */
+function g(id){return document.getElementById(id);}
+function updateHUD(){
+  var em=S.machine==='em';
+  g('hudMachine').textContent=em?'电磁打点计时器':'电火花计时器';
+  g('hudPower').textContent=em?'4~6 V 交流':'220 V 交流';
+  g('hudT').textContent=TimerPrincipleCore.intervalForFrequency(TICK_FREQUENCY).toFixed(3)+' s';
+}
+function updateMachineCard(){
+  var em=S.machine==='em';
+  var machine=TimerPrincipleCore.MACHINES[S.machine];
+  g('sPower').textContent=em?'4~6 V 交流':'220 V 交流';
+  g('sFreq').textContent=TICK_FREQUENCY+' Hz';
+  g('sT').textContent=TimerPrincipleCore.intervalForFrequency(TICK_FREQUENCY).toFixed(3)+' s';
+  g('sMarking').textContent=machine.marking;
+  g('machineHint').textContent=em
+    ? '交流电使电磁状态周期变化，振片带动振针通过复写纸留下点迹。'
+    : '交流电经内部电路形成脉冲高压，放电针通过墨粉纸盘留下点迹。';
+  document.querySelectorAll('.machine-switch button').forEach(function(b){
+    var on=b.dataset.m===S.machine;
+    b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');
+  });
+  updateHUD();
+}
+/* ---------- 步骤流程 ---------- */
+var PRINCIPLE_STEPS=TimerPrincipleTeaching.PRINCIPLE_STEPS;
+var CAMERA_PRESETS=TimerPrincipleLesson.CAMERA_PRESETS;
+function setPrincipleFocus(partIds){S.focusParts=new Set(partIds);S.picked=null;}
+function applyCameraPreset(id){
+  var next=TimerPrincipleLesson.viewForPreset({yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist,cut:S.cut,machine:S.machine},id);
+  if(!next)return false;
+  cam.yaw=next.yaw;cam.pitch=next.pitch;cam.dist=next.dist;S.cut=next.cut;S.machine=next.machine;
+  document.querySelectorAll('[data-view]').forEach(function(b){b.classList.toggle('active',b.dataset.view===id);});
+  g('cutToggle').classList.toggle('on',S.cut);updateMachineCard();return true;
+}
+function updateSelectedPart(part){
+  if(!part||!PARTS[part])return;
+  g('selectedPartName').textContent=PARTS[part].n;g('selectedPartRole').textContent=PARTS[part].d;
+}
+function applyTeachingStep(){
+  var step=PRINCIPLE_STEPS[teachingState.step-1];
+  if(step.machine!=='both')S.machine=step.machine;
+  applyCameraPreset(step.camera);setPrincipleFocus(step.focusParts);
+  if(step.id>=3){S.powered=true;}else{S.powered=false;}
+  g('powerToggle').setAttribute('aria-pressed',S.powered?'true':'false');
+  g('powerToggle').textContent=S.powered?'切断电源':'接通电源，观察周期打点';
+  g('stepKicker').textContent='STEP '+step.id+' / 5';g('focusTitle').textContent=step.task;g('focusObserve').textContent=step.observe;
+  g('focusParts').innerHTML=step.focusParts.map(function(id){return '<span>'+PARTS[id].n+'</span>';}).join('');
+  updateSelectedPart(step.focusParts[0]);
+}
+function renderTeaching(){
+  document.querySelectorAll('[data-mode]').forEach(function(b){var on=b.dataset.mode===teachingState.mode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');});
+  document.querySelectorAll('[data-principle-step]').forEach(function(b){var n=+b.dataset.principleStep;b.classList.toggle('active',n===teachingState.step);b.classList.toggle('done',teachingState.completed.indexOf(n)>=0);});
+  g('prevPrinciple').disabled=teachingState.step===1;g('confirmObservation').disabled=teachingState.mode==='explore'||teachingState.observationConfirmed;
+  g('confirmObservation').textContent=teachingState.observationConfirmed?'已确认':'我已观察';
+  g('nextPrinciple').disabled=teachingState.mode!=='explore'&&!teachingState.observationConfirmed;
+  g('nextPrinciple').textContent=teachingState.step===5?'回到第一步':'进入下一步';
+  g('observationState').textContent=teachingState.mode==='auto'?(teachingState.running?'自动演示进行中，可随时暂停接管。':'自动演示已暂停，可继续操作。'):(teachingState.mode==='explore'?'自由探索：机型、剖面和四个视角均可直接切换。':(teachingState.observationConfirmed?'观察已确认，可以进入下一步。':'观察后点击“我已观察”，再进入下一步。'));
+}
+function dispatchTeaching(action){
+  var previous=teachingState.step;teachingState=TimerPrincipleTeaching.principleReducer(teachingState,action);
+  if(teachingState.step!==previous||action.type==='SET_MODE'||action.type==='RESET')applyTeachingStep();
+  renderTeaching();
+}
+
+/* ---------- 控件绑定 ---------- */
+document.querySelectorAll('.machine-switch button').forEach(function(b){
+  b.addEventListener('click',function(){
+    S.machine=b.dataset.m;S.picked=null;
+    if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:false});
+    if(teachingState.mode==='explore')setPrincipleFocus([]);
+    updateMachineCard();updateSelectedPart(S.machine==='em'?'coil':'spark');
+    toast(S.machine==='em'?'电磁式：线圈驱动振针，通过复写纸形成点迹。':'电火花式：脉冲高压通过墨粉纸盘放电形成点迹。');
+  });
+});
+g('playPause').addEventListener('click',function(){
+  S.playing=!S.playing;
+  this.classList.toggle('is-playing',S.playing);
+  this.setAttribute('aria-pressed',S.playing?'true':'false');
+  g('playPauseLabel').textContent=S.playing?'暂停':'播放';
+  if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:S.playing});
+});
+document.querySelectorAll('.speed-control button').forEach(function(b){
+  b.addEventListener('click',function(){
+    S.speed=+b.dataset.speed;
+    document.querySelectorAll('.speed-control button').forEach(function(x){
+      var on=x===b;x.classList.toggle('active',on);x.setAttribute('aria-pressed',on?'true':'false');
+    });
+    toast(S.speed+'× 只改变观看快慢；物理打点间隔始终是 0.02 s。');
+  });
+});
+g('cutToggle').addEventListener('click',function(){
+  S.cut=!S.cut;this.classList.toggle('on',S.cut);
+  if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:false});
+  toast(S.cut?'剖面已开启：外壳被弱化，内部结构保持原位。':'剖面已关闭。');
+});
+g('labelToggle').addEventListener('click',function(){
+  S.labels=!S.labels;this.classList.toggle('on',S.labels);
+});
+document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:false});applyCameraPreset(b.dataset.view);});});
+document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener('click',function(){
+  if(b.dataset.mode==='auto'){S.playing=true;g('playPause').classList.add('is-playing');g('playPause').setAttribute('aria-pressed','true');g('playPauseLabel').textContent='暂停';}
+  dispatchTeaching({type:'SET_MODE',mode:b.dataset.mode});if(b.dataset.mode==='explore')setPrincipleFocus([]);
+});});
+document.querySelectorAll('[data-principle-step]').forEach(function(b){b.addEventListener('click',function(){dispatchTeaching({type:'SELECT_STEP',step:+b.dataset.principleStep});});});
+g('prevPrinciple').addEventListener('click',function(){dispatchTeaching({type:'PREVIOUS'});});
+g('confirmObservation').addEventListener('click',function(){dispatchTeaching({type:'CONFIRM_OBSERVATION'});});
+g('nextPrinciple').addEventListener('click',function(){
+  if(teachingState.step===5&&teachingState.observationConfirmed){dispatchTeaching({type:'RESET'});return;}
+  if(teachingState.mode==='explore'){var next=teachingState.step===5?1:teachingState.step+1;dispatchTeaching({type:'SELECT_STEP',step:next});return;}
+  dispatchTeaching({type:'NEXT'});
+});
+g('powerToggle').addEventListener('click',function(){
+  S.powered=!S.powered;this.setAttribute('aria-pressed',S.powered?'true':'false');this.textContent=S.powered?'切断电源':'接通电源，观察周期打点';
+  toast(S.powered?'已接通：观察周期运动与点迹同步出现。':'已切断：结构保持可观察。');
+});
+g('reset').addEventListener('click',doReset);
+function doReset(){
+  S.machine='em';S.playing=true;S.speed=1;S.cut=false;S.labels=true;S.powered=false;
+  S.dots=[];S.picked=null;S.hover=null;S.vibPhase=0;S.sparkFlash=0;S.pulseCount=0;S.tapeTravel=0;S.focusParts=new Set(['tape','hole']);
+  clockState=TimerPrincipleLesson.createClockState();teachingState=TimerPrincipleTeaching.createTeachingState('guided');autoElapsed=0;
+  cam.yaw=camDefault.yaw;cam.pitch=camDefault.pitch;cam.dist=camDefault.dist;
+  g('playPause').classList.add('is-playing');g('playPause').setAttribute('aria-pressed','true');g('playPauseLabel').textContent='暂停';
+  document.querySelectorAll('.speed-control button').forEach(function(b){var on=+b.dataset.speed===1;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');});
+  applyTeachingStep();renderTeaching();toast('已回到第 1 步：先找到纸带通道和打点位置。');
+}
+
+/* ---------- 启动 ---------- */
+resize();
+applyTeachingStep();renderTeaching();updateMachineCard();
+requestAnimationFrame(function(t){lastMs=t;tick(t);});
+toast('从左侧五步原理开始；拖动可有限旋转，点击部件可查看作用。',5200);
+})();
+</script>
+</body>
+</html>
