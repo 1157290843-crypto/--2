@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>打点计时器：结构与工作原理</title>
+<title>打点计时器｜结构怎样形成等时点迹</title>
 <style>
   :root{
     --bg:#f7f4ed;--panel:#f7f4ed;--panel2:#fffdf8;--line:#d8d6cf;
@@ -27,15 +27,15 @@
     background:rgba(255,253,248,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(14px);
   }
   .brand{display:flex;align-items:center;gap:11px;min-width:218px}
-  .brand-mark{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:#fff;background:var(--txt);font-size:17px;font-weight:800}
+  .brand-mark{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;color:#fff;background:var(--txt);font-size:16px;font-weight:800}
   .brand-copy{display:flex;flex-direction:column;gap:1px}
-  .brand-name{font-size:15px;font-weight:800;letter-spacing:.03em}
+  .brand-name{font-size:16px;font-weight:800;letter-spacing:.03em}
   .brand-meta{font-size:11px;color:var(--dim)}
   .lesson-title{min-width:0;flex:1}
   .lesson-title .crumb{font-size:11px;color:var(--cyan);font-weight:700;margin-bottom:2px}
-  header h1{font-size:18px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header h1{font-size:20px;letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   header h1 b{color:var(--txt)}
-  header .sub{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  header .sub{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .experiment-badge{flex:none;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel2);color:var(--dim);font-size:11px;font-weight:700}
   /* ---------- layout ---------- */
   main{
@@ -64,7 +64,7 @@
   /* ---------- cards ---------- */
   .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
   .card h3{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:9px;line-height:1.4}
-  .card h3 .kicker{font-size:10px;color:var(--cyan);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+  .card h3 .kicker{font-size:11px;color:var(--cyan);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
   .card label{display:block;font-size:12px;line-height:1.45;margin-bottom:4px}
   .card label span{color:var(--cyan);font-weight:700;font-variant-numeric:tabular-nums}
   label.rng{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
@@ -73,7 +73,7 @@
   .hint b{color:var(--yellow)}
   button{
     cursor:pointer;border:none;border-radius:9px;padding:8px;font-family:inherit;
-    font-size:12.5px;font-weight:700;background:#e7e5dd;color:var(--txt);line-height:1.2;
+    font-size:13px;font-weight:700;background:#e7e5dd;color:var(--txt);line-height:1.2;
     display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;
     transition:filter .12s var(--ease-out),transform .1s var(--ease-out),background-color .18s,border-color .18s,color .18s;
   }
@@ -85,12 +85,12 @@
     min-height:52px;flex-direction:column;gap:2px;padding:7px 5px;
     border:1px solid var(--line);background:var(--panel2);color:var(--dim);font-size:12px;white-space:normal;
   }
-  .machine-switch button small{font-size:9.5px;font-weight:600;opacity:.85}
+  .machine-switch button small{font-size:11px;font-weight:600;opacity:.85}
   .machine-switch button[data-m="em"].active{border-color:var(--cyan);background:#e7edff;color:var(--cyan)}
   .machine-switch button[data-m="spark"].active{border-color:var(--orange);background:rgba(230,109,38,.1);color:var(--orange)}
   .spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
   .spec-grid>div{min-height:50px;padding:7px 8px;border:1px solid var(--line);border-radius:9px;background:#fff;display:flex;flex-direction:column;justify-content:center}
-  .spec-grid span{display:block;font-size:9.5px;color:var(--dim);margin-bottom:3px;line-height:1.3}
+  .spec-grid span{display:block;font-size:11px;color:var(--dim);margin-bottom:3px;line-height:1.3}
   .spec-grid b{font-size:11px;line-height:1.4;font-variant-numeric:tabular-nums}
   /* 步骤流程 */
   .steps{display:flex;flex-direction:column;gap:5px}
@@ -99,25 +99,25 @@
     border-radius:9px;background:#fff;font-size:11px;line-height:1.5;color:var(--dim);cursor:pointer;text-align:left;
     transition:border-color .18s,background-color .18s;
   }
-  .step .n{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;background:#eceae2;color:var(--dim);font-size:10px;font-weight:800}
-  .step b{display:block;color:var(--txt);font-size:11.5px;margin-bottom:1px}
+  .step .n{flex:none;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;background:#eceae2;color:var(--dim);font-size:11px;font-weight:800}
+  .step b{display:block;color:var(--txt);font-size:12px;margin-bottom:1px}
   .step.active{border-color:var(--cyan);background:#eef2ff}
   .step.active .n{background:var(--cyan);color:#fff}
   .step.done{border-color:#bfe0cd;background:#f1f9f4}
-  .step.done .n{background:var(--green);color:#fff;font-size:0}
-  .step.done .n::after{content:"✓";font-size:10px}
+  .step.done .n{position:relative;background:var(--green);color:transparent;font-size:11px}
+  .step.done .n::after{content:"✓";position:absolute;color:#fff;font-size:11px}
   .action-stack{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
   .action-stack button{min-height:40px}
   button.confirm{background:var(--cyan);color:#fff;box-shadow:0 8px 17px rgba(37,87,214,.2)}
   button.secondary{background:var(--panel2);border:1px solid var(--line);color:var(--txt)}
-  .chk{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:11.5px;cursor:pointer;color:var(--txt)}
+  .chk{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:12px;cursor:pointer;color:var(--txt)}
   .chk input{accent-color:var(--cyan);width:15px;height:15px;flex:none}
   .btnrow{display:grid;gap:6px;margin-top:7px}
   .btnrow.two{grid-template-columns:1fr 1fr}
-  .btnrow button{min-height:36px;font-size:11.5px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);white-space:normal;line-height:1.3}
+  .btnrow button{min-height:36px;font-size:12px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);white-space:normal;line-height:1.3}
   .btnrow button.err{border-color:#eec4cb;color:#a8404f;background:#fdf3f4}
-  details.card summary{cursor:pointer;font-size:12.5px;font-weight:700;line-height:1.45;outline:none}
-  details.card .body{font-size:11.5px;line-height:1.85;margin-top:9px}
+  details.card summary{cursor:pointer;font-size:13px;font-weight:700;line-height:1.45;outline:none}
+  details.card .body{font-size:12px;line-height:1.85;margin-top:9px}
   details.card .body b{color:var(--yellow)}
   details.card .body .f{color:var(--purple);font-weight:700}
   /* ---------- stage overlays ---------- */
@@ -127,8 +127,8 @@
     backdrop-filter:blur(9px);color:#dceaff;
   }
   .hud-phase{min-width:128px;padding:8px 10px;border-radius:10px}
-  .hud-phase span,.hud-metrics span{display:block;color:#91a3bf;font-size:9px;margin-bottom:2px}
-  .hud-phase strong{font-size:11.5px}
+  .hud-phase span,.hud-metrics span{display:block;color:#91a3bf;font-size:11px;margin-bottom:2px}
+  .hud-phase strong{font-size:12px}
   .hud-metrics{display:flex;gap:4px}
   .hud-metrics>div{min-width:86px;padding:8px 9px;border-radius:10px}
   .hud-metrics b{font-size:11px;color:#f4f8ff;font-variant-numeric:tabular-nums}
@@ -144,9 +144,9 @@
   }
   .stage-toolbar button.on{background:#1b3153;border-color:#6685ea;color:#fff}
   .stage-toolbar .toolbar-play{width:92px;min-width:92px;background:var(--cyan);border-color:#6685ea;color:#fff;font-weight:800}
-  .stage-toolbar .toolbar-reset{width:38px;min-width:38px;padding:0;font-size:15px}
+  .stage-toolbar .toolbar-reset{width:38px;min-width:38px;padding:0;font-size:16px}
   .speed-control{display:flex;height:38px;padding:3px;gap:2px;align-items:center;border:1px solid #31425d;border-radius:9px;background:#0e1a2d}
-  .speed-control button{flex:0 0 46px;width:46px;height:30px;min-height:30px;padding:0;border:0;background:transparent;color:#8293ad;font-size:10.5px;font-variant-numeric:tabular-nums}
+  .speed-control button{flex:0 0 46px;width:46px;height:30px;min-height:30px;padding:0;border:0;background:transparent;color:#8293ad;font-size:11px;font-variant-numeric:tabular-nums}
   .speed-control button.active{background:#fff;color:var(--txt);font-weight:800}
   .playback-icon{position:relative;display:inline-block;flex:0 0 11px;width:11px;height:12px}
   .playback-icon::before,.playback-icon::after{content:"";position:absolute;top:1px;bottom:1px;width:3px;border-radius:1px;background:currentColor}
@@ -158,7 +158,7 @@
   .toolbar-play:not(.is-playing) .playback-icon::after{display:none}
   .legend{
     position:absolute;right:12px;top:12px;z-index:4;padding:8px 10px;border-radius:10px;
-    background:rgba(11,20,36,.78);border:1px solid #2e3e58;color:#98a9c2;font-size:9.5px;line-height:1.9;
+    background:rgba(11,20,36,.78);border:1px solid #2e3e58;color:#98a9c2;font-size:11px;line-height:1.9;
   }
   .legend i{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
   #toast{
@@ -170,12 +170,12 @@
   #partTip{
     position:absolute;z-index:5;padding:6px 9px;border-radius:8px;pointer-events:none;
     background:rgba(11,20,36,.92);border:1px solid #45618d;color:#eaf2ff;
-    font-size:10.5px;line-height:1.5;max-width:190px;display:none;
+    font-size:11px;line-height:1.5;max-width:190px;display:none;
   }
   #partTip b{display:block;color:#8fb7ff;font-size:11px;margin-bottom:2px}
   .drag-tip{
     position:absolute;left:50%;bottom:74px;transform:translateX(-50%);z-index:4;
-    font-size:10px;color:#7f90aa;pointer-events:none;letter-spacing:.04em;
+    font-size:11px;color:#7f90aa;pointer-events:none;letter-spacing:.04em;
   }
   /* ---------- observe panel ---------- */
   .judgement-card{border-top:3px solid var(--cyan)}
@@ -186,7 +186,7 @@
   }
   .decision-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
   .decision-grid>div{min-height:52px;padding:8px;border:1px solid var(--line);border-radius:9px;background:#fff;display:flex;flex-direction:column;justify-content:center}
-  .decision-grid span{display:block;color:var(--dim);font-size:9.5px;margin-bottom:3px;line-height:1.35}
+  .decision-grid span{display:block;color:var(--dim);font-size:11px;margin-bottom:3px;line-height:1.35}
   .decision-grid b{display:block;font-size:11px;line-height:1.4;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .trend-box{
     margin-top:7px;padding:9px;border:1px solid #c9d4f6;border-radius:9px;
@@ -203,14 +203,14 @@
     .hud-metrics>div{min-width:72px;padding-inline:7px}.hud-metrics>div:nth-child(3){display:none}
     .legend{display:none}
     .stage-toolbar{min-height:46px;gap:5px;padding:5px}
-    .stage-toolbar button{height:34px;min-height:34px;font-size:10px;padding-inline:8px}
+    .stage-toolbar button{height:34px;min-height:34px;font-size:11px;padding-inline:8px}
     .stage-toolbar .toolbar-play{width:76px;min-width:76px}
-    .speed-control{height:34px}.speed-control button{flex-basis:40px;width:40px;height:28px;min-height:28px;font-size:9.5px}
+    .speed-control{height:34px}.speed-control button{flex-basis:40px;width:40px;height:28px;min-height:28px;font-size:11px}
   }
   @media (max-width:959px){
     body{height:100dvh;overflow:hidden}
     header{min-height:56px;padding:6px 10px}.brand-copy,.lesson-title .crumb,.lesson-title .sub,.experiment-badge{display:none}
-    .lesson-title h1{font-size:15px}
+    .lesson-title h1{font-size:16px}
     main{display:flex;flex-direction:column;overflow:hidden}
     .stage{order:1;flex:0 0 clamp(300px,48svh,480px);margin:8px;border-radius:13px}
     .mobile-tabs{order:2;display:grid;grid-template-columns:1fr 1fr;gap:4px;flex:0 0 auto;padding:4px 8px}
@@ -349,23 +349,133 @@
     .legend,.drag-tip{display:none}
   }
 </style>
+<style id="student-guide-layout-refresh">
+  :root{--header-height:62px}
+  header.topbar.template-header{
+    height:var(--header-height);min-height:var(--header-height);padding:0 18px;
+    display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:12px;
+  }
+  #headerBackSlot{width:42px;height:38px}
+  .template-header .brand{display:flex;align-items:center;gap:11px;min-width:0}
+  .template-header .brand-mark{width:38px;height:38px;flex:0 0 38px;border-radius:12px;font-size:var(--type-16);font-weight:900}
+  .template-header .brand-copy{min-width:0}
+  .template-header .eyebrow{margin:0 0 2px;font-size:var(--type-11);font-weight:800;line-height:1.2;letter-spacing:.12em;white-space:nowrap}
+  .template-header h1{font-size:var(--type-20);font-weight:800;line-height:1.15}
+
+  #experimentLayout{
+    height:calc(100dvh - var(--header-height));min-width:0;min-height:0;
+    display:grid;grid-template-columns:clamp(220px,22vw,280px) minmax(0,1fr) clamp(240px,21vw,314px);
+    grid-template-rows:minmax(0,1fr);gap:10px;padding:10px;overflow:hidden;
+  }
+  #experimentLayout .control-panel{grid-column:1;grid-row:1;border:0;padding:0}
+  #experimentLayout .stage{grid-column:2;grid-row:1;margin:0}
+  #experimentLayout .observe-panel{grid-column:3;grid-row:1;border:0;padding:0}
+  #panelTabs{display:none}
+
+  .stage-entry-bar{
+    position:absolute;z-index:8;top:12px;left:50%;transform:translateX(-50%);
+    display:grid;grid-template-columns:1fr 1fr;gap:6px;width:min(320px,48%);
+  }
+  .stage-entry-bar button{min-height:44px;border:1px solid #45618d;background:rgba(11,20,36,.9);color:var(--stage-text);font-size:var(--type-13)}
+  .stage-entry-bar .primary{background:var(--action);border-color:var(--action);color:var(--on-action)}
+  .view-preset-bar{top:68px}
+  .view-preset-bar button{min-height:44px}
+
+  .step{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:start;column-gap:8px;text-align:left}
+  .step .n{width:32px;height:32px;font-size:var(--type-11)}
+  .step b{font-size:var(--type-12)}
+  .step>span{min-width:0;font-size:var(--type-11)}
+
+  .lesson-guide{
+    position:absolute;z-index:9;left:50%;bottom:82px;transform:translateX(-50%);
+    width:min(720px,72%);padding:10px;border:1px solid #45618d;border-radius:12px;
+    background:rgba(11,20,36,.94);color:var(--stage-text);box-shadow:0 14px 32px rgba(0,0,0,.3);
+  }
+  .lesson-guide[hidden]{display:none}
+  .guide-head{display:grid;grid-template-columns:82px minmax(0,1fr) 44px;align-items:center;gap:8px}
+  .guide-count{color:var(--stage-muted);font-size:var(--type-11);font-weight:800}
+  .guide-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--type-14);font-weight:800}
+  .guide-close{width:44px;height:44px;padding:0;border:1px solid #45618d;background:#15233a;color:var(--stage-text);font-size:var(--type-16)}
+  .guide-copy{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:7px}
+  .guide-copy p{margin:0;padding:7px 8px;border-radius:8px;background:#15233a;font-size:var(--type-12);line-height:1.5}
+  .guide-copy span{display:block;margin-bottom:2px;color:var(--stage-muted);font-size:var(--type-11);font-weight:800}
+  .guide-why{margin-top:6px;color:var(--stage-muted);font-size:var(--type-11)}
+  .guide-why summary{min-height:32px;cursor:pointer;font-size:var(--type-11);font-weight:800}
+  .guide-why p{margin:2px 0 0;line-height:1.5}
+  .guide-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:7px}
+  .guide-actions button{min-width:88px;min-height:44px;border:1px solid #45618d;background:#15233a;color:var(--stage-text);font-size:var(--type-12)}
+  .guide-actions .primary{background:var(--action);border-color:var(--action);color:var(--on-action)}
+  .guide-actions .explore{background:var(--safe);border-color:var(--safe);color:#fff}
+
+  #experimentGuideDialog{width:min(680px,calc(100vw - 32px));max-height:calc(100dvh - 32px);margin:auto;padding:0;border:1px solid var(--border);border-radius:14px;background:var(--surface-raised);color:var(--text-strong)}
+  #experimentGuideDialog::backdrop{background:rgba(11,20,36,.56)}
+  .dialog-shell{padding:18px}
+  .dialog-head{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:center;gap:12px}
+  .dialog-head h2{margin:0;font-size:var(--type-16)}
+  .dialog-head button{width:44px;height:44px;padding:0;border:1px solid var(--border);background:var(--surface-raised);font-size:var(--type-16)}
+  .dialog-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .dialog-grid section{padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-page)}
+  .dialog-grid h3{margin:0 0 6px;font-size:var(--type-13)}
+  .dialog-grid p,.dialog-grid li{font-size:var(--type-12);line-height:1.6}
+  .dialog-grid ul{margin:0;padding-left:18px}
+  .dialog-preview{grid-column:1/-1;border-color:#c9d4f6!important;background:#eef2ff!important;color:#24499e}
+
+  @media (max-width:960px){
+    :root{--header-height:56px}
+    header.topbar.template-header{height:var(--header-height);min-height:var(--header-height);padding:0 12px;grid-template-columns:38px minmax(0,1fr);gap:10px}
+    #headerBackSlot{width:38px;height:34px}
+    .template-header .brand-mark{width:34px;height:34px;flex-basis:34px}
+    .template-header h1{font-size:var(--type-16)}
+    #experimentLayout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(350px,56svh) 44px minmax(0,1fr);gap:6px;padding:6px}
+    #experimentLayout .stage{grid-column:1;grid-row:1;margin:0}
+    #panelTabs{grid-column:1;grid-row:2;display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:0}
+    #panelTabs button{min-height:44px;border:1px solid var(--border);background:var(--surface-raised);color:var(--text-muted);font-size:var(--type-13)}
+    #panelTabs button[aria-selected="true"]{background:var(--action);border-color:var(--action);color:var(--on-action)}
+    #experimentLayout .control-panel,#experimentLayout .observe-panel{grid-column:1;grid-row:3;display:none;width:auto;min-height:0;padding:0;border:0;overflow-y:auto}
+    #experimentLayout[data-panel="conditions"] .control-panel,#experimentLayout[data-panel="observe"] .observe-panel{display:flex}
+    .stage-entry-bar{top:8px;width:min(300px,56%)}
+    .view-preset-bar{top:60px}
+    .lesson-guide{bottom:76px;width:min(680px,calc(100% - 16px))}
+  }
+  @media (orientation:landscape) and (max-width:960px) and (max-height:540px){
+    :root{--header-height:46px}
+    header.topbar.template-header{height:var(--header-height);min-height:var(--header-height);padding:0 10px;grid-template-columns:34px minmax(0,1fr);gap:8px}
+    #headerBackSlot{width:34px;height:30px}
+    .template-header .brand-mark{width:30px;height:30px;flex-basis:30px;border-radius:9px;font-size:var(--type-14)}
+    .template-header h1{font-size:var(--type-14)}
+    #experimentLayout{grid-template-columns:minmax(0,1.55fr) minmax(250px,.8fr);grid-template-rows:44px minmax(0,1fr);gap:6px;padding:6px}
+    #experimentLayout .stage{grid-column:1;grid-row:1/3;margin:0}
+    #panelTabs{grid-column:2;grid-row:1}
+    #experimentLayout .control-panel,#experimentLayout .observe-panel{grid-column:2;grid-row:2}
+    .stage-entry-bar{width:min(260px,58%);top:6px}.stage-entry-bar button{min-height:44px;font-size:var(--type-11)}
+    .view-preset-bar{top:52px}
+    .lesson-guide{left:8px;right:8px;bottom:74px;width:auto;transform:none;padding:8px}
+    .stage-toolbar{min-height:56px}.stage-toolbar button{height:44px;min-height:44px}
+    .guide-copy{grid-template-columns:1fr}.guide-copy p:last-child{display:none}.guide-why{display:none}
+    .guide-actions button{min-width:72px;min-height:44px;font-size:var(--type-11)}
+  }
+</style>
 </head>
 <body>
 <header class="topbar template-header">
-  <div id="headerBackSlot" aria-hidden="true"></div>
+  <div id="headerBackSlot"></div>
   <div class="brand">
     <div class="brand-mark" aria-hidden="true">罗</div>
     <div class="brand-copy">
       <p class="eyebrow">老罗物理 · 探究实验</p>
-      <h1>打点计时器：结构与工作原理</h1>
+      <h1>打点计时器｜结构怎样形成等时点迹</h1>
     </div>
   </div>
 </header>
-<main id="experimentLayout" data-layout-lock="three-column">
+<main id="experimentLayout" data-panel="conditions">
   <section class="stage" id="stage">
     <canvas id="cv" tabindex="0" aria-label="打点计时器三维内部结构，可有限旋转、缩放并点击部件"></canvas>
     <div id="toast" role="status" aria-live="polite"><span id="toastText"></span></div>
     <div id="partTip"></div>
+    <div class="stage-entry-bar" aria-label="学习入口">
+      <button type="button" id="openExperimentGuide">实验指南</button>
+      <button type="button" id="startLessonGuide" class="primary">分步演示</button>
+    </div>
     <div class="stage-hud" aria-hidden="true">
       <div class="hud-phase"><span>当前机型</span><strong id="hudMachine">电磁打点计时器</strong></div>
       <div class="hud-metrics">
@@ -385,6 +495,27 @@
       <div><i data-viz="velocity"></i>纸带通道　<i data-viz="gravity"></i>本步焦点</div>
     </div>
     <div class="drag-tip">拖动有限旋转 · 双指或滚轮缩放 · 点击部件查看作用</div>
+    <section class="lesson-guide" id="lessonGuide" aria-label="分步演示" aria-live="polite" hidden>
+      <div class="guide-head">
+        <span class="guide-count" id="guideCount">第 1 / 5 步</span>
+        <strong class="guide-title" id="guideTitle">找到纸带通道</strong>
+        <button type="button" class="guide-close" id="closeLessonGuide" aria-label="关闭分步演示">×</button>
+      </div>
+      <div class="guide-copy">
+        <p><span>正在发生</span><b id="guideHappening">镜头对准纸带通过计时器的路径。</b></p>
+        <p><span>重点看</span><b id="guideObserve">纸带经过限位孔，并从打点位置正下方穿过。</b></p>
+      </div>
+      <details class="guide-why">
+        <summary>为什么？</summary>
+        <p id="guideWhy">只有纸带通过正确的打点位置，周期动作才能留下可分析的点迹。</p>
+      </details>
+      <div class="guide-actions">
+        <button type="button" id="guidePrevious">上一步</button>
+        <button type="button" id="guidePause" class="primary">暂停</button>
+        <button type="button" id="guideNext">下一步</button>
+        <button type="button" id="guideExplore" class="explore" hidden>现在自己试试</button>
+      </div>
+    </section>
     <div class="stage-toolbar" aria-label="动画控制">
       <button type="button" id="playPause" class="toolbar-play is-playing" aria-label="播放、暂停" aria-pressed="true">
         <span class="playback-icon" aria-hidden="true"></span><span id="playPauseLabel">暂停</span>
@@ -401,15 +532,14 @@
     </div>
   </section>
 
-  <aside class="control-panel" id="controlPanel">
+  <div class="mobile-tabs" id="panelTabs" role="tablist" aria-label="侧栏切换">
+    <button type="button" id="conditionsTab" role="tab" aria-selected="true" aria-controls="controlPanel" tabindex="0" data-panel-target="conditions">参数设置</button>
+    <button type="button" id="observeTab" role="tab" aria-selected="false" aria-controls="observePanel" tabindex="-1" data-panel-target="observe">观察数据</button>
+  </div>
+
+  <aside class="control-panel" id="controlPanel" role="tabpanel" aria-labelledby="conditionsTab">
     <div class="card">
       <p class="hint template-intro">唯一任务：看清两种结构怎样把 50 Hz 电源节拍变成每隔 0.02 s 的点迹。</p>
-      <h3><span>学习模式</span><span class="kicker">MODE</span></h3>
-      <div class="mode-switch" role="group" aria-label="学习模式">
-        <button type="button" id="modeAuto" data-mode="auto" aria-pressed="false">自动演示</button>
-        <button type="button" id="modeGuided" data-mode="guided" class="active" aria-pressed="true">分步引导</button>
-        <button type="button" id="modeExplore" data-mode="explore" aria-pressed="false">自由探索</button>
-      </div>
     </div>
 
     <div class="card" id="machineSelect">
@@ -430,17 +560,12 @@
     <div class="card">
       <h3><span>五步原理</span><span class="kicker">FOCUS</span></h3>
       <div class="steps" id="principleSteps">
-        <button type="button" class="step active" data-principle-step="1"><i class="n">1</i><span><b>纸带通道</b>找到纸带与打点位置</span></button>
-        <button type="button" class="step" data-principle-step="2"><i class="n">2</i><span><b>电磁驱动</b>线圈怎样驱动振片</span></button>
-        <button type="button" class="step" data-principle-step="3"><i class="n">3</i><span><b>振针留点</b>一次下压形成一个点</span></button>
-        <button type="button" class="step" data-principle-step="4"><i class="n">4</i><span><b>脉冲放电</b>放电怎样形成点迹</span></button>
-        <button type="button" class="step" data-principle-step="5"><i class="n">5</i><span><b>共同节拍</b>结构不同，时间间隔相同</span></button>
+        <div class="step active" data-guide-progress="1"><i class="n">1</i><span><b>纸带通道</b>找到纸带与打点位置</span></div>
+        <div class="step" data-guide-progress="2"><i class="n">2</i><span><b>电磁驱动</b>线圈怎样驱动振片</span></div>
+        <div class="step" data-guide-progress="3"><i class="n">3</i><span><b>振针留点</b>一次下压形成一个点</span></div>
+        <div class="step" data-guide-progress="4"><i class="n">4</i><span><b>脉冲放电</b>放电怎样形成点迹</span></div>
+        <div class="step" data-guide-progress="5"><i class="n">5</i><span><b>共同节拍</b>结构不同，时间间隔相同</span></div>
       </div>
-      <div class="action-stack">
-        <button type="button" class="secondary" id="prevPrinciple">上一步</button>
-        <button type="button" class="confirm" id="confirmObservation">我已观察</button>
-      </div>
-      <button type="button" class="next-principle" id="nextPrinciple">进入下一步</button>
     </div>
 
     <div class="card power-card">
@@ -451,7 +576,7 @@
     </div>
 
   </aside>
-  <aside class="observe-panel" id="observePanel">
+  <aside class="observe-panel" id="observePanel" role="tabpanel" aria-labelledby="observeTab">
     <div class="card judgement-card" id="focusCard">
       <h3><span>当前观察焦点</span><span class="kicker" id="stepKicker">STEP 1 / 5</span></h3>
       <div class="phase-banner" id="focusTitle">找到纸带通道和打点位置</div>
@@ -478,6 +603,21 @@
     </div>
   </aside>
 </main>
+<dialog id="experimentGuideDialog" aria-labelledby="experimentGuideTitle">
+  <div class="dialog-shell">
+    <div class="dialog-head">
+      <h2 id="experimentGuideTitle">实验指南｜结构怎样形成等时点迹</h2>
+      <button type="button" id="closeExperimentGuide" aria-label="关闭实验指南">×</button>
+    </div>
+    <div class="dialog-grid">
+      <section><h3>学习目标</h3><p>辨认纸带通道和两种打点机制，说明它们为什么都能形成等时点迹。</p></section>
+      <section><h3>理想模型</h3><p>电源频率固定为 50 Hz，纸带稳定穿过打点位置，观看倍速不改变真实的打点时刻。</p></section>
+      <section><h3>基本原理</h3><p>电磁式用线圈驱动振片与振针；电火花式用脉冲高压放电。两者的结构不同，但均以电源频率作为时间基准。</p></section>
+      <section><h3>怎样操作</h3><ul><li>选择机型或教学视角查看部件。</li><li>接通电源观察周期动作与点迹。</li><li>需要时暂停、慢放或继续分步演示。</li></ul></section>
+      <section class="dialog-preview"><h3>无声预览</h3><p>分步演示会依次对准纸带通道、电磁驱动、振针留点、脉冲放电和共同时间节拍；关闭后保留已形成的真实实验状态。</p></section>
+    </div>
+  </div>
+</dialog>
 <script data-principle-core>
 (function () {
   const MACHINES = Object.freeze({
@@ -541,12 +681,85 @@
   }
   function layoutForViewport(width, height) {
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) throw new RangeError('viewport must be positive');
-    if (width <= 960 && height <= 540) return { kind: 'three-column', columns: [216, width - 432, 216] };
-    if (width <= 1024) return { kind: 'three-column', columns: [232, width - 456, 224] };
-    const side = Math.min(260, Math.max(240, Math.round(width * 0.21)));
-    return { kind: 'three-column', columns: [side, width - side * 2, side] };
+    if (width <= 960 && height <= 540) return { kind: 'short-landscape' };
+    if (width <= 960) return { kind: 'narrow' };
+    return { kind: 'wide' };
   }
   window.TimerPrincipleLesson = Object.freeze({ PLAYBACK_SPEEDS, CAMERA_PRESETS, CAMERA_LIMITS, createClockState, advanceClock, viewForPreset, layoutForViewport });
+})();
+</script>
+<script data-student-guide-core>
+(function () {
+  const GUIDE_STEPS = Object.freeze([
+    Object.freeze({
+      id: 1, focus: 'paper-path', title: '找到纸带通道',
+      happening: '镜头对准纸带通过计时器的路径。',
+      observe: '纸带经过限位孔，并从打点位置正下方穿过。',
+      why: '只有纸带通过正确的打点位置，周期动作才能留下可分析的点迹。',
+      machine: 'em', camera: 'standard', focusParts: Object.freeze(['tape', 'hole']), requiresSignal: false
+    }),
+    Object.freeze({
+      id: 2, focus: 'em-drive', title: '打开电磁式剖面',
+      happening: '50 Hz 交流电使线圈电磁状态周期变化，振片随之振动。',
+      observe: '线圈的周期驱动如何传到振片和振针。',
+      why: '周期驱动是振针按固定时间间隔下压的根源。',
+      machine: 'em', camera: 'emSection', focusParts: Object.freeze(['coil', 'reed']), requiresSignal: true
+    }),
+    Object.freeze({
+      id: 3, focus: 'needle-mark', title: '慢放一次振针留点',
+      happening: '振针完成一次真实下压，通过复写纸在纸带上留点。',
+      observe: '一次下压对应纸带上新增的一个点。',
+      why: '点迹是振针与纸带在打点时刻的真实接触结果。',
+      machine: 'em', camera: 'emSection', focusParts: Object.freeze(['reed', 'carbon']), requiresSignal: true
+    }),
+    Object.freeze({
+      id: 4, focus: 'spark-mark', title: '观察脉冲放电留点',
+      happening: '电火花式计时器产生一次真实放电脉冲。',
+      observe: '放电针通过墨粉纸盘，在纸带上形成新点迹。',
+      why: '它不靠振针机械下压，但仍由周期脉冲决定留点时刻。',
+      machine: 'spark', camera: 'sparkSection', focusParts: Object.freeze(['spark', 'disc']), requiresSignal: true
+    }),
+    Object.freeze({
+      id: 5, focus: 'shared-timing', title: '形成共同时间节拍',
+      happening: '对比振针留点与脉冲放电留点的真实时序。',
+      observe: '结构和留点方式不同，但相邻点的时间间隔都是 0.02 s。',
+      why: '在 50 Hz 条件下，两种机型都以同一电源频率作为时间基准，T = 1 / f。',
+      machine: 'spark', camera: 'standard', focusParts: Object.freeze(['reed', 'spark']), requiresSignal: true
+    })
+  ]);
+
+  function createGuideState() {
+    return { status: 'idle', step: 1, completed: [] };
+  }
+
+  function completeCurrent(state) {
+    if (state.step === GUIDE_STEPS.length) {
+      return { ...state, status: 'completed', completed: GUIDE_STEPS.map(step => step.id) };
+    }
+    return { ...state, step: state.step + 1, completed: [...state.completed, state.step] };
+  }
+
+  function guideReducer(state, action) {
+    if (action.type === 'START' || action.type === 'REPLAY') return { status: 'running', step: 1, completed: [] };
+    if (action.type === 'PAUSE' && state.status === 'running') return { ...state, status: 'paused' };
+    if (action.type === 'RESUME' && state.status === 'paused') return { ...state, status: 'running' };
+    if (action.type === 'SIGNAL_COMPLETE' && state.status === 'running') return completeCurrent(state);
+    if (action.type === 'NEXT' && state.status === 'running' && !GUIDE_STEPS[state.step - 1].requiresSignal) return completeCurrent(state);
+    if (action.type === 'PREVIOUS' && state.step > 1 && state.status !== 'idle') {
+      return { ...state, status: 'running', step: state.step - 1, completed: state.completed.filter(id => id < state.step - 1) };
+    }
+    if (action.type === 'EXPLORE') return { ...state, status: 'explore' };
+    return state;
+  }
+
+  function layoutForViewport(width, height) {
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) throw new RangeError('viewport must be positive');
+    if (width <= 960 && height <= 540) return { kind: 'short-landscape' };
+    if (width <= 960) return { kind: 'narrow' };
+    return { kind: 'wide' };
+  }
+
+  window.StudentGuideCore = Object.freeze({ GUIDE_STEPS, createGuideState, guideReducer, layoutForViewport });
 })();
 </script>
 <script data-principle-teaching-core>
@@ -958,13 +1171,10 @@ var W=0,H=0,DPR=1;
 function resize(){
   var st=document.getElementById('stage');
   var lessonLayout=document.getElementById('experimentLayout');
-  if(window.innerWidth>=960||window.innerWidth>window.innerHeight){
-    var resolved=TimerPrincipleLesson.layoutForViewport(window.innerWidth,window.innerHeight);
-    lessonLayout.style.gridTemplateColumns=resolved.columns[0]+'px minmax(0,1fr) '+resolved.columns[2]+'px';
-    lessonLayout.dataset.resolvedLayout=resolved.kind;
-  }else{
-    lessonLayout.style.removeProperty('grid-template-columns');delete lessonLayout.dataset.resolvedLayout;
-  }
+  var resolved=StudentGuideCore.layoutForViewport(window.innerWidth,window.innerHeight);
+  lessonLayout.style.removeProperty('grid-template-columns');
+  lessonLayout.dataset.resolvedLayout=resolved.kind;
+  updatePanelAccessibility(resolved.kind);
   DPR=Math.min(window.devicePixelRatio||1,2);
   W=st.clientWidth; H=st.clientHeight;
   cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
@@ -1233,6 +1443,67 @@ var lastMs=performance.now();
 var clockState=TimerPrincipleLesson.createClockState();
 var teachingState=TimerPrincipleTeaching.createTeachingState('guided');
 var autoElapsed=0;
+var guideState=StudentGuideCore.createGuideState();
+var guideVisible=false;
+var guideElapsed=0;
+var guidePulseBaseline=0;
+var guideTimeBaseline=0;
+
+function setPlaybackState(playing){
+  S.playing=playing;
+  g('playPause').classList.toggle('is-playing',playing);
+  g('playPause').setAttribute('aria-pressed',playing?'true':'false');
+  g('playPauseLabel').textContent=playing?'暂停':'播放';
+}
+function setSpeed(speed){
+  S.speed=speed;
+  document.querySelectorAll('.speed-control button').forEach(function(b){
+    var on=+b.dataset.speed===speed;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');
+  });
+}
+function enterGuideStep(){
+  var step=StudentGuideCore.GUIDE_STEPS[guideState.step-1];
+  teachingState={mode:'guided',step:step.id,observationConfirmed:false,completed:guideState.completed.slice(),running:false};
+  S.machine=step.machine;
+  applyCameraPreset(step.camera);
+  setPrincipleFocus(step.focusParts);
+  S.powered=step.id>=2;
+  setSpeed(step.id===3?0.25:1);
+  setPlaybackState(true);
+  guideElapsed=0;guidePulseBaseline=S.pulseCount;guideTimeBaseline=clockState.physicalTime;
+  g('powerToggle').setAttribute('aria-pressed',S.powered?'true':'false');
+  g('powerToggle').textContent=S.powered?'切断电源':'接通电源，观察周期打点';
+  g('stepKicker').textContent='STEP '+step.id+' / 5';
+  g('focusTitle').textContent=TimerPrincipleTeaching.PRINCIPLE_STEPS[step.id-1].task;
+  g('focusObserve').textContent=step.observe;
+  g('focusParts').innerHTML=step.focusParts.map(function(id){return '<span>'+PARTS[id].n+'</span>';}).join('');
+  updateSelectedPart(step.focusParts[0]);updateMachineCard();renderTeaching();renderGuide();
+}
+function dispatchGuide(action){
+  var previousStep=guideState.step;
+  var previousStatus=guideState.status;
+  guideState=StudentGuideCore.guideReducer(guideState,action);
+  if(guideState.step!==previousStep) enterGuideStep();
+  if(action.type==='PAUSE'&&guideState.status==='paused') setPlaybackState(false);
+  if(action.type==='RESUME'&&guideState.status==='running') setPlaybackState(true);
+  if(guideState.status==='completed'&&previousStatus!=='completed'){
+    S.powered=false;setPlaybackState(false);
+    g('powerToggle').setAttribute('aria-pressed','false');g('powerToggle').textContent='接通电源，观察周期打点';
+  }
+  renderGuide();
+}
+function signalGuideComplete(){
+  if(guideState.status!=='running')return;
+  dispatchGuide({type:'SIGNAL_COMPLETE'});
+}
+function maybeAdvanceGuide(dt){
+  if(guideState.status!=='running'||!S.playing)return;
+  guideElapsed+=dt;
+  if(guideState.step===1&&guideElapsed>=1.0) signalGuideComplete();
+  else if(guideState.step===2&&S.pulseCount-guidePulseBaseline>=2) signalGuideComplete();
+  else if((guideState.step===3||guideState.step===4)&&S.pulseCount-guidePulseBaseline>=1) signalGuideComplete();
+  else if(guideState.step===5&&clockState.physicalTime-guideTimeBaseline>=0.08) signalGuideComplete();
+}
 function tick(now){
   var dt=Math.min((now-lastMs)/1000,0.05);
   lastMs=now;
@@ -1243,10 +1514,7 @@ function tick(now){
     advanced.dotTimes.forEach(onDot);
     if(S.sparkFlash>0) S.sparkFlash=Math.max(0,S.sparkFlash-dt*14);
   }
-  if(teachingState.mode==='auto'&&teachingState.running&&S.playing){
-    autoElapsed+=dt;
-    if(autoElapsed>=1.1){autoElapsed=0;dispatchTeaching({type:'AUTO_TICK'});}
-  }
+  maybeAdvanceGuide(dt);
   render();
   requestAnimationFrame(tick);
 }
@@ -1258,6 +1526,43 @@ function onDot(dotTime){
 
 /* ---------- 面板更新 ---------- */
 function g(id){return document.getElementById(id);}
+function renderGuide(){
+  var step=StudentGuideCore.GUIDE_STEPS[guideState.step-1];
+  g('lessonGuide').hidden=!guideVisible;
+  g('guideCount').textContent='第 '+guideState.step+' / 5 步';
+  g('guideTitle').textContent=guideState.status==='completed'?'演示完成：形成共同时间节拍':step.title;
+  g('guideHappening').textContent=guideState.status==='completed'?'两种机型已经分别用真实时序完成留点。':step.happening;
+  g('guideObserve').textContent=guideState.status==='completed'?'结构不同，但在 50 Hz 条件下，相邻点时间间隔都是 0.02 s。':step.observe;
+  g('guideWhy').textContent=step.why;
+  g('guidePrevious').disabled=guideState.step===1;
+  g('guidePause').hidden=guideState.status==='completed';
+  g('guidePause').textContent=guideState.status==='paused'?'继续':'暂停';
+  g('guideNext').textContent=guideState.status==='completed'?'重新播放':'下一步';
+  g('guideNext').disabled=guideState.status!=='completed'&&(guideState.status!=='running'||step.requiresSignal);
+  g('guideExplore').hidden=guideState.status!=='completed';
+  g('startLessonGuide').textContent=guideState.status==='paused'||(guideState.status==='running'&&!guideVisible)?'继续演示':(guideState.status==='completed'?'重新播放':'分步演示');
+  document.querySelectorAll('[data-guide-progress]').forEach(function(row){
+    var n=+row.dataset.guideProgress;
+    row.classList.toggle('active',guideState.status!=='idle'&&n===guideState.step);
+    row.classList.toggle('done',guideState.completed.indexOf(n)>=0);
+  });
+  g('observationState').textContent=guideState.status==='running'?'分步演示正在读取真实振动与点迹状态。':(guideState.status==='paused'?'演示已暂停，继续后从当前物理状态恢复。':(guideState.status==='completed'?'两种结构共用 50 Hz 时间基准，相邻点间隔为 0.02 s。':'可自由切换机型、剖面和教学视角。'));
+}
+function selectPanel(panel,focusTab){
+  var layout=g('experimentLayout');layout.dataset.panel=panel;
+  document.querySelectorAll('#panelTabs [role="tab"]').forEach(function(tab){
+    var selected=tab.dataset.panelTarget===panel;
+    tab.setAttribute('aria-selected',selected?'true':'false');tab.tabIndex=selected?0:-1;
+    if(selected&&focusTab)tab.focus();
+  });
+  updatePanelAccessibility(layout.dataset.resolvedLayout||StudentGuideCore.layoutForViewport(window.innerWidth,window.innerHeight).kind);
+}
+function updatePanelAccessibility(kind){
+  var narrow=kind!=='wide';
+  var panel=g('experimentLayout').dataset.panel||'conditions';
+  g('controlPanel').setAttribute('aria-hidden',narrow&&panel!=='conditions'?'true':'false');
+  g('observePanel').setAttribute('aria-hidden',narrow&&panel!=='observe'?'true':'false');
+}
 function updateHUD(){
   var em=S.machine==='em';
   g('hudMachine').textContent=em?'电磁打点计时器':'电火花计时器';
@@ -1309,11 +1614,7 @@ function applyTeachingStep(){
 function renderTeaching(){
   document.querySelectorAll('[data-mode]').forEach(function(b){var on=b.dataset.mode===teachingState.mode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');});
   document.querySelectorAll('[data-principle-step]').forEach(function(b){var n=+b.dataset.principleStep;b.classList.toggle('active',n===teachingState.step);b.classList.toggle('done',teachingState.completed.indexOf(n)>=0);});
-  g('prevPrinciple').disabled=teachingState.step===1;g('confirmObservation').disabled=teachingState.mode==='explore'||teachingState.observationConfirmed;
-  g('confirmObservation').textContent=teachingState.observationConfirmed?'已确认':'我已观察';
-  g('nextPrinciple').disabled=teachingState.mode!=='explore'&&!teachingState.observationConfirmed;
-  g('nextPrinciple').textContent=teachingState.step===5?'回到第一步':'进入下一步';
-  g('observationState').textContent=teachingState.mode==='auto'?(teachingState.running?'自动演示进行中，可随时暂停接管。':'自动演示已暂停，可继续操作。'):(teachingState.mode==='explore'?'自由探索：机型、剖面和四个视角均可直接切换。':(teachingState.observationConfirmed?'观察已确认，可以进入下一步。':'观察后点击“我已观察”，再进入下一步。'));
+  if(guideState.status==='idle'||guideState.status==='explore')g('observationState').textContent='自由探索：机型、剖面和四个视角均可直接切换。';
 }
 function dispatchTeaching(action){
   var previous=teachingState.step;teachingState=TimerPrincipleTeaching.principleReducer(teachingState,action);
@@ -1325,18 +1626,16 @@ function dispatchTeaching(action){
 document.querySelectorAll('.machine-switch button').forEach(function(b){
   b.addEventListener('click',function(){
     S.machine=b.dataset.m;S.picked=null;
-    if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:false});
-    if(teachingState.mode==='explore')setPrincipleFocus([]);
+    if(guideState.status==='running')dispatchGuide({type:'PAUSE'});
+    setPrincipleFocus([]);
     updateMachineCard();updateSelectedPart(S.machine==='em'?'coil':'spark');
     toast(S.machine==='em'?'电磁式：线圈驱动振针，通过复写纸形成点迹。':'电火花式：脉冲高压通过墨粉纸盘放电形成点迹。');
   });
 });
 g('playPause').addEventListener('click',function(){
-  S.playing=!S.playing;
-  this.classList.toggle('is-playing',S.playing);
-  this.setAttribute('aria-pressed',S.playing?'true':'false');
-  g('playPauseLabel').textContent=S.playing?'暂停':'播放';
-  if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:S.playing});
+  if(guideState.status==='running'){dispatchGuide({type:'PAUSE'});return;}
+  if(guideState.status==='paused'&&guideVisible){dispatchGuide({type:'RESUME'});return;}
+  setPlaybackState(!S.playing);
 });
 document.querySelectorAll('.speed-control button').forEach(function(b){
   b.addEventListener('click',function(){
@@ -1349,28 +1648,55 @@ document.querySelectorAll('.speed-control button').forEach(function(b){
 });
 g('cutToggle').addEventListener('click',function(){
   S.cut=!S.cut;this.classList.toggle('on',S.cut);
-  if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:false});
+  if(guideState.status==='running')dispatchGuide({type:'PAUSE'});
   toast(S.cut?'剖面已开启：外壳被弱化，内部结构保持原位。':'剖面已关闭。');
 });
 g('labelToggle').addEventListener('click',function(){
   S.labels=!S.labels;this.classList.toggle('on',S.labels);
 });
-document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){if(teachingState.mode==='auto')dispatchTeaching({type:'SET_RUNNING',running:false});applyCameraPreset(b.dataset.view);});});
-document.querySelectorAll('[data-mode]').forEach(function(b){b.addEventListener('click',function(){
-  if(b.dataset.mode==='auto'){S.playing=true;g('playPause').classList.add('is-playing');g('playPause').setAttribute('aria-pressed','true');g('playPauseLabel').textContent='暂停';}
-  dispatchTeaching({type:'SET_MODE',mode:b.dataset.mode});if(b.dataset.mode==='explore')setPrincipleFocus([]);
-});});
-document.querySelectorAll('[data-principle-step]').forEach(function(b){b.addEventListener('click',function(){dispatchTeaching({type:'SELECT_STEP',step:+b.dataset.principleStep});});});
-g('prevPrinciple').addEventListener('click',function(){dispatchTeaching({type:'PREVIOUS'});});
-g('confirmObservation').addEventListener('click',function(){dispatchTeaching({type:'CONFIRM_OBSERVATION'});});
-g('nextPrinciple').addEventListener('click',function(){
-  if(teachingState.step===5&&teachingState.observationConfirmed){dispatchTeaching({type:'RESET'});return;}
-  if(teachingState.mode==='explore'){var next=teachingState.step===5?1:teachingState.step+1;dispatchTeaching({type:'SELECT_STEP',step:next});return;}
-  dispatchTeaching({type:'NEXT'});
-});
+document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){if(guideState.status==='running')dispatchGuide({type:'PAUSE'});applyCameraPreset(b.dataset.view);});});
 g('powerToggle').addEventListener('click',function(){
+  if(guideState.status==='running')dispatchGuide({type:'PAUSE'});
   S.powered=!S.powered;this.setAttribute('aria-pressed',S.powered?'true':'false');this.textContent=S.powered?'切断电源':'接通电源，观察周期打点';
   toast(S.powered?'已接通：观察周期运动与点迹同步出现。':'已切断：结构保持可观察。');
+});
+g('openExperimentGuide').addEventListener('click',function(){
+  if(guideState.status==='running')dispatchGuide({type:'PAUSE'});
+  var dialog=g('experimentGuideDialog');
+  if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');
+});
+g('closeExperimentGuide').addEventListener('click',function(){g('experimentGuideDialog').close();});
+g('startLessonGuide').addEventListener('click',function(){
+  guideVisible=true;
+  if(guideState.status==='paused'){dispatchGuide({type:'RESUME'});return;}
+  if(guideState.status==='running'){renderGuide();return;}
+  doReset();guideState=StudentGuideCore.guideReducer(StudentGuideCore.createGuideState(),{type:'START'});guideVisible=true;enterGuideStep();
+});
+g('closeLessonGuide').addEventListener('click',function(){
+  if(guideState.status==='running')dispatchGuide({type:'PAUSE'});
+  guideVisible=false;renderGuide();
+});
+g('guidePrevious').addEventListener('click',function(){dispatchGuide({type:'PREVIOUS'});});
+g('guidePause').addEventListener('click',function(){dispatchGuide({type:guideState.status==='paused'?'RESUME':'PAUSE'});});
+g('guideNext').addEventListener('click',function(){
+  if(guideState.status==='completed'){
+    doReset();guideState=StudentGuideCore.guideReducer(StudentGuideCore.createGuideState(),{type:'REPLAY'});guideVisible=true;enterGuideStep();return;
+  }
+  dispatchGuide({type:'NEXT'});
+});
+g('guideExplore').addEventListener('click',function(){guideState=StudentGuideCore.guideReducer(guideState,{type:'EXPLORE'});guideVisible=false;S.powered=false;setPlaybackState(true);setPrincipleFocus([]);renderGuide();});
+document.querySelectorAll('#panelTabs [role="tab"]').forEach(function(tab){
+  tab.addEventListener('click',function(){selectPanel(tab.dataset.panelTarget,false);});
+  tab.addEventListener('keydown',function(e){
+    var tabs=Array.from(document.querySelectorAll('#panelTabs [role="tab"]'));
+    var index=tabs.indexOf(tab),next=index;
+    if(e.key==='ArrowRight')next=(index+1)%tabs.length;
+    else if(e.key==='ArrowLeft')next=(index+tabs.length-1)%tabs.length;
+    else if(e.key==='Home')next=0;
+    else if(e.key==='End')next=tabs.length-1;
+    else return;
+    e.preventDefault();selectPanel(tabs[next].dataset.panelTarget,true);
+  });
 });
 g('reset').addEventListener('click',doReset);
 function doReset(){
@@ -1380,14 +1706,16 @@ function doReset(){
   cam.yaw=camDefault.yaw;cam.pitch=camDefault.pitch;cam.dist=camDefault.dist;
   g('playPause').classList.add('is-playing');g('playPause').setAttribute('aria-pressed','true');g('playPauseLabel').textContent='暂停';
   document.querySelectorAll('.speed-control button').forEach(function(b){var on=+b.dataset.speed===1;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on?'true':'false');});
+  guideState=StudentGuideCore.createGuideState();guideVisible=false;guideElapsed=0;guidePulseBaseline=0;guideTimeBaseline=0;
   applyTeachingStep();renderTeaching();toast('已回到第 1 步：先找到纸带通道和打点位置。');
+  renderGuide();
 }
 
 /* ---------- 启动 ---------- */
 resize();
-applyTeachingStep();renderTeaching();updateMachineCard();
+applyTeachingStep();renderTeaching();renderGuide();updateMachineCard();selectPanel('conditions',false);
 requestAnimationFrame(function(t){lastMs=t;tick(t);});
-toast('从左侧五步原理开始；拖动可有限旋转，点击部件可查看作用。',5200);
+toast('可先打开“实验指南”，或从“分步演示”连续观察五个真实状态。',5200);
 })();
 </script>
 </body>
