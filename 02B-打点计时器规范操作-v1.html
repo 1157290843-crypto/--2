@@ -580,7 +580,7 @@
         <button type="button" id="guidePrev">上一步</button>
         <button type="button" id="guidePause" class="primary">暂停</button>
         <button type="button" id="guideNext">等待完成</button>
-        <button type="button" id="guideExplore">现在自己试试</button>
+        <button type="button" id="guideExplore" hidden>现在自己试试</button>
       </div>
     </section>
   </section>
@@ -803,6 +803,20 @@ function guideReducer(state, action) {
   return state;
 }
 
+function guideActionView(state) {
+  const active = state.status === 'running' || state.status === 'paused';
+  const completed = state.status === 'completed';
+  return {
+    close: true,
+    previous: active,
+    pause: active,
+    next: active,
+    replay: completed,
+    explore: completed,
+    pauseLabel: state.status === 'paused' ? '继续' : '暂停'
+  };
+}
+
 function operationSnapshotForStep(step, operationCore) {
   const beforeStep = [
     [],
@@ -829,6 +843,7 @@ window.StudentGuideCore = Object.freeze({
   GUIDE_STEPS,
   createGuideState,
   guideReducer,
+  guideActionView,
   operationCompletesGuideStep,
   operationSnapshotForStep,
   nextAutoOperationAction,
@@ -1986,6 +2001,7 @@ function clearAutoTimers(){
 }
 function updateGuideUI(){
   var panel=el('lessonGuide'),entry=el('startLessonGuide');
+  var actions=G.guideActionView(guideState);
   var visibilityChanged=panel.hidden===guideState.open;
   panel.hidden=!guideState.open;
   entry.textContent=guideState.status==='idle'||guideState.status==='explore'?'分步演示':'继续演示';
@@ -1998,10 +2014,14 @@ function updateGuideUI(){
   el('guideWatch').textContent=step.watch;
   el('guideWhyText').textContent=step.why;
   panel.classList.toggle('is-complete',guideState.status==='completed');
+  el('guidePrev').hidden=!actions.previous;
   el('guidePrev').disabled=guideState.step<=1;
+  el('guideNext').hidden=!actions.next;
   el('guideNext').disabled=step.requiresSignal||guideState.status!=='running';
   el('guideNext').textContent=step.requiresSignal?'等待完成':'下一步';
-  el('guidePause').textContent=guideState.status==='completed'?'重新播放':(guideState.status==='paused'?'继续':'暂停');
+  el('guidePause').hidden=!(actions.pause||actions.replay);
+  el('guidePause').textContent=actions.replay?'重新播放':actions.pauseLabel;
+  el('guideExplore').hidden=!actions.explore;
 }
 function signalGuideFromOperation(){
   guideState=G.guideReducer(guideState,{type:'SIGNAL_COMPLETE',operationState:operationState});

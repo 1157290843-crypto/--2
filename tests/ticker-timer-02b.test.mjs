@@ -203,6 +203,50 @@ test('guide completes only after the real finish state is powered off with tape 
   assert.equal(completed.step, 5);
 });
 
+test('guide actions reveal free exploration only after completion', () => {
+  const G = loadGuideCore();
+  const running = G.guideActionView(
+    G.guideReducer(G.createGuideState(), { type: 'START' })
+  );
+
+  assert.deepEqual({
+    close: running.close,
+    previous: running.previous,
+    pause: running.pause,
+    next: running.next,
+    replay: running.replay,
+    explore: running.explore
+  }, {
+    close: true,
+    previous: true,
+    pause: true,
+    next: true,
+    replay: false,
+    explore: false
+  });
+
+  const paused = G.guideActionView({ status: 'paused', step: 3, open: true });
+  assert.equal(paused.pauseLabel, '继续');
+  assert.equal(paused.explore, false);
+
+  const completed = G.guideActionView({ status: 'completed', step: 5, open: true });
+  assert.deepEqual({
+    close: completed.close,
+    previous: completed.previous,
+    pause: completed.pause,
+    next: completed.next,
+    replay: completed.replay,
+    explore: completed.explore
+  }, {
+    close: true,
+    previous: false,
+    pause: false,
+    next: false,
+    replay: true,
+    explore: true
+  });
+});
+
 test('operation replay snapshots are rebuilt through the verified reducer', () => {
   const G = loadGuideCore();
   const O = loadOperationCore();
