@@ -120,9 +120,16 @@ test('统一制作规范 contains the five-stage, risk-routed student workflow',
   assert.match(production, /不得.*直接写入显示结果|不得.*伪动画/);
   assert.match(production, /每个版本只进行一次完整最低验收/);
   assert.match(production, /修复后[\s\S]{0,80}定向复查[\s\S]{0,80}主流程冒烟/);
-  assert.match(production, /EDU.*PHY.*GUIDE.*VIS.*RESP/);
+  assert.match(production, /`EDU`(?:：|\s*\|)[^\n]*单一目标[^\n]*单一观察焦点[^\n]*静音自主学习/);
+  assert.match(production, /`PHY`(?:：|\s*\|)[^\n]*公式[^\n]*单位[^\n]*状态转换[^\n]*临界条件[^\n]*倍速不改变结果/);
+  assert.match(production, /`GUIDE`(?:：|\s*\|)[^\n]*学生推进[^\n]*学生主动.*替我操作[^\n]*真实状态门控[^\n]*恢复状态[^\n]*安全拖动/);
+  assert.match(production, /`VIS`(?:：|\s*\|)[^\n]*标题[^\n]*入口[^\n]*舞台控制条[^\n]*字号[^\n]*触控[^\n]*公式[^\n]*光影品质/);
+  assert.match(production, /`RESP`(?:：|\s*\|)[^\n]*宽屏[^\n]*横屏平板[^\n]*窄屏[^\n]*短横屏/);
+  for (const viewport of ['1180×820', '1024×768', '960×768', '960×540', '390×844']) {
+    assert.match(production, new RegExp(viewport));
+  }
   assert.match(production, /核心实验装置[\s\S]{0,120}模型[\s\S]{0,120}材质[\s\S]{0,120}光照[\s\S]{0,120}阴影[\s\S]{0,120}空间层次/);
-  assert.match(production, /同尺寸截图[\s\S]{0,80}人工对比/);
+  assert.match(production, /改版前后生成并保存同尺寸截图，人工对比并核对核心装置的模型、材质、光照、阴影和空间层次/);
   assert.doesNotMatch(production, /自动演示/);
   assert.doesNotMatch(production, /\.codex\/attachments/);
   assert.doesNotMatch(production, /#[0-9a-f]{6}/i);
@@ -170,7 +177,9 @@ test('视觉标准 defines semantic and accessible formula output across rendere
     /aria-labelledby/,
     /同一物理状态/
   ]) assert.match(visual, required);
-  assert.match(visual, /错误示例[\s\S]*a=Δv\/Δt[\s\S]*v_0=5m\/s/);
+  const beforeErrorExamples = visual.split('### 9.8 错误示例')[0];
+  assert.doesNotMatch(beforeErrorExamples, /v_0|r_0/);
+  assert.match(visual, /### 9\.8 错误示例[\s\S]*a=Δv\/Δt[\s\S]*v_0=5m\/s/);
   assert.doesNotMatch(visual, /sub\s*,\s*\n?\s*sup\s*\{\s*font-size:\s*1em\s*;?\s*\}/);
   assert.doesNotMatch(visual, /<mi>Δv<\/mi>|<mi>Δt<\/mi>/);
 });
@@ -267,9 +276,21 @@ Expected: 记录针对隔离工作树实际基线的失败项；不把文件不�
 - `替我操作`只能由学生主动点击，只完成当前一步；它与手动操作共用同一动作模块、唯一实验状态和物理内核，真实完成条件满足后才解锁下一步，不得第二套伪动画或直接写入显示结果；
 - 关闭引导保留状态，继续引导恢复步骤和位置，上一步重建确定状态，“现在自己试试”回到确定初态进入自由探索；
 - 统一页面职责只描述标题、入口、舞台、舞台底部控制和参数/观察区域，具体颜色、尺寸、公式和光晕引用视觉标准；
-- 全项目无声音；性能不足时先删非核心范围，不降低核心实验装置模型、材质、光照、阴影和空间层次；改版前后生成、保存并人工核对同尺寸截图；
-- 每版只进行一次完整最低验收，保留 `EDU`、`PHY`、`GUIDE`、`VIS`、`RESP` 五类检查和代表尺寸；修复后只定向复查受影响功能并快速走一次主流程冒烟；教师或学生人工体验后继续增量修改；
+- 全项目无声音；性能不足时先删非核心范围，不降低核心实验装置模型、材质、光照、阴影和空间层次；改版前后生成并保存同尺寸截图，人工对比并核对核心装置的模型、材质、光照、阴影和空间层次；
+- 每版只进行一次完整最低验收；修复后只定向复查受影响功能并快速走一次主流程冒烟；教师或学生人工体验后继续增量修改；
 - 不批量重做旧动画，不建立账号、班级、云端档案或复杂评分系统。
+
+在第 10 节以如下表格逐项写入最低验收，不得只列代号：
+
+| 编号 | 最低验收内容 |
+|---|---|
+| `EDU` | 单一目标、单一观察焦点和静音自主学习。 |
+| `PHY` | 公式、单位、状态转换、临界条件和倍速不改变结果。 |
+| `GUIDE` | 学生推进、学生主动触发`替我操作`、真实状态门控、恢复状态和卡片安全拖动。 |
+| `VIS` | 标题、入口、舞台控制条、字号、触控、公式及装置光影品质。 |
+| `RESP` | 宽屏、横屏平板、窄屏和短横屏布局。 |
+
+代表尺寸必须逐项列为 `1180×820`、`1024×768`、`960×768`、`960×540`、`390×844`；其中 `390×844` 只做窄屏基本可用性检查，不作为主要教学设备标准。截图留存证据须与 `VIS` 验收一并保存。
 
 - [ ] **Step 3: 运行统一制作规范契约并确认通过**
 
@@ -282,10 +303,12 @@ Expected: PASS。其他涉及 `AGENTS.md` 和视觉标准的契约仍可保持�
 - [ ] **Step 4: 检查制作规范没有视觉实现和旧口径泄漏**
 
 ```bash
-rg -n '#[0-9A-Fa-f]{6}|--surface-page|grid-template-columns|自动演示|\.codex/attachments' 'docs/物理动画统一制作规范-v1.md'
+if rg -n '#[0-9A-Fa-f]{6}|--surface-page|grid-template-columns|自动演示|\.codex/attachments' 'docs/物理动画统一制作规范-v1.md'; then
+  exit 1
+fi
 ```
 
-Expected: 无输出。
+Expected: 守卫以退出码 0 结束且无输出；任一泄漏命中即显示匹配并以退出码 1 失败。
 
 - [ ] **Step 5: 提交统一制作规范**
 
@@ -456,7 +479,7 @@ Expected: FAIL，缺少 `--focus`、入口、舞台底部控制条、公式章�
 - 单字符物理变量使用数学斜体；数字、单位符号、描述性缩写和函数名使用正体。
 - HTML 简单物理量使用 `<var>`；MathML 中变量、数字、运算符分别使用 `<mi>`、`<mn>`、`<mo>`，单位使用正体节点，不把多个语义 token 合并进一个 `<mi>`。
 - 数值与单位之间保留一个不换行间距，数值和单位不得在行尾拆开；单位字符串内部不在斜杠两侧加空格。
-- 不向学生显示 `v_0`、`r_0`、`vec(v)` 等程序式文本。
+- 不向学生显示带下划线或函数包装的程序式物理量文本。
 
 ### 9.4 上下角标与作用域
 
@@ -504,7 +527,9 @@ Expected: FAIL，缺少 `--focus`、入口、舞台底部控制条、公式章�
 </span>
 ```
 
-错误示例：数学除法写成 `a=Δv/Δt`；显示 `v_0=5m/s`；把 `Δv` 合并进单个 `<mi>`；在全局样式中把 `sub`/`sup` 都设为 `1em` 的等大角标；Canvas/SVG 公式没有等价语义文本。
+### 9.8 错误示例
+
+数学除法写成 `a=Δv/Δt`；显示 `v_0=5m/s`；把 `Δv` 合并进单个 `<mi>`；在全局样式中把 `sub`/`sup` 都设为 `1em` 的等大角标；Canvas/SVG 公式没有等价语义文本。
 ````
 
 同时从现行视觉标准第 3.3 节和第 6.2 节删除全局 `sub/sup` 等大字号规则；只在公式作用域示例中保留合规的 `max(var(--type-11), .75em)`。将原维护规则顺延为第10节，并更新第0节内容清单和维护日期说明。
@@ -521,10 +546,13 @@ Expected: PASS。
 
 ```bash
 git diff --check -- 'docs/物理动画视觉标准-v1.md'
-rg -n '自动演示|v_0|r_0' 'docs/物理动画视觉标准-v1.md'
+if rg -n '自动演示' 'docs/物理动画视觉标准-v1.md'; then
+  exit 1
+fi
+rg -n -C 2 'v_0|r_0' 'docs/物理动画视觉标准-v1.md'
 ```
 
-Expected: `git diff --check` 成功；`rg` 只允许在“错误示例”代码文本中出现 `v_0`、`r_0`，不得出现“自动演示”。
+Expected: `git diff --check` 成功；旧称守卫以退出码 0 结束且无输出。第二条 `rg` 必须以退出码 0 命中，并人工确认所有上下文只位于 `### 9.8 错误示例`；它不是“出现即通过”的机械检查。Task 1 的 `beforeErrorExamples` 反向契约同时保证该标题之前没有 `v_0` 或 `r_0`。
 
 - [ ] **Step 9: 提交视觉标准**
 
@@ -597,10 +625,12 @@ Expected: PASS。
 - [ ] **Step 4: 确认外部附件和旧称已移除**
 
 ```bash
-rg -n '\.codex/attachments|自动演示|235181b3-b39e-4217-abf1-b37333008bab' AGENTS.md
+if rg -n '\.codex/attachments|自动演示|235181b3-b39e-4217-abf1-b37333008bab' AGENTS.md; then
+  exit 1
+fi
 ```
 
-Expected: 无输出。
+Expected: 守卫以退出码 0 结束且无输出；任何旧依赖或旧称命中即显示匹配并以退出码 1 失败。
 
 - [ ] **Step 5: 提交AGENTS入口**
 
@@ -644,23 +674,27 @@ Expected: 所有现有测试PASS，0 FAIL。若现有动画测试本身与当前
 - [ ] **Step 3: 检查三份规范的旧依赖、旧称和格式**
 
 ```bash
-rg -n '\.codex/attachments|235181b3-b39e-4217-abf1-b37333008bab|自动演示' AGENTS.md 'docs/物理动画统一制作规范-v1.md' 'docs/物理动画视觉标准-v1.md'
+if rg -n '\.codex/attachments|235181b3-b39e-4217-abf1-b37333008bab|自动演示' AGENTS.md 'docs/物理动画统一制作规范-v1.md' 'docs/物理动画视觉标准-v1.md'; then
+  exit 1
+fi
 git diff --check HEAD
 ```
 
-Expected: `rg` 无输出；`git diff --check` 成功。
+Expected: 旧依赖/旧称守卫以退出码 0 结束且无输出；`git diff --check` 成功。
 
 - [ ] **Step 4: 核对设计要求覆盖**
 
 逐项核对并在终端记录命中位置：
 
 ```bash
-rg -n '五阶段制作流程|任务审查|制作决策|模型与原型|正式制作|验证交付|学生主动点击下一步|观察步骤.*不显示|同一动作模块|唯一实验状态|真实完成条件|一次完整最低验收|定向复查|主流程冒烟|EDU|PHY|GUIDE|VIS|RESP|核心实验装置|同尺寸截图' 'docs/物理动画统一制作规范-v1.md'
+rg -n '五阶段制作流程|任务审查|制作决策|模型与原型|正式制作|验证交付|学生主动点击下一步|观察步骤.*不显示|同一动作模块|唯一实验状态|真实完成条件|一次完整最低验收|定向复查|主流程冒烟|`EDU`.*单一目标.*单一观察焦点.*静音自主学习|`PHY`.*公式.*单位.*状态转换.*临界条件.*倍速不改变结果|`GUIDE`.*学生推进.*学生主动.*替我操作.*真实状态门控.*恢复状态.*安全拖动|`VIS`.*标题.*入口.*舞台控制条.*字号.*触控.*公式.*光影品质|`RESP`.*宽屏.*横屏平板.*窄屏.*短横屏|1180×820|1024×768|960×768|960×540|390×844|生成并保存同尺寸截图.*人工对比.*模型.*材质.*光照.*阴影.*空间层次' 'docs/物理动画统一制作规范-v1.md'
 rg -n '引导演示与实验指南入口|主舞台底部控制条|紫色重点观察光晕|由内向外|由浓到淡|position: relative|position: absolute|z-index|pointer-events: none|prefers-reduced-motion|静态紫色边框|公式、物理量与上下角标|数学除法语义|单位字符串|<mfrac>|<msub>|<msup>|<msubsup>|<mover|11 CSS px|原生 MathML|measureText|DOM 等价文本|aria-labelledby|不换行间距' 'docs/物理动画视觉标准-v1.md'
-rg -n 'sub, sup \{ font-size: 1em; \}|<mi>Δv</mi>|<mi>Δt</mi>' 'docs/物理动画视觉标准-v1.md'
+if rg -n 'sub, sup \{ font-size: 1em; \}|<mi>Δv</mi>|<mi>Δt</mi>' 'docs/物理动画视觉标准-v1.md'; then
+  exit 1
+fi
 ```
 
-Expected: 前两条中每个要求至少有一个清楚命中位置；最后一条无输出。错误示例中的程序式文本仅用于说明错误，不能被当作正向规则。
+Expected: 前两条中每个要求至少有一个清楚命中位置；最后一个守卫以退出码 0 结束且无输出。程序式文本的错误示例仍按 Task 3 Step 8 的标题边界人工复核，不能被当作正向规则。
 
 - [ ] **Step 5: 更新设计规格状态**
 
