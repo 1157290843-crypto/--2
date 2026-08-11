@@ -38,6 +38,12 @@ function loadLessonRuntime() {
   };
 }
 
+function loadStudentGuideCore() {
+  const window = {};
+  vm.runInNewContext(loadInlineCore('data-student-guide-core'), { window, Object, Array, Math });
+  return window.StudentGuideCore;
+}
+
 test('protects the locked source and keeps 02C offline, silent, and self-contained', () => {
   const sourceHash = createHash('sha256')
     .update(readFileSync(sourcePath))
@@ -144,4 +150,62 @@ test('lesson view derives fixed tape, pair denominator, and final results from t
   assert.deepEqual(Array.from(finalView.groupAccelerations), [2, 2, 2]);
   assert.equal(finalView.average, 2);
   assert.equal(finalView.combined, 2);
+});
+
+test('student demonstration follows five stages with ordered three-pair subprogress', () => {
+  const G = loadStudentGuideCore();
+  assert.deepEqual(Array.from(G.GUIDE_STEPS, step => step.focus), [
+    'interval',
+    'segments',
+    'pairings',
+    'average',
+    'combined',
+  ]);
+
+  let state = G.guideReducer(G.createGuideState(), { type: 'START' });
+  assert.deepEqual({ status: state.status, step: state.step, substep: state.substep }, { status: 'running', step: 1, substep: 0 });
+  state = G.guideReducer(state, { type: 'SIGNAL_COMPLETE' });
+  state = G.guideReducer(state, { type: 'SIGNAL_COMPLETE' });
+  assert.deepEqual({ step: state.step, substep: state.substep }, { step: 3, substep: 0 });
+  state = G.guideReducer(state, { type: 'SIGNAL_COMPLETE' });
+  assert.deepEqual({ step: state.step, substep: state.substep }, { step: 3, substep: 1 });
+  state = G.guideReducer(state, { type: 'SIGNAL_COMPLETE' });
+  assert.deepEqual({ step: state.step, substep: state.substep }, { step: 3, substep: 2 });
+  state = G.guideReducer(state, { type: 'SIGNAL_COMPLETE' });
+  assert.deepEqual({ step: state.step, substep: state.substep }, { step: 4, substep: 0 });
+  state = G.guideReducer(state, { type: 'SIGNAL_COMPLETE' });
+  state = G.guideReducer(state, { type: 'SIGNAL_COMPLETE' });
+  assert.deepEqual({ status: state.status, step: state.step }, { status: 'completed', step: 5 });
+});
+
+test('student demonstration cannot advance while paused or bypass a required result', () => {
+  const G = loadStudentGuideCore();
+  const started = G.guideReducer(G.createGuideState(), { type: 'START' });
+  assert.equal(G.guideReducer(started, { type: 'NEXT' }).step, 1);
+  const paused = G.guideReducer(started, { type: 'PAUSE' });
+  assert.equal(G.guideReducer(paused, { type: 'SIGNAL_COMPLETE' }).step, 1);
+  const resumed = G.guideReducer(paused, { type: 'RESUME' });
+  assert.equal(G.guideReducer(resumed, { type: 'SIGNAL_COMPLETE' }).step, 2);
+});
+
+test('student demonstration exposes the standard wide, narrow, and short-landscape layouts', () => {
+  const G = loadStudentGuideCore();
+  assert.deepEqual(JSON.parse(JSON.stringify(G.layoutForViewport(1024, 768))), { kind: 'wide', tabs: false, visiblePanels: 2 });
+  assert.deepEqual(JSON.parse(JSON.stringify(G.layoutForViewport(960, 768))), { kind: 'narrow', tabs: true, visiblePanels: 1 });
+  assert.deepEqual(JSON.parse(JSON.stringify(G.layoutForViewport(960, 540))), { kind: 'short-landscape', tabs: true, visiblePanels: 1 });
+});
+
+test('the lesson guide occupies a reserved stage row at every supported breakpoint', () => {
+  const html = read02C();
+  const guideRule = html.match(/\.lesson-guide\{([\s\S]*?)\n\s*\}/);
+  assert.ok(guideRule, 'missing lesson guide rule');
+  assert.doesNotMatch(guideRule[1], /position\s*:\s*absolute|\bbottom\s*:/);
+  assert.match(html, /\.stage\{margin:0;grid-template-rows:auto auto minmax\(130px,1fr\) auto auto auto\}/);
+  assert.match(html, /\.stage\{display:grid;grid-column:1;grid-row:1\/3;order:initial;width:auto;height:auto;min-height:0;margin:0;grid-template-rows:auto auto minmax\(70px,1fr\) auto auto auto\}/);
+});
+
+test('mobile panel tabs own labelled tabpanels', () => {
+  const html = read02C();
+  assert.match(html, /<aside class="control-panel" id="controlPanel" role="tabpanel" aria-labelledby="controlsTab"/);
+  assert.match(html, /<aside class="observe-panel" id="observePanel" role="tabpanel" aria-labelledby="observeTab"/);
 });

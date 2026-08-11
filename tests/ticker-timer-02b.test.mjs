@@ -32,6 +32,12 @@ function loadOperationCore() {
   return window.TimerOperationCore;
 }
 
+function loadGuideCore() {
+  const window = {};
+  vm.runInNewContext(loadInlineCore('data-student-guide-core'), { window, Object, Array, Math });
+  return window.StudentGuideCore;
+}
+
 test('the correct five-step operation reaches completion', () => {
   const O = loadOperationCore();
   let s = O.createOperationState();
@@ -129,6 +135,171 @@ test('unrelated out-of-order actions do not create extra error types', () => {
   ]) state = O.reduceOperation(state, action);
   assert.deepEqual(Array.from(state.errors), []);
   assert.equal(state.lastError, null);
+});
+
+test('student guide exposes five signal-gated operation stages', () => {
+  const G = loadGuideCore();
+
+  assert.equal(G.GUIDE_STEPS.length, 5);
+  assert.deepEqual(Array.from(G.GUIDE_STEPS, step => step.focus), [
+    'fix', 'thread', 'power', 'release', 'finish'
+  ]);
+  assert.ok(G.GUIDE_STEPS.every(step => step.requiresSignal === true));
+});
+
+test('paused guide ignores physical completion signals', () => {
+  const G = loadGuideCore();
+  const O = loadOperationCore();
+  let guide = G.guideReducer(G.createGuideState(), { type: 'START' });
+  guide = G.guideReducer(guide, { type: 'PAUSE' });
+  const fixed = O.reduceOperation(O.createOperationState(), { type: 'FIX_TIMER', aligned: true });
+
+  const afterSignal = G.guideReducer(guide, { type: 'SIGNAL_COMPLETE', operationState: fixed });
+
+  assert.equal(afterSignal.status, 'paused');
+  assert.equal(afterSignal.step, 1);
+});
+
+test('NEXT cannot bypass an operation stage that still requires its real signal', () => {
+  const G = loadGuideCore();
+  const started = G.guideReducer(G.createGuideState(), { type: 'START' });
+
+  const afterNext = G.guideReducer(started, { type: 'NEXT' });
+
+  assert.equal(afterNext.status, 'running');
+  assert.equal(afterNext.step, 1);
+});
+
+test('guide completes only after the real finish state is powered off with tape removed', () => {
+  const G = loadGuideCore();
+  const O = loadOperationCore();
+  let operation = O.createOperationState();
+  let guide = G.guideReducer(G.createGuideState(), { type: 'START' });
+
+  operation = O.reduceOperation(operation, { type: 'FIX_TIMER', aligned: true });
+  guide = G.guideReducer(guide, { type: 'SIGNAL_COMPLETE', operationState: operation });
+  operation = O.reduceOperation(operation, { type: 'THREAD_TAPE', throughGuide: true, consumableReady: true });
+  guide = G.guideReducer(guide, { type: 'SIGNAL_COMPLETE', operationState: operation });
+  operation = O.reduceOperation(operation, { type: 'POWER_ON' });
+  operation = O.reduceOperation(operation, { type: 'MARKING_STABLE' });
+  guide = G.guideReducer(guide, { type: 'SIGNAL_COMPLETE', operationState: operation });
+  operation = O.reduceOperation(operation, { type: 'RELEASE_CAR' });
+  operation = O.reduceOperation(operation, { type: 'CAR_STOP' });
+  guide = G.guideReducer(guide, { type: 'SIGNAL_COMPLETE', operationState: operation });
+  assert.equal(guide.step, 5);
+
+  const whilePowered = G.guideReducer(guide, { type: 'SIGNAL_COMPLETE', operationState: operation });
+  assert.equal(whilePowered.status, 'running');
+  assert.equal(whilePowered.step, 5);
+
+  operation = O.reduceOperation(operation, { type: 'POWER_OFF' });
+  const beforeTapeRemoval = G.guideReducer(guide, { type: 'SIGNAL_COMPLETE', operationState: operation });
+  assert.equal(beforeTapeRemoval.status, 'running');
+  assert.equal(beforeTapeRemoval.step, 5);
+
+  operation = O.reduceOperation(operation, { type: 'TAKE_TAPE' });
+  const completed = G.guideReducer(guide, { type: 'SIGNAL_COMPLETE', operationState: operation });
+  assert.equal(completed.status, 'completed');
+  assert.equal(completed.step, 5);
+});
+
+test('guide actions reveal free exploration only after completion', () => {
+  const G = loadGuideCore();
+  const running = G.guideActionView(
+    G.guideReducer(G.createGuideState(), { type: 'START' })
+  );
+
+  assert.deepEqual({
+    close: running.close,
+    previous: running.previous,
+    pause: running.pause,
+    next: running.next,
+    replay: running.replay,
+    explore: running.explore
+  }, {
+    close: true,
+    previous: true,
+    pause: true,
+    next: true,
+    replay: false,
+    explore: false
+  });
+
+  const paused = G.guideActionView({ status: 'paused', step: 3, open: true });
+  assert.equal(paused.pauseLabel, '继续');
+  assert.equal(paused.explore, false);
+
+  const completed = G.guideActionView({ status: 'completed', step: 5, open: true });
+  assert.deepEqual({
+    close: completed.close,
+    previous: completed.previous,
+    pause: completed.pause,
+    next: completed.next,
+    replay: completed.replay,
+    explore: completed.explore
+  }, {
+    close: true,
+    previous: false,
+    pause: false,
+    next: false,
+    replay: true,
+    explore: true
+  });
+});
+
+test('operation replay snapshots are rebuilt through the verified reducer', () => {
+  const G = loadGuideCore();
+  const O = loadOperationCore();
+
+  const powerStart = G.operationSnapshotForStep(3, O);
+  assert.equal(powerStart.phase, 'power');
+  assert.equal(powerStart.fixed, true);
+  assert.equal(powerStart.threaded, true);
+  assert.equal(powerStart.powered, false);
+
+  const finishStart = G.operationSnapshotForStep(5, O);
+  assert.equal(finishStart.phase, 'finish');
+  assert.equal(finishStart.carStopped, true);
+  assert.equal(finishStart.powered, true);
+  assert.equal(finishStart.completed, false);
+  assert.deepEqual(Array.from(finishStart.errors), []);
+});
+
+test('student guide dispatches the reducer\'s exact correct action sequence', () => {
+  const G = loadGuideCore();
+  const O = loadOperationCore();
+  const actionTypes = [];
+  let operation = O.createOperationState();
+
+  for (let guard = 0; guard < 12 && !operation.completed; guard++) {
+    const action = G.nextAutoOperationAction(operation, O);
+    assert.ok(action, `missing auto action in ${operation.phase}`);
+    actionTypes.push(action.type);
+    operation = O.reduceOperation(operation, action);
+  }
+
+  assert.deepEqual(actionTypes, [
+    'FIX_TIMER', 'THREAD_TAPE', 'POWER_ON', 'MARKING_STABLE',
+    'RELEASE_CAR', 'CAR_STOP', 'POWER_OFF', 'TAKE_TAPE'
+  ]);
+  assert.equal(operation.completed, true);
+  assert.deepEqual(Array.from(operation.errors), []);
+});
+
+test('responsive layout keeps 1024 wide and separates narrow from short landscape', () => {
+  const G = loadGuideCore();
+
+  const wide = G.layoutForViewport(1024, 768);
+  const narrow = G.layoutForViewport(960, 768);
+  const shortLandscape = G.layoutForViewport(960, 540);
+
+  assert.equal(wide.kind, 'wide');
+  assert.equal(narrow.kind, 'narrow');
+  assert.equal(shortLandscape.kind, 'short-landscape');
+  assert.equal(G.layoutForViewport(480, 540).kind, 'narrow');
+  assert.equal(wide.guidePlacement, 'docked');
+  assert.equal(narrow.guidePlacement, 'docked');
+  assert.equal(shortLandscape.guidePlacement, 'docked');
 });
 
 export { read02B, loadInlineCore };

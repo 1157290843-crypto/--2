@@ -41,6 +41,12 @@ function loadTeachingCore() {
   return window.TimerPrincipleTeaching;
 }
 
+function loadStudentGuideCore() {
+  const window = {};
+  vm.runInNewContext(loadInlineCore('data-student-guide-core'), { window, Number, Object, Array });
+  return window.StudentGuideCore;
+}
+
 test('50 Hz produces an exact 0.02 second interval', () => {
   const P = loadPrincipleCore();
   assert.equal(P.intervalForFrequency(50), 0.02);
@@ -82,17 +88,70 @@ test('teaching camera presets stay bounded and select the intended section', () 
   assert.equal(L.viewForPreset(spark, 'missing'), null);
 });
 
-test('all target landscape sizes resolve to three visible columns', () => {
-  const L = loadLessonCore();
-  for (const [width, height] of [[1180, 820], [1024, 768], [960, 540]]) {
-    const layout = L.layoutForViewport(width, height);
-    assert.equal(layout.kind, 'three-column');
-    assert.equal(layout.columns.length, 3);
-    assert.ok(layout.columns.every(value => value >= 216));
-    assert.ok(layout.columns[1] > layout.columns[0]);
-    assert.ok(layout.columns[1] > layout.columns[2]);
+test('viewport contract keeps 1024 wide and switches 960 to one active panel', () => {
+  const G = loadStudentGuideCore();
+  assert.equal(G.layoutForViewport(1024, 768).kind, 'wide');
+  assert.equal(G.layoutForViewport(960, 768).kind, 'narrow');
+  assert.equal(G.layoutForViewport(960, 540).kind, 'short-landscape');
+});
+
+test('student guide follows five physical structure-and-principle stages', () => {
+  const G = loadStudentGuideCore();
+  assert.equal(G.GUIDE_STEPS.length, 5);
+  assert.deepEqual(Array.from(G.GUIDE_STEPS, step => step.focus), [
+    'paper-path',
+    'em-drive',
+    'needle-mark',
+    'spark-mark',
+    'shared-timing'
+  ]);
+});
+
+test('student guide advances only from real signals while running', () => {
+  const G = loadStudentGuideCore();
+  let state = G.guideReducer(G.createGuideState(), { type: 'START' });
+  assert.equal(state.status, 'running');
+  assert.equal(state.step, 1);
+
+  state = G.guideReducer(state, { type: 'PAUSE' });
+  assert.equal(state.status, 'paused');
+  assert.equal(G.guideReducer(state, { type: 'SIGNAL_COMPLETE' }).step, 1);
+
+  state = G.guideReducer(state, { type: 'RESUME' });
+  for (let step = 2; step <= 5; step += 1) {
+    state = G.guideReducer(state, { type: 'SIGNAL_COMPLETE' });
+    assert.equal(state.step, step);
+    assert.equal(state.status, 'running');
   }
-  assert.deepEqual(Array.from(L.layoutForViewport(960, 540).columns), [216, 528, 216]);
+  state = G.guideReducer(state, { type: 'SIGNAL_COMPLETE' });
+  assert.equal(state.step, 5);
+  assert.equal(state.status, 'completed');
+});
+
+test('guide stages become ready only in their required real scene state', () => {
+  const G = loadStudentGuideCore();
+  const paperPath = { machine: 'em', camera: 'standard', powered: false, focusParts: ['tape', 'hole'] };
+  assert.equal(G.sceneReadyForStep(1, paperPath), true);
+  assert.equal(G.sceneReadyForStep(1, { ...paperPath, camera: 'emSection' }), false);
+  assert.equal(G.sceneReadyForStep(1, { ...paperPath, focusParts: ['tape'] }), false);
+
+  const emDrive = { machine: 'em', camera: 'emSection', powered: true, focusParts: ['coil', 'reed'] };
+  assert.equal(G.sceneReadyForStep(2, emDrive), true);
+  assert.equal(G.sceneReadyForStep(2, { ...emDrive, powered: false }), false);
+  assert.equal(G.sceneReadyForStep(2, { ...emDrive, machine: 'spark' }), false);
+});
+
+test('manual scene controls stay locked until the guide returns to exploration', () => {
+  const G = loadStudentGuideCore();
+  let state = G.createGuideState();
+  assert.equal(G.manualControlsEnabled(state), true);
+
+  state = G.guideReducer(state, { type: 'START' });
+  assert.equal(G.manualControlsEnabled(state), false);
+  state = G.guideReducer(state, { type: 'PAUSE' });
+  assert.equal(G.manualControlsEnabled(state), false);
+  state = G.guideReducer(state, { type: 'EXPLORE' });
+  assert.equal(G.manualControlsEnabled(state), true);
 });
 
 test('02A has five focused principle steps', () => {
