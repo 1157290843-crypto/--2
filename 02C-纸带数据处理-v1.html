@@ -200,7 +200,7 @@
     grid-template-columns:clamp(220px,22vw,280px) minmax(0,1fr) clamp(240px,21vw,314px);
   }
   .control-panel,.observe-panel{padding:0;border:0;border-radius:14px;background:var(--surface-panel)}
-  .stage{margin:0;grid-template-rows:auto auto minmax(180px,1fr) auto auto}
+  .stage{margin:0;grid-template-rows:auto auto minmax(130px,1fr) auto auto auto}
   .stage-entrybar{position:relative;z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px 2px}
   .stage-entrybar button{
     min-height:44px;border:1px solid #42526d;border-radius:10px;background:#15233a;color:var(--stage-text);
@@ -209,7 +209,7 @@
   .stage-entrybar .primary-entry{border-color:var(--action);background:var(--action);color:var(--on-action)}
   .panel-tabs{display:none}
   .lesson-guide{
-    position:absolute;z-index:8;left:50%;bottom:68px;transform:translateX(-50%);width:min(72%,720px);
+    position:relative;z-index:2;width:auto;
     padding:11px 12px;border:1px solid #b9c7dd;border-radius:13px;background:rgba(255,253,248,.98);
     color:var(--text-strong);box-shadow:0 14px 36px rgba(3,10,22,.32);
   }
@@ -254,7 +254,7 @@
     .panel-tabs button[aria-selected="true"]{border-color:var(--action);background:var(--action);color:var(--on-action)}
     .control-panel,.observe-panel{order:3;display:none;width:100%;height:min(48vh,440px);min-height:280px;padding:8px;overflow-y:auto;border:1px solid var(--border)}
     #experimentLayout[data-active-panel="controls"] .control-panel,#experimentLayout[data-active-panel="observe"] .observe-panel{display:flex}
-    .lesson-guide{width:min(86%,720px)}
+    .lesson-guide{width:auto}
   }
 
   @media (orientation:landscape) and (max-width:960px) and (max-height:540px){
@@ -268,15 +268,15 @@
       height:calc(100dvh - 46px);min-height:0;display:grid;overflow:hidden;padding:6px;gap:6px;
       grid-template-columns:minmax(0,1.55fr) minmax(250px,.8fr);grid-template-rows:44px minmax(0,1fr);
     }
-    .stage{display:grid;grid-column:1;grid-row:1/3;order:initial;width:auto;height:auto;min-height:0;margin:0}
+    .stage{display:grid;grid-column:1;grid-row:1/3;order:initial;width:auto;height:auto;min-height:0;margin:0;grid-template-rows:auto auto minmax(70px,1fr) auto auto auto}
     .panel-tabs{display:grid;grid-column:2;grid-row:1;order:initial;padding:0;gap:4px}
     .panel-tabs button{min-height:44px;font-size:var(--type-12)}
     .control-panel,.observe-panel{grid-column:2;grid-row:2;order:initial;width:auto;height:auto;min-height:0;padding:6px;overflow-y:auto}
     .stage-entrybar{padding:6px 8px 0;gap:5px}.stage-entrybar button{min-height:44px;font-size:var(--type-12)}
     .stage-heading{padding:6px 9px 1px}.stage-heading p{display:none}
-    #segmentValues{padding:4px 8px 5px}.segment-button{min-height:44px}
+    #tapeCanvas{min-height:0}#segmentValues{padding:4px 8px 5px}.segment-button{min-height:44px}
     .teaching-controls{padding:5px 8px 7px}
-    .lesson-guide{bottom:60px;width:calc(100% - 18px);padding:8px 9px}
+    .lesson-guide{width:auto;padding:8px 9px}
     .guide-copy{grid-template-columns:1fr;gap:3px}.guide-actions{margin-top:5px}.guide-actions button{min-height:40px}
   }
 </style>
@@ -293,7 +293,7 @@
   </div>
 </header>
 <main id="experimentLayout" data-active-panel="controls">
-  <aside class="control-panel" id="controlPanel" aria-label="固定条件与学习步骤">
+  <aside class="control-panel" id="controlPanel" role="tabpanel" aria-labelledby="controlsTab" aria-label="固定条件与学习步骤">
     <section class="card">
       <h2>用逐差法求加速度</h2>
       <p class="intro">一条固定的理想纸带，一次看清“错位三段作差、再取平均”的完整方法。</p>
@@ -376,7 +376,7 @@
     <button type="button" id="observeTab" role="tab" aria-selected="false" aria-controls="observePanel" tabindex="-1">观察数据</button>
   </div>
 
-  <aside class="observe-panel" id="observePanel" aria-label="当前配对与计算结果">
+  <aside class="observe-panel" id="observePanel" role="tabpanel" aria-labelledby="observeTab" aria-label="当前配对与计算结果">
     <section class="card focus-card">
       <h3><span>当前观察</span><span class="kicker">FOCUS</span></h3>
       <p id="currentPair">先确认计时单位 T′</p>

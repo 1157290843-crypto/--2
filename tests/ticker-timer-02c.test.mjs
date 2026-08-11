@@ -194,3 +194,18 @@ test('student demonstration exposes the standard wide, narrow, and short-landsca
   assert.deepEqual(JSON.parse(JSON.stringify(G.layoutForViewport(960, 768))), { kind: 'narrow', tabs: true, visiblePanels: 1 });
   assert.deepEqual(JSON.parse(JSON.stringify(G.layoutForViewport(960, 540))), { kind: 'short-landscape', tabs: true, visiblePanels: 1 });
 });
+
+test('the lesson guide occupies a reserved stage row at every supported breakpoint', () => {
+  const html = read02C();
+  const guideRule = html.match(/\.lesson-guide\{([\s\S]*?)\n\s*\}/);
+  assert.ok(guideRule, 'missing lesson guide rule');
+  assert.doesNotMatch(guideRule[1], /position\s*:\s*absolute|\bbottom\s*:/);
+  assert.match(html, /\.stage\{margin:0;grid-template-rows:auto auto minmax\(130px,1fr\) auto auto auto\}/);
+  assert.match(html, /\.stage\{display:grid;grid-column:1;grid-row:1\/3;order:initial;width:auto;height:auto;min-height:0;margin:0;grid-template-rows:auto auto minmax\(70px,1fr\) auto auto auto\}/);
+});
+
+test('mobile panel tabs own labelled tabpanels', () => {
+  const html = read02C();
+  assert.match(html, /<aside class="control-panel" id="controlPanel" role="tabpanel" aria-labelledby="controlsTab"/);
+  assert.match(html, /<aside class="observe-panel" id="observePanel" role="tabpanel" aria-labelledby="observeTab"/);
+});
