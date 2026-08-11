@@ -245,9 +245,17 @@ test('student guide dispatches the reducer\'s exact correct action sequence', ()
 test('responsive layout keeps 1024 wide and separates narrow from short landscape', () => {
   const G = loadGuideCore();
 
-  assert.equal(G.layoutForViewport(1024, 768).kind, 'wide');
-  assert.equal(G.layoutForViewport(960, 768).kind, 'narrow');
-  assert.equal(G.layoutForViewport(960, 540).kind, 'short-landscape');
+  const wide = G.layoutForViewport(1024, 768);
+  const narrow = G.layoutForViewport(960, 768);
+  const shortLandscape = G.layoutForViewport(960, 540);
+
+  assert.equal(wide.kind, 'wide');
+  assert.equal(narrow.kind, 'narrow');
+  assert.equal(shortLandscape.kind, 'short-landscape');
+  assert.equal(G.layoutForViewport(480, 540).kind, 'narrow');
+  assert.equal(wide.guidePlacement, 'docked');
+  assert.equal(narrow.guidePlacement, 'docked');
+  assert.equal(shortLandscape.guidePlacement, 'docked');
 });
 
 export { read02B, loadInlineCore };

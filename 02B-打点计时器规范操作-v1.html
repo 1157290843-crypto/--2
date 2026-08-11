@@ -390,11 +390,22 @@
     min-width:0;min-height:0;height:auto;padding:0;overflow-y:auto;border:0;background:var(--surface-panel);
   }
   #experimentLayout .control-panel{grid-column:1;grid-row:1}
-  #experimentLayout .stage{grid-column:2;grid-row:1;min-width:0;min-height:0;margin:0}
+  #experimentLayout .stage{grid-column:2;grid-row:1;min-width:0;min-height:0;margin:0;display:grid;grid-template-rows:minmax(0,1fr) auto}
   #experimentLayout .observe-panel{grid-column:3;grid-row:1}
   #experimentLayout .mobile-tabs{display:none}
   #operationSteps .step{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:start;gap:8px}
   #operationSteps .step b{font-size:var(--type-12)}
+
+  #experimentLayout .stage::before{display:none}
+  .model-stage{
+    position:relative;min-width:0;min-height:0;overflow:hidden;
+    background:radial-gradient(circle at 50% 42%,rgba(42,75,126,.30),transparent 46%),var(--stage);
+  }
+  .model-stage::before{
+    content:"";position:absolute;inset:0;z-index:1;pointer-events:none;opacity:.16;
+    background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);
+    background-size:32px 32px;
+  }
 
   .stage-entry-bar{
     position:absolute;z-index:9;left:50%;top:12px;transform:translateX(-50%);
@@ -410,9 +421,9 @@
     outline:3px solid var(--viz-gravity);outline-offset:2px;
   }
   .lesson-guide{
-    position:absolute;z-index:10;left:50%;bottom:77px;transform:translateX(-50%);
-    width:min(72%,720px);padding:12px;border:1px solid rgba(145,163,191,.52);border-radius:14px;
-    background:rgba(11,20,36,.94);box-shadow:0 16px 36px rgba(0,0,0,.32);color:var(--stage-text);
+    position:relative;z-index:10;left:auto;bottom:auto;transform:none;width:100%;max-width:none;
+    padding:10px 12px;border:0;border-top:1px solid rgba(145,163,191,.52);border-radius:0;
+    background:#0e1a2d;box-shadow:0 -8px 20px rgba(0,0,0,.2);color:var(--stage-text);
   }
   .lesson-guide[hidden]{display:none!important}
   .guide-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px}
@@ -463,7 +474,7 @@
     #experimentLayout .control-panel,#experimentLayout .observe-panel{grid-column:1;grid-row:3;display:none;width:auto;height:auto;padding:0;order:initial;border:0}
     #experimentLayout.show-controls .control-panel,#experimentLayout.show-data .observe-panel{display:flex}
     .stage-entry-bar{top:8px;width:min(390px,62%)}
-    .lesson-guide{width:min(88%,720px)}
+    .lesson-guide{width:100%}
   }
   @media (orientation:landscape) and (max-width:960px) and (max-height:540px){
     :root{--header-height:46px}
@@ -480,10 +491,11 @@
     #experimentLayout .control-panel,#experimentLayout .observe-panel{grid-column:2;grid-row:2}
     .stage-entry-bar{left:8px;right:8px;top:7px;transform:none;width:auto}
     .stage-entry-bar button{min-height:40px;padding:6px 8px;font-size:var(--type-12)}
-    .lesson-guide{left:8px;right:8px;bottom:56px;transform:none;width:auto;padding:8px}
-    .guide-copy{grid-template-columns:1fr;gap:5px}
+    .lesson-guide{left:auto;right:auto;bottom:auto;transform:none;width:100%;padding:7px 8px}
+    .guide-copy{grid-template-columns:1fr 1fr;gap:5px;margin-top:5px}
     .guide-copy p{padding:5px 7px;font-size:var(--type-11)}
-    .lesson-guide details{display:none}
+    .lesson-guide details{display:block;margin-top:3px}
+    .lesson-guide summary{min-height:22px}
     .guide-actions{margin-top:6px}
     .guide-actions button{min-height:40px}
     .guide-dialog-grid{grid-template-columns:1fr}
@@ -508,6 +520,7 @@
   </div>
 
   <section class="stage" id="stage">
+    <div class="model-stage" id="modelStage">
     <div class="stage-entry-bar" aria-label="学习入口">
       <button type="button" id="openExperimentGuide">实验指南</button>
       <button type="button" id="startLessonGuide" class="primary">分步演示</button>
@@ -549,6 +562,7 @@
       </div>
       <button type="button" id="viewReset">标准视角</button>
       <button type="button" id="reset" class="toolbar-reset" title="重置实验" aria-label="重置实验">↺</button>
+    </div>
     </div>
     <section class="lesson-guide" id="lessonGuide" aria-live="polite" hidden>
       <div class="guide-head">
@@ -806,9 +820,9 @@ function nextAutoOperationAction(operationState, operationCore) {
 }
 
 function layoutForViewport(width, height) {
-  if (width <= 960 && height <= 540) return { kind: 'short-landscape', activePanels: 1 };
-  if (width <= 960) return { kind: 'narrow', activePanels: 1 };
-  return { kind: 'wide', activePanels: 2 };
+  if (width <= 960 && height <= 540 && width > height) return { kind: 'short-landscape', activePanels: 1, guidePlacement: 'docked' };
+  if (width <= 960) return { kind: 'narrow', activePanels: 1, guidePlacement: 'docked' };
+  return { kind: 'wide', activePanels: 2, guidePlacement: 'docked' };
 }
 
 window.StudentGuideCore = Object.freeze({
@@ -1292,13 +1306,14 @@ function buildCar(F){
 var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 var W=0,H=0,DPR=1;
 function resize(){
-  var st=document.getElementById('stage');
+  var st=document.getElementById('modelStage');
   DPR=Math.min(window.devicePixelRatio||1,2);
   W=st.clientWidth; H=st.clientHeight;
   cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
   ctx.setTransform(DPR,0,0,DPR,0,0);
 }
 window.addEventListener('resize',resize);
+if(window.ResizeObserver)new ResizeObserver(resize).observe(document.getElementById('modelStage'));
 
 var faceCache=[];
 function render(){
@@ -1971,8 +1986,10 @@ function clearAutoTimers(){
 }
 function updateGuideUI(){
   var panel=el('lessonGuide'),entry=el('startLessonGuide');
+  var visibilityChanged=panel.hidden===guideState.open;
   panel.hidden=!guideState.open;
   entry.textContent=guideState.status==='idle'||guideState.status==='explore'?'分步演示':'继续演示';
+  if(visibilityChanged)requestAnimationFrame(resize);
   if(!guideState.step)return;
   var step=G.GUIDE_STEPS[guideState.step-1];
   el('guideCount').textContent='第 '+guideState.step+' / '+G.GUIDE_STEPS.length+' 步';
@@ -2198,13 +2215,13 @@ threadButton.addEventListener('pointerdown',function(event){
 });
 threadButton.addEventListener('pointermove',function(event){
   if(!threadGesture.active||event.pointerId!==threadGesture.pointerId)return;
-  var rect=el('stage').getBoundingClientRect();
+  var rect=el('modelStage').getBoundingClientRect();
   threadButton.style.left=clamp(event.clientX-rect.left,28,W-28)+'px';
   threadButton.style.top=clamp(event.clientY-rect.top,28,H-72)+'px';
 });
 function endThreadGesture(event){
   if(!threadGesture.active||event.pointerId!==threadGesture.pointerId)return;
-  var rect=el('stage').getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
+  var rect=el('modelStage').getBoundingClientRect(),x=event.clientX-rect.left,y=event.clientY-rect.top;
   var target=project(threadTargetPoint(),W,H),success=Math.hypot(x-target.x,y-target.y)<=72;
   threadGesture.active=false;threadButton.classList.remove('is-dragging');
   if(success)handleSceneAction('threadTape');
