@@ -31,6 +31,8 @@ test('AGENTS points to the two in-repo authorities and keeps only project red li
   assert.match(agents, /锁定元素/);
   assert.match(agents, /127\.0\.0\.1/);
   assert.match(agents, /file:\/\//);
+  assert.match(agents, /教师反馈[^\n]*默认[^\n]*当前动画/);
+  assert.match(agents, /明确[^\n]*以后都这样[^\n]*项目标准/);
   assert.doesNotMatch(agents, /\.codex\/attachments/);
   assert.doesNotMatch(agents, /自动演示/);
   assert.doesNotMatch(agents, /--focus|#9a83ff|grid-template-columns|@keyframes/);
@@ -38,6 +40,24 @@ test('AGENTS points to the two in-repo authorities and keeps only project red li
 
 test('统一制作规范 contains the five-stage, risk-routed student workflow', () => {
   const production = readStandard('production');
+  const feedbackSection = production
+    .split('## 11. 教师持续反馈与标准升级')[1]
+    ?.split('## 12. 明确不做')[0] ?? '';
+
+  assert.match(feedbackSection, /未明确[^\n]*默认[^\n]*当前动画/);
+  assert.match(feedbackSection, /以后都这样[^\n]*标准候选/);
+  assert.match(feedbackSection, /当前动画[^\n]*验证/);
+  assert.match(feedbackSection, /教师确认[^\n]*正式条文/);
+  assert.match(feedbackSection, /不重复[^\n]*完整最低验收/);
+  assert.match(feedbackSection, /定向复查[^\n]*主流程冒烟/);
+  assert.match(feedbackSection, /同尺寸[^\n]*前后截图/);
+  assert.match(feedbackSection, /还需要[^\n]*截图[^\n]*想法/);
+  assert.match(feedbackSection, /教师最新明确确认[^\n]*旧规则/);
+  assert.match(feedbackSection, /项目红线[^\n]*冲突[^\n]*明确确认/);
+  assert.match(feedbackSection, /合并[^\n]*main[^\n]*正式生效/);
+  assert.match(feedbackSection, /不[^\n]*批量[^\n]*旧动画/);
+  assert.match(production, /^# 物理动画统一制作规范 v1\.1$/m);
+  assert.match(production, /本文当前版本为 v1\.1/);
   for (const heading of ['任务审查', '制作决策', '模型与原型', '正式制作', '验证交付']) {
     assert.match(production, new RegExp(`### .*${heading}`));
   }
