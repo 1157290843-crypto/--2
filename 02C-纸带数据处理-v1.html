@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>打点计时器：纸带数据处理</title>
+<title>纸带逐差法｜用六段位移求加速度</title>
 <style>
   :root{
     --font-ui:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
@@ -183,6 +183,102 @@
     #differenceSteps{gap:3px}#differenceSteps li{padding:4px 5px;line-height:1.3}
     .conditions-grid{gap:4px}.conditions-grid>div{padding:5px 6px;min-height:42px}
   }
+
+  /* Current project shell: header, student entries, guide strip and responsive panels. */
+  :root{--header-height:62px}
+  header.topbar.template-header{
+    height:var(--header-height);min-height:var(--header-height);padding:0 18px;
+    display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:12px;
+    justify-content:normal;background:var(--surface-raised);border-bottom:1px solid var(--border);
+  }
+  #headerBackSlot{width:42px;height:38px}
+  .template-header .brand{display:flex;align-items:center;gap:11px;min-width:0}
+  .template-header .brand-mark{width:38px;height:38px;border-radius:12px;font-size:var(--type-20);font-weight:900}
+  .template-header h1{font-size:var(--type-20);font-weight:800;line-height:1.15}
+  #experimentLayout{
+    height:calc(100dvh - var(--header-height));padding:10px;gap:10px;
+    grid-template-columns:clamp(220px,22vw,280px) minmax(0,1fr) clamp(240px,21vw,314px);
+  }
+  .control-panel,.observe-panel{padding:0;border:0;border-radius:14px;background:var(--surface-panel)}
+  .stage{margin:0;grid-template-rows:auto auto minmax(180px,1fr) auto auto}
+  .stage-entrybar{position:relative;z-index:4;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px 2px}
+  .stage-entrybar button{
+    min-height:44px;border:1px solid #42526d;border-radius:10px;background:#15233a;color:var(--stage-text);
+    font-size:var(--type-13);font-weight:800;
+  }
+  .stage-entrybar .primary-entry{border-color:var(--action);background:var(--action);color:var(--on-action)}
+  .panel-tabs{display:none}
+  .lesson-guide{
+    position:absolute;z-index:8;left:50%;bottom:68px;transform:translateX(-50%);width:min(72%,720px);
+    padding:11px 12px;border:1px solid #b9c7dd;border-radius:13px;background:rgba(255,253,248,.98);
+    color:var(--text-strong);box-shadow:0 14px 36px rgba(3,10,22,.32);
+  }
+  .lesson-guide[hidden]{display:none!important}
+  .guide-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .guide-step{margin:0 0 3px;color:var(--action);font-size:var(--type-11);font-weight:800;letter-spacing:.04em}
+  .guide-head h3{margin:0;font-size:var(--type-14);line-height:1.35}
+  .guide-copy{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:7px}
+  .guide-copy p{margin:0;color:var(--text-muted);font-size:var(--type-11);line-height:1.5}
+  .guide-copy b{color:var(--text-strong)}
+  .guide-why{margin-top:7px;border-top:1px solid var(--border);padding-top:6px}
+  .guide-why summary{cursor:pointer;color:var(--action);font-size:var(--type-11);font-weight:800}
+  .guide-why p{margin:5px 0 0;color:var(--text-muted);font-size:var(--type-11);line-height:1.5}
+  .guide-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .guide-actions button{
+    min-width:44px;min-height:44px;padding:7px 10px;border:1px solid var(--border);border-radius:9px;
+    background:var(--surface-raised);color:var(--text-strong);font-size:var(--type-12);font-weight:800;
+  }
+  .guide-actions .guide-primary{border-color:var(--action);background:var(--action);color:var(--on-action)}
+  .guide-focus{box-shadow:0 0 0 3px #9a83ff,0 0 26px rgba(154,131,255,.38)!important}
+  .guide-dialog{width:min(680px,calc(100vw - 32px));max-height:min(76vh,680px);padding:0;border:1px solid var(--border);border-radius:16px;background:var(--surface-raised);color:var(--text-strong);box-shadow:var(--shadow)}
+  .guide-dialog::backdrop{background:rgba(11,20,36,.56)}
+  .guide-dialog-body{padding:18px;overflow:auto}
+  .guide-dialog-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .guide-dialog h2{margin:0;font-size:var(--type-16)}
+  .guide-dialog h3{margin:15px 0 5px;font-size:var(--type-13)}
+  .guide-dialog p,.guide-dialog li{font-size:var(--type-13);line-height:1.55}
+  .guide-dialog-close{width:44px;height:44px;border:1px solid var(--border);border-radius:10px;background:var(--surface-raised);font-size:var(--type-16)}
+  .guide-dialog.fallback-open{display:block;position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);z-index:30}
+
+  @media (max-width:960px){
+    :root{--header-height:56px}
+    html,body{height:auto;min-height:100%;overflow:auto}
+    header.topbar.template-header{height:56px;min-height:56px;padding:0 12px;grid-template-columns:42px minmax(0,1fr)}
+    #headerBackSlot{width:42px;height:34px}
+    .template-header .brand-mark{width:34px;height:34px;border-radius:11px;font-size:var(--type-16)}
+    .template-header h1{font-size:var(--type-16)}
+    #experimentLayout{height:auto;min-height:calc(100dvh - 56px);display:flex;flex-direction:column;padding:8px;gap:8px;overflow:visible}
+    .stage{order:1;width:100%;height:min(58vh,500px);min-height:390px;flex:none}
+    .panel-tabs{order:2;display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px}
+    .panel-tabs button{min-height:44px;border:1px solid var(--border);border-radius:9px;background:var(--surface-raised);color:var(--text-muted);font-size:var(--type-13);font-weight:800}
+    .panel-tabs button[aria-selected="true"]{border-color:var(--action);background:var(--action);color:var(--on-action)}
+    .control-panel,.observe-panel{order:3;display:none;width:100%;height:min(48vh,440px);min-height:280px;padding:8px;overflow-y:auto;border:1px solid var(--border)}
+    #experimentLayout[data-active-panel="controls"] .control-panel,#experimentLayout[data-active-panel="observe"] .observe-panel{display:flex}
+    .lesson-guide{width:min(86%,720px)}
+  }
+
+  @media (orientation:landscape) and (max-width:960px) and (max-height:540px){
+    :root{--header-height:46px}
+    html,body{height:100%;overflow:hidden}
+    header.topbar.template-header{height:46px;min-height:46px;padding:0 10px;grid-template-columns:38px minmax(0,1fr);gap:8px}
+    #headerBackSlot{width:38px;height:30px}
+    .template-header .brand{gap:8px}.template-header .brand-mark{width:30px;height:30px;border-radius:10px;font-size:var(--type-14)}
+    .template-header h1{font-size:var(--type-14)}
+    #experimentLayout{
+      height:calc(100dvh - 46px);min-height:0;display:grid;overflow:hidden;padding:6px;gap:6px;
+      grid-template-columns:minmax(0,1.55fr) minmax(250px,.8fr);grid-template-rows:44px minmax(0,1fr);
+    }
+    .stage{display:grid;grid-column:1;grid-row:1/3;order:initial;width:auto;height:auto;min-height:0;margin:0}
+    .panel-tabs{display:grid;grid-column:2;grid-row:1;order:initial;padding:0;gap:4px}
+    .panel-tabs button{min-height:44px;font-size:var(--type-12)}
+    .control-panel,.observe-panel{grid-column:2;grid-row:2;order:initial;width:auto;height:auto;min-height:0;padding:6px;overflow-y:auto}
+    .stage-entrybar{padding:6px 8px 0;gap:5px}.stage-entrybar button{min-height:44px;font-size:var(--type-12)}
+    .stage-heading{padding:6px 9px 1px}.stage-heading p{display:none}
+    #segmentValues{padding:4px 8px 5px}.segment-button{min-height:44px}
+    .teaching-controls{padding:5px 8px 7px}
+    .lesson-guide{bottom:60px;width:calc(100% - 18px);padding:8px 9px}
+    .guide-copy{grid-template-columns:1fr;gap:3px}.guide-actions{margin-top:5px}.guide-actions button{min-height:40px}
+  }
 </style>
 </head>
 <body>
@@ -192,24 +288,15 @@
     <div class="brand-mark" aria-hidden="true">罗</div>
     <div class="brand-copy">
       <p class="eyebrow">老罗物理 · 探究实验</p>
-      <h1>打点计时器：纸带数据处理</h1>
+      <h1>纸带逐差法｜用六段位移求加速度</h1>
     </div>
   </div>
 </header>
-<main id="experimentLayout" data-layout-lock="three-column">
+<main id="experimentLayout" data-active-panel="controls">
   <aside class="control-panel" id="controlPanel" aria-label="固定条件与学习步骤">
     <section class="card">
       <h2>用逐差法求加速度</h2>
       <p class="intro">一条固定的理想纸带，一次看清“错位三段作差、再取平均”的完整方法。</p>
-    </section>
-
-    <section class="card" aria-labelledby="modeHeading">
-      <h3 id="modeHeading"><span>学习方式</span><span class="kicker">MODE</span></h3>
-      <div class="mode-switch" role="group" aria-label="学习方式">
-        <button type="button" id="modeAuto" aria-pressed="false">自动演示</button>
-        <button type="button" id="modeGuided" aria-pressed="true">分步引导</button>
-        <button type="button" id="modeExplore" aria-pressed="false">自由探索</button>
-      </div>
     </section>
 
     <section class="card" id="fixedConditions" aria-labelledby="conditionsHeading">
@@ -224,11 +311,6 @@
       </div>
     </section>
 
-    <section class="card" aria-labelledby="stepsHeading">
-      <h3 id="stepsHeading"><span>七步逐差流程</span><span class="kicker">7 STEPS</span></h3>
-      <ol id="differenceSteps"></ol>
-    </section>
-
     <section class="card">
       <h3><span>方法抓手</span><span class="kicker">WHY</span></h3>
       <p class="method-note">把相隔三段的位移配成一组，使每组时间差都是 <b>3T′</b>；三次独立求值后取平均，充分使用六段数据。</p>
@@ -236,6 +318,10 @@
   </aside>
 
   <section class="stage" id="stage" aria-label="理想化纸带逐差法工作台">
+    <div class="stage-entrybar" aria-label="学习入口">
+      <button type="button" id="openExperimentGuide">实验指南</button>
+      <button type="button" id="startStudentGuide" class="primary-entry">分步演示</button>
+    </div>
     <div class="stage-heading">
       <div>
         <h2>理想化匀加速纸带</h2>
@@ -247,6 +333,25 @@
       <canvas id="tapeCanvas" tabindex="0" aria-label="理想化匀加速纸带，A 到 G 七个计数点，六段位移依次为 3、5、7、9、11、13 厘米"></canvas>
     </div>
     <div id="segmentValues" aria-label="六段位移，可在自由探索中选择查看"></div>
+    <section class="lesson-guide" id="lessonGuide" aria-live="polite" hidden>
+      <div class="guide-head">
+        <div>
+          <p class="guide-step" id="guideStepLabel">第 1 / 5 步</p>
+          <h3 id="guideTitle">确定计时单位</h3>
+        </div>
+      </div>
+      <div class="guide-copy">
+        <p id="guideHappening"><b>正在发生：</b>由 50 Hz 和 5 个间隔得到 T′。</p>
+        <p id="guideObserve"><b>重点看：</b>5 个间隔对应 0.10 s。</p>
+      </div>
+      <details class="guide-why"><summary>为什么？</summary><p id="guideWhy"></p></details>
+      <div class="guide-actions" id="guideActions">
+        <button type="button" data-guide-action="close" aria-label="关闭演示">关闭</button>
+        <button type="button" data-guide-action="previous">上一步</button>
+        <button type="button" data-guide-action="pause">暂停</button>
+        <button type="button" class="guide-primary" data-guide-action="next">下一步</button>
+      </div>
+    </section>
     <div class="teaching-controls" aria-label="教学步骤控制">
       <button type="button" id="previousTeachingStep">上一步</button>
       <button type="button" id="nextTeachingStep">下一步</button>
@@ -265,6 +370,11 @@
       </tbody>
     </table>
   </section>
+
+  <div class="panel-tabs" id="panelTabs" role="tablist" aria-label="切换参数与观察面板">
+    <button type="button" id="controlsTab" role="tab" aria-selected="true" aria-controls="controlPanel" tabindex="0">参数设置</button>
+    <button type="button" id="observeTab" role="tab" aria-selected="false" aria-controls="observePanel" tabindex="-1">观察数据</button>
+  </div>
 
   <aside class="observe-panel" id="observePanel" aria-label="当前配对与计算结果">
     <section class="card focus-card">
@@ -294,6 +404,26 @@
   </aside>
 </main>
 
+<dialog class="guide-dialog" id="experimentGuideDialog" aria-labelledby="experimentGuideTitle">
+  <div class="guide-dialog-body">
+    <div class="guide-dialog-head">
+      <h2 id="experimentGuideTitle">实验指南｜纸带逐差法</h2>
+      <button type="button" class="guide-dialog-close" id="closeExperimentGuide" aria-label="关闭实验指南">×</button>
+    </div>
+    <h3>学习目标</h3>
+    <p>从一条理想化匀加速纸带中读取六段位移，并用逐差法求出加速度。</p>
+    <h3>模型与条件</h3>
+    <p>电源频率固定为 50 Hz，每 5 个打点间隔选一个计数点，因此 T′ = 0.10 s。纸带不加入阻力、随机误差或测量误差。</p>
+    <h3>怎么做</h3>
+    <ol>
+      <li>读取 A—G 间的 s₁—s₆。</li>
+      <li>依次计算 (s₄−s₁)、(s₅−s₂)、(s₆−s₃)。</li>
+      <li>分别除以 3T′²，再对三组结果取平均。</li>
+      <li>用合并式验证结果一致。</li>
+    </ol>
+  </div>
+</dialog>
+
 <script data-successive-difference-core>
 (function () {
   const CONFIG = Object.freeze({ frequency: 50, intervalCount: 5, interval: 0.1, initialVelocity: 0.2, acceleration: 2, pointCount: 7 });
@@ -316,6 +446,43 @@
     return { groupAccelerations, average, combined };
   }
   window.SuccessiveDifferenceCore = Object.freeze({ CONFIG, PAIRINGS, generatePositions, segmentDisplacements, analyzeSuccessiveDifferences });
+})();
+</script>
+
+<script data-student-guide-core>
+(function () {
+  'use strict';
+  const GUIDE_STEPS = Object.freeze([
+    Object.freeze({ id: 1, focus: 'interval', title: '确定计时单位', happening: '由 50 Hz 和 5 个间隔得到 T′。', observe: '重点看：5 个间隔对应 0.10 s。', why: '逐差公式中的时间必须使用相邻计数点间隔 T′。', requiresSignal: true }),
+    Object.freeze({ id: 2, focus: 'segments', title: '读取六段位移', happening: '确认 A—G 七点间的 s₁—s₆。', observe: '重点看：六段位移依次增加 2.0 cm。', why: '相等时间内位移差相等，说明纸带符合匀加速模型。', requiresSignal: true }),
+    Object.freeze({ id: 3, focus: 'pairings', title: '完成三组逐差', happening: '依次把相隔三段的位移配对作差。', observe: '重点看：当前一组的分子都相差 6.0 cm。', why: '错位三段后，每组对应的时间差都为 3T′。', requiresSignal: true }),
+    Object.freeze({ id: 4, focus: 'average', title: '求三组平均值', happening: '对 a₁、a₂、a₃ 取平均。', observe: '重点看：三组都得到 2.00 m/s²。', why: '取平均能完整利用六段位移，减小单组测量偏差。', requiresSignal: true }),
+    Object.freeze({ id: 5, focus: 'combined', title: '验证合并式', happening: '把三组分子合并成一次计算。', observe: '重点看：合并式仍得到 2.00 m/s²。', why: '合并式只是三组逐差取平均后的等价写法。', requiresSignal: true })
+  ]);
+  function createGuideState() {
+    return { status: 'idle', step: 0, substep: 0 };
+  }
+  function guideReducer(state, action) {
+    if (!action || !action.type) return state;
+    if (action.type === 'START' || action.type === 'REPLAY') return { status: 'running', step: 1, substep: 0 };
+    if (action.type === 'PAUSE' && state.status === 'running') return { ...state, status: 'paused' };
+    if (action.type === 'RESUME' && state.status === 'paused') return { ...state, status: 'running' };
+    if (action.type === 'CLOSE' && state.step > 0) return { ...state, status: 'closed' };
+    if (action.type === 'CONTINUE' && state.status === 'closed') return { ...state, status: 'running' };
+    if (action.type === 'TRY') return { ...state, status: 'explore' };
+    if (action.type === 'PREVIOUS' && state.step > 1) return { ...state, step: state.step - 1, substep: 0 };
+    if (action.type === 'NEXT') return state;
+    if (action.type !== 'SIGNAL_COMPLETE' || state.status !== 'running') return state;
+    if (state.step === 3 && state.substep < 2) return { ...state, substep: state.substep + 1 };
+    if (state.step < GUIDE_STEPS.length) return { ...state, step: state.step + 1, substep: 0 };
+    return { ...state, status: 'completed' };
+  }
+  function layoutForViewport(width, height) {
+    if (width <= 960 && height <= 540) return { kind: 'short-landscape', tabs: true, visiblePanels: 1 };
+    if (width <= 960) return { kind: 'narrow', tabs: true, visiblePanels: 1 };
+    return { kind: 'wide', tabs: false, visiblePanels: 2 };
+  }
+  window.StudentGuideCore = Object.freeze({ GUIDE_STEPS, createGuideState, guideReducer, layoutForViewport });
 })();
 </script>
 
@@ -441,6 +608,7 @@
   const D = window.SuccessiveDifferenceCore;
   const T = window.SuccessiveDifferenceTeaching;
   const L = window.SuccessiveDifferenceLesson;
+  const G = window.StudentGuideCore;
   const elements = {
     canvas: document.getElementById('tapeCanvas'),
     steps: document.getElementById('differenceSteps'),
@@ -455,13 +623,24 @@
     previous: document.getElementById('previousTeachingStep'),
     next: document.getElementById('nextTeachingStep'),
     reset: document.getElementById('resetLesson'),
-    modes: {
-      auto: document.getElementById('modeAuto'),
-      guided: document.getElementById('modeGuided'),
-      explore: document.getElementById('modeExplore')
-    }
+    modes: {},
+    layout: document.getElementById('experimentLayout'),
+    stage: document.getElementById('stage'),
+    guide: document.getElementById('lessonGuide'),
+    guideStep: document.getElementById('guideStepLabel'),
+    guideTitle: document.getElementById('guideTitle'),
+    guideHappening: document.getElementById('guideHappening'),
+    guideObserve: document.getElementById('guideObserve'),
+    guideWhy: document.getElementById('guideWhy'),
+    guideActions: document.getElementById('guideActions'),
+    startGuide: document.getElementById('startStudentGuide'),
+    openGuide: document.getElementById('openExperimentGuide'),
+    guideDialog: document.getElementById('experimentGuideDialog'),
+    closeGuide: document.getElementById('closeExperimentGuide'),
+    panelTabs: Array.from(document.querySelectorAll('#panelTabs [role="tab"]'))
   };
   let state = T.createDifferenceState();
+  let guideState = G.createGuideState();
   let autoTimer = null;
   let tapeGeometry = null;
 
@@ -492,6 +671,7 @@
   }
 
   function renderSteps() {
+    if (!elements.steps) return;
     elements.steps.innerHTML = T.DIFFERENCE_STEPS.map(step => {
       const classes = [step.id === state.step ? 'is-current' : '', stepDone(step.id) ? 'is-done' : ''].filter(Boolean).join(' ');
       return `<li class="${classes}" data-step="${step.id}"${step.id === state.step ? ' aria-current="step"' : ''}><span class="step-number">${stepDone(step.id) ? '✓' : step.id}</span><span>${step.observe}</span></li>`;
@@ -595,7 +775,7 @@
     elements.pairHint.textContent = copy[1];
     elements.feedback.textContent = state.feedback;
     elements.feedback.classList.toggle('is-success', state.completed || state.groupAnswers.some(value => value !== null));
-    elements.stageMode.textContent = `${modeLabel(state.mode)} · 第 ${state.step} 步`;
+    elements.stageMode.textContent = `自主计算 · 第 ${state.step} 步`;
     renderModes();
     renderSteps();
     renderSegments(view);
@@ -737,13 +917,106 @@
     ctx.closePath();
   }
 
-  function runAuto() {
+  function guideStepData() {
+    return G.GUIDE_STEPS[Math.max(0, guideState.step - 1)] || G.GUIDE_STEPS[0];
+  }
+
+  function selectPanel(which, focus) {
+    elements.layout.dataset.activePanel = which;
+    elements.panelTabs.forEach((tab, index) => {
+      const selected = (which === 'controls' && index === 0) || (which === 'observe' && index === 1);
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    if (focus) {
+      const selected = elements.panelTabs.find(tab => tab.getAttribute('aria-selected') === 'true');
+      if (selected) selected.focus();
+    }
+  }
+
+  function clearGuideFocus() {
+    document.querySelectorAll('.guide-focus').forEach(node => node.classList.remove('guide-focus'));
+  }
+
+  function renderStudentGuide() {
+    clearGuideFocus();
+    const visible = ['running', 'paused', 'completed'].includes(guideState.status);
+    const locked = guideState.status === 'running' || guideState.status === 'paused';
+    elements.layout.dataset.guideStatus = guideState.status;
+    document.getElementById('controlPanel').inert = locked;
+    document.getElementById('observePanel').inert = locked;
+    elements.previous.disabled = locked || state.step <= 1;
+    elements.next.disabled = locked || state.step >= T.maxUnlockedStep(state);
+    elements.reset.disabled = locked;
+    elements.guide.hidden = !visible;
+    elements.startGuide.textContent = guideState.status === 'closed' ? '继续演示' : '分步演示';
+    if (!visible) return;
+    const step = guideStepData();
+    const pairProgress = guideState.step === 3 ? ` · 配对 ${guideState.substep + 1}/3` : '';
+    elements.guideStep.textContent = `第 ${guideState.step} / 5 步${pairProgress}`;
+    elements.guideTitle.textContent = step.title;
+    elements.guideHappening.innerHTML = `<b>正在发生：</b>${step.happening}`;
+    elements.guideObserve.innerHTML = `<b>${step.observe.split('：')[0]}：</b>${step.observe.split('：').slice(1).join('：')}`;
+    elements.guideWhy.textContent = step.why;
+    if (guideState.status === 'completed') {
+      elements.guideActions.innerHTML = `
+        <button type="button" data-guide-action="replay">重新播放</button>
+        <button type="button" class="guide-primary" data-guide-action="try">现在自己试试</button>
+        <button type="button" data-guide-action="close">关闭</button>`;
+    } else {
+      elements.guideActions.innerHTML = `
+        <button type="button" data-guide-action="close">关闭</button>
+        <button type="button" data-guide-action="previous"${guideState.step <= 1 ? ' disabled' : ''}>上一步</button>
+        <button type="button" data-guide-action="pause">${guideState.status === 'paused' ? '继续' : '暂停'}</button>
+        <button type="button" class="guide-primary" data-guide-action="next">下一步</button>`;
+    }
+    const focusTarget = step.focus === 'interval' ? document.getElementById('fixedConditions')
+      : step.focus === 'segments' || step.focus === 'pairings' ? document.querySelector('.canvas-wrap')
+      : step.focus === 'average' ? document.getElementById('groupResults')
+      : document.getElementById('combinedFormula');
+    if (focusTarget) focusTarget.classList.add('guide-focus');
+    if (window.innerWidth <= 960) selectPanel(step.focus === 'average' || step.focus === 'combined' ? 'observe' : 'controls');
+  }
+
+  function resetLessonForGuide() {
+    state = T.differenceReducer(T.createDifferenceState(), { type: 'SET_MODE', mode: 'auto' });
+    render();
+  }
+
+  function applyActionsBeforeGuideStep(targetStep) {
+    resetLessonForGuide();
+    if (targetStep > 1) state = T.differenceReducer(state, { type: 'CONFIRM_INTERVAL' });
+    if (targetStep > 2) state = T.differenceReducer(state, { type: 'CONFIRM_SEGMENTS' });
+    if (targetStep > 3) {
+      for (let index = 0; index < 3; index += 1) state = T.differenceReducer(state, { type: 'SUBMIT_GROUP', index, value: 2 });
+    }
+    if (targetStep > 4) state = T.differenceReducer(state, { type: 'SUBMIT_AVERAGE', value: 2 });
+    render();
+  }
+
+  function completeCurrentGuideSignal() {
+    if (guideState.status !== 'running') return;
+    if (guideState.step === 1) dispatch({ type: 'CONFIRM_INTERVAL' });
+    else if (guideState.step === 2) dispatch({ type: 'CONFIRM_SEGMENTS' });
+    else if (guideState.step === 3) dispatch({ type: 'SUBMIT_GROUP', index: state.activePair, value: 2 });
+    else if (guideState.step === 4) dispatch({ type: 'SUBMIT_AVERAGE', value: 2 });
+    guideState = G.guideReducer(guideState, { type: 'SIGNAL_COMPLETE' });
+    renderStudentGuide();
+    scheduleStudentGuide();
+  }
+
+  function scheduleStudentGuide() {
     stopAuto();
-    if (state.mode !== 'auto' || state.completed) return;
-    autoTimer = window.setTimeout(() => {
-      dispatch(T.nextAutomaticAction(state));
-      runAuto();
-    }, 850);
+    if (guideState.status !== 'running') return;
+    autoTimer = window.setTimeout(completeCurrentGuideSignal, guideState.step === 3 ? 1500 : 1800);
+  }
+
+  function startStudentGuide(replay) {
+    stopAuto();
+    resetLessonForGuide();
+    guideState = G.guideReducer(guideState, { type: replay ? 'REPLAY' : 'START' });
+    renderStudentGuide();
+    scheduleStudentGuide();
   }
 
   elements.workbench.addEventListener('click', event => {
@@ -789,26 +1062,86 @@
   elements.next.addEventListener('click', () => dispatch({ type: 'VIEW_NEXT' }));
   elements.reset.addEventListener('click', () => {
     stopAuto();
+    guideState = G.createGuideState();
     dispatch({ type: 'RESET' });
+    renderStudentGuide();
   });
 
-  Object.entries(elements.modes).forEach(([mode, button]) => {
-    button.addEventListener('click', () => {
+  elements.startGuide.addEventListener('click', () => {
+    if (guideState.status === 'closed') {
+      guideState = G.guideReducer(guideState, { type: 'CONTINUE' });
+      renderStudentGuide();
+      scheduleStudentGuide();
+    } else startStudentGuide(false);
+  });
+
+  elements.guideActions.addEventListener('click', event => {
+    const button = event.target.closest('[data-guide-action]');
+    if (!button) return;
+    const action = button.dataset.guideAction;
+    if (action === 'close') {
       stopAuto();
-      if (mode === 'auto') {
-        state = T.differenceReducer(state, { type: 'RESET' });
-        state = T.differenceReducer(state, { type: 'SET_MODE', mode: 'auto' });
-        render();
-        runAuto();
-        return;
-      }
-      dispatch({ type: 'SET_MODE', mode });
+      guideState = G.guideReducer(guideState, { type: 'CLOSE' });
+      state = T.differenceReducer(state, { type: 'SET_MODE', mode: 'explore' });
+      render();
+      renderStudentGuide();
+    } else if (action === 'pause') {
+      const type = guideState.status === 'paused' ? 'RESUME' : 'PAUSE';
+      guideState = G.guideReducer(guideState, { type });
+      renderStudentGuide();
+      scheduleStudentGuide();
+    } else if (action === 'next') {
+      stopAuto();
+      completeCurrentGuideSignal();
+    } else if (action === 'previous') {
+      stopAuto();
+      guideState = G.guideReducer(guideState, { type: 'PREVIOUS' });
+      applyActionsBeforeGuideStep(guideState.step);
+      renderStudentGuide();
+      scheduleStudentGuide();
+    } else if (action === 'replay') startStudentGuide(true);
+    else if (action === 'try') {
+      stopAuto();
+      guideState = G.guideReducer(guideState, { type: 'TRY' });
+      state = T.createDifferenceState();
+      render();
+      renderStudentGuide();
+      selectPanel('observe');
+    }
+  });
+
+  function openExperimentGuide() {
+    if (guideState.status === 'running') {
+      stopAuto();
+      guideState = G.guideReducer(guideState, { type: 'PAUSE' });
+      renderStudentGuide();
+    }
+    if (typeof elements.guideDialog.showModal === 'function') elements.guideDialog.showModal();
+    else elements.guideDialog.classList.add('fallback-open');
+  }
+  function closeExperimentGuide() {
+    if (typeof elements.guideDialog.close === 'function' && elements.guideDialog.open) elements.guideDialog.close();
+    else elements.guideDialog.classList.remove('fallback-open');
+  }
+  elements.openGuide.addEventListener('click', openExperimentGuide);
+  elements.closeGuide.addEventListener('click', closeExperimentGuide);
+  elements.guideDialog.addEventListener('click', event => { if (event.target === elements.guideDialog) closeExperimentGuide(); });
+
+  elements.panelTabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => selectPanel(index === 0 ? 'controls' : 'observe'));
+    tab.addEventListener('keydown', event => {
+      const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+      if (!keys.includes(event.key)) return;
+      event.preventDefault();
+      const nextIndex = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : index === 0 ? 1 : 0;
+      selectPanel(nextIndex === 0 ? 'controls' : 'observe', true);
     });
   });
 
   if ('ResizeObserver' in window) new ResizeObserver(() => renderTape(state)).observe(elements.canvas);
   else window.addEventListener('resize', () => renderTape(state));
   render();
+  renderStudentGuide();
 })();
 </script>
 </body>
