@@ -368,9 +368,13 @@
     grid-template-rows:minmax(0,1fr);gap:10px;padding:10px;overflow:hidden;
   }
   #experimentLayout .control-panel{grid-column:1;grid-row:1;border:0;padding:0}
-  #experimentLayout .stage{grid-column:2;grid-row:1;margin:0}
+  #experimentLayout .stage{
+    grid-column:2;grid-row:1;margin:0;display:grid;
+    grid-template-rows:minmax(0,1fr) auto auto;min-width:0;min-height:0;
+  }
   #experimentLayout .observe-panel{grid-column:3;grid-row:1;border:0;padding:0}
   #panelTabs{display:none}
+  .stage-viewport{position:relative;grid-row:1;min-width:0;min-height:0;overflow:hidden}
 
   .stage-entry-bar{
     position:absolute;z-index:8;top:12px;left:50%;transform:translateX(-50%);
@@ -387,25 +391,30 @@
   .step>span{min-width:0;font-size:var(--type-11)}
 
   .lesson-guide{
-    position:absolute;z-index:9;left:50%;bottom:82px;transform:translateX(-50%);
-    width:min(720px,72%);padding:10px;border:1px solid #45618d;border-radius:12px;
-    background:rgba(11,20,36,.94);color:var(--stage-text);box-shadow:0 14px 32px rgba(0,0,0,.3);
+    position:relative;z-index:9;grid-row:2;display:grid;grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"head head" "copy copy" "why actions";column-gap:8px;
+    width:min(720px,calc(100% - 16px));justify-self:center;margin:0 0 8px;padding:8px;border:1px solid #45618d;border-radius:10px;
+    background:#0f1c30;color:var(--stage-text);box-shadow:none;
   }
   .lesson-guide[hidden]{display:none}
-  .guide-head{display:grid;grid-template-columns:82px minmax(0,1fr) 44px;align-items:center;gap:8px}
+  .guide-head{grid-area:head;display:grid;grid-template-columns:74px minmax(0,1fr) 44px;align-items:center;gap:8px}
   .guide-count{color:var(--stage-muted);font-size:var(--type-11);font-weight:800}
   .guide-title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--type-14);font-weight:800}
   .guide-close{width:44px;height:44px;padding:0;border:1px solid #45618d;background:#15233a;color:var(--stage-text);font-size:var(--type-16)}
-  .guide-copy{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:7px}
-  .guide-copy p{margin:0;padding:7px 8px;border-radius:8px;background:#15233a;font-size:var(--type-12);line-height:1.5}
+  .guide-copy{grid-area:copy;display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+  .guide-copy p{margin:0;padding:5px 7px;border-radius:7px;background:#15233a;font-size:var(--type-12);line-height:1.35}
   .guide-copy span{display:block;margin-bottom:2px;color:var(--stage-muted);font-size:var(--type-11);font-weight:800}
-  .guide-why{margin-top:6px;color:var(--stage-muted);font-size:var(--type-11)}
-  .guide-why summary{min-height:32px;cursor:pointer;font-size:var(--type-11);font-weight:800}
+  .guide-why{grid-area:why;margin-top:4px;color:var(--stage-muted);font-size:var(--type-11)}
+  .guide-why summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:var(--type-11);font-weight:800}
   .guide-why p{margin:2px 0 0;line-height:1.5}
-  .guide-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:7px}
+  .guide-actions{grid-area:actions;display:flex;justify-content:flex-end;gap:6px;margin-top:4px}
   .guide-actions button{min-width:88px;min-height:44px;border:1px solid #45618d;background:#15233a;color:var(--stage-text);font-size:var(--type-12)}
   .guide-actions .primary{background:var(--action);border-color:var(--action);color:var(--on-action)}
   .guide-actions .explore{background:var(--safe);border-color:var(--safe);color:#fff}
+  .stage-toolbar{
+    position:relative;z-index:6;grid-row:3;left:auto;right:auto;bottom:auto;transform:none;
+    width:auto;min-width:0;margin:0 8px 8px;justify-content:center;overflow-x:auto;
+  }
 
   #experimentGuideDialog{width:min(680px,calc(100vw - 32px));max-height:calc(100dvh - 32px);margin:auto;padding:0;border:1px solid var(--border);border-radius:14px;background:var(--surface-raised);color:var(--text-strong)}
   #experimentGuideDialog::backdrop{background:rgba(11,20,36,.56)}
@@ -435,7 +444,7 @@
     #experimentLayout[data-panel="conditions"] .control-panel,#experimentLayout[data-panel="observe"] .observe-panel{display:flex}
     .stage-entry-bar{top:8px;width:min(300px,56%)}
     .view-preset-bar{top:60px}
-    .lesson-guide{bottom:76px;width:min(680px,calc(100% - 16px))}
+    .lesson-guide{width:min(720px,calc(100% - 16px))}
   }
   @media (orientation:landscape) and (max-width:960px) and (max-height:540px){
     :root{--header-height:46px}
@@ -449,9 +458,9 @@
     #experimentLayout .control-panel,#experimentLayout .observe-panel{grid-column:2;grid-row:2}
     .stage-entry-bar{width:min(260px,58%);top:6px}.stage-entry-bar button{min-height:44px;font-size:var(--type-11)}
     .view-preset-bar{top:52px}
-    .lesson-guide{left:8px;right:8px;bottom:74px;width:auto;transform:none;padding:8px}
+    .lesson-guide{width:calc(100% - 12px);margin:0 0 6px;padding:7px}
     .stage-toolbar{min-height:56px}.stage-toolbar button{height:44px;min-height:44px}
-    .guide-copy{grid-template-columns:1fr}.guide-copy p:last-child{display:none}.guide-why{display:none}
+    .guide-copy{grid-template-columns:1fr 1fr}.guide-copy p{padding:4px 6px}
     .guide-actions button{min-width:72px;min-height:44px;font-size:var(--type-11)}
   }
 </style>
@@ -469,6 +478,7 @@
 </header>
 <main id="experimentLayout" data-panel="conditions">
   <section class="stage" id="stage">
+    <div class="stage-viewport" id="stageViewport">
     <canvas id="cv" tabindex="0" aria-label="打点计时器三维内部结构，可有限旋转、缩放并点击部件"></canvas>
     <div id="toast" role="status" aria-live="polite"><span id="toastText"></span></div>
     <div id="partTip"></div>
@@ -495,6 +505,7 @@
       <div><i data-viz="velocity"></i>纸带通道　<i data-viz="gravity"></i>本步焦点</div>
     </div>
     <div class="drag-tip">拖动有限旋转 · 双指或滚轮缩放 · 点击部件查看作用</div>
+    </div>
     <section class="lesson-guide" id="lessonGuide" aria-label="分步演示" aria-live="polite" hidden>
       <div class="guide-head">
         <span class="guide-count" id="guideCount">第 1 / 5 步</span>
@@ -696,35 +707,35 @@
       happening: '镜头对准纸带通过计时器的路径。',
       observe: '纸带经过限位孔，并从打点位置正下方穿过。',
       why: '只有纸带通过正确的打点位置，周期动作才能留下可分析的点迹。',
-      machine: 'em', camera: 'standard', focusParts: Object.freeze(['tape', 'hole']), requiresSignal: false
+      machine: 'em', camera: 'standard', powered: false, focusParts: Object.freeze(['tape', 'hole']), requiresSignal: false
     }),
     Object.freeze({
       id: 2, focus: 'em-drive', title: '打开电磁式剖面',
       happening: '50 Hz 交流电使线圈电磁状态周期变化，振片随之振动。',
       observe: '线圈的周期驱动如何传到振片和振针。',
       why: '周期驱动是振针按固定时间间隔下压的根源。',
-      machine: 'em', camera: 'emSection', focusParts: Object.freeze(['coil', 'reed']), requiresSignal: true
+      machine: 'em', camera: 'emSection', powered: true, focusParts: Object.freeze(['coil', 'reed']), requiresSignal: true
     }),
     Object.freeze({
       id: 3, focus: 'needle-mark', title: '慢放一次振针留点',
       happening: '振针完成一次真实下压，通过复写纸在纸带上留点。',
       observe: '一次下压对应纸带上新增的一个点。',
       why: '点迹是振针与纸带在打点时刻的真实接触结果。',
-      machine: 'em', camera: 'emSection', focusParts: Object.freeze(['reed', 'carbon']), requiresSignal: true
+      machine: 'em', camera: 'emSection', powered: true, focusParts: Object.freeze(['reed', 'carbon']), requiresSignal: true
     }),
     Object.freeze({
       id: 4, focus: 'spark-mark', title: '观察脉冲放电留点',
       happening: '电火花式计时器产生一次真实放电脉冲。',
       observe: '放电针通过墨粉纸盘，在纸带上形成新点迹。',
       why: '它不靠振针机械下压，但仍由周期脉冲决定留点时刻。',
-      machine: 'spark', camera: 'sparkSection', focusParts: Object.freeze(['spark', 'disc']), requiresSignal: true
+      machine: 'spark', camera: 'sparkSection', powered: true, focusParts: Object.freeze(['spark', 'disc']), requiresSignal: true
     }),
     Object.freeze({
       id: 5, focus: 'shared-timing', title: '形成共同时间节拍',
       happening: '对比振针留点与脉冲放电留点的真实时序。',
       observe: '结构和留点方式不同，但相邻点的时间间隔都是 0.02 s。',
       why: '在 50 Hz 条件下，两种机型都以同一电源频率作为时间基准，T = 1 / f。',
-      machine: 'spark', camera: 'standard', focusParts: Object.freeze(['reed', 'spark']), requiresSignal: true
+      machine: 'spark', camera: 'standard', powered: true, focusParts: Object.freeze(['reed', 'spark']), requiresSignal: true
     })
   ]);
 
@@ -752,6 +763,21 @@
     return state;
   }
 
+  function sceneReadyForStep(stepNumber, scene) {
+    const step = GUIDE_STEPS[stepNumber - 1];
+    if (!step || !scene) return false;
+    const actualFocus = Array.from(scene.focusParts || []).slice().sort().join('|');
+    const requiredFocus = Array.from(step.focusParts).slice().sort().join('|');
+    return scene.machine === step.machine
+      && scene.camera === step.camera
+      && Boolean(scene.powered) === step.powered
+      && actualFocus === requiredFocus;
+  }
+
+  function manualControlsEnabled(state) {
+    return state.status === 'idle' || state.status === 'explore';
+  }
+
   function layoutForViewport(width, height) {
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) throw new RangeError('viewport must be positive');
     if (width <= 960 && height <= 540) return { kind: 'short-landscape' };
@@ -759,7 +785,7 @@
     return { kind: 'wide' };
   }
 
-  window.StudentGuideCore = Object.freeze({ GUIDE_STEPS, createGuideState, guideReducer, layoutForViewport });
+  window.StudentGuideCore = Object.freeze({ GUIDE_STEPS, createGuideState, guideReducer, sceneReadyForStep, manualControlsEnabled, layoutForViewport });
 })();
 </script>
 <script data-principle-teaching-core>
@@ -970,6 +996,7 @@ var PARTS={
 /* ---------- 全局状态 ---------- */
 var S={
   machine:'em',
+  cameraPreset:'standard',
   playing:true,
   speed:1,
   cut:false,
@@ -1169,7 +1196,7 @@ function buildTape(F){
 var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 var W=0,H=0,DPR=1;
 function resize(){
-  var st=document.getElementById('stage');
+  var st=document.getElementById('stageViewport');
   var lessonLayout=document.getElementById('experimentLayout');
   var resolved=StudentGuideCore.layoutForViewport(window.innerWidth,window.innerHeight);
   lessonLayout.style.removeProperty('grid-template-columns');
@@ -1350,6 +1377,10 @@ function pointInPoly(x,y,p){
 }
 /* ---------- 拖拽 / 缩放 ---------- */
 var drag={on:false,x:0,y:0,moved:0};
+function markCameraCustom(){
+  S.cameraPreset='custom';
+  if(guideState&&guideState.status==='running')dispatchGuide({type:'PAUSE'});
+}
 function localXY(e){
   var r=cv.getBoundingClientRect();
   return {x:e.clientX-r.left, y:e.clientY-r.top};
@@ -1367,6 +1398,7 @@ cv.addEventListener('pointermove',function(e){
     drag.moved+=Math.abs(dx)+Math.abs(dy);
     cam.yaw   = clamp(cam.yaw-dx*0.0072,YAW_MIN,YAW_MAX);
     cam.pitch  = clamp(cam.pitch + dy*0.0058, PITCH_MIN, PITCH_MAX);
+    if(drag.moved>=5)markCameraCustom();
     drag.x=p.x;drag.y=p.y;
   }else{
     var part=pickAt(p.x,p.y);
@@ -1389,6 +1421,7 @@ cv.addEventListener('pointercancel',function(){drag.on=false;cv.classList.remove
 cv.addEventListener('pointerleave',function(){S.hover=null;hideTip();});
 cv.addEventListener('wheel',function(e){
   e.preventDefault();
+  markCameraCustom();
   cam.dist=clamp(cam.dist*(1+Math.sign(e.deltaY)*0.09), 6.5, 30);
 },{passive:false});
 // 双指缩放
@@ -1397,6 +1430,7 @@ cv.addEventListener('touchstart',function(e){
   if(e.touches.length===2){
     pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
     drag.on=false;
+    markCameraCustom();
   }
 },{passive:true});
 cv.addEventListener('touchmove',function(e){
@@ -1411,12 +1445,12 @@ cv.addEventListener('touchend',function(){pinch=null;},{passive:true});
 // 键盘可达性
 cv.addEventListener('keydown',function(e){
   var k=e.key;
-  if(k==='ArrowLeft'){cam.yaw=clamp(cam.yaw+0.09,YAW_MIN,YAW_MAX);e.preventDefault();}
-  else if(k==='ArrowRight'){cam.yaw=clamp(cam.yaw-0.09,YAW_MIN,YAW_MAX);e.preventDefault();}
-  else if(k==='ArrowUp'){cam.pitch=clamp(cam.pitch+0.07,PITCH_MIN,PITCH_MAX);e.preventDefault();}
-  else if(k==='ArrowDown'){cam.pitch=clamp(cam.pitch-0.07,PITCH_MIN,PITCH_MAX);e.preventDefault();}
-  else if(k==='+'||k==='='){cam.dist=clamp(cam.dist*0.9,6.5,30);}
-  else if(k==='-'){cam.dist=clamp(cam.dist*1.1,6.5,30);}
+  if(k==='ArrowLeft'){markCameraCustom();cam.yaw=clamp(cam.yaw+0.09,YAW_MIN,YAW_MAX);e.preventDefault();}
+  else if(k==='ArrowRight'){markCameraCustom();cam.yaw=clamp(cam.yaw-0.09,YAW_MIN,YAW_MAX);e.preventDefault();}
+  else if(k==='ArrowUp'){markCameraCustom();cam.pitch=clamp(cam.pitch+0.07,PITCH_MIN,PITCH_MAX);e.preventDefault();}
+  else if(k==='ArrowDown'){markCameraCustom();cam.pitch=clamp(cam.pitch-0.07,PITCH_MIN,PITCH_MAX);e.preventDefault();}
+  else if(k==='+'||k==='='){markCameraCustom();cam.dist=clamp(cam.dist*0.9,6.5,30);}
+  else if(k==='-'){markCameraCustom();cam.dist=clamp(cam.dist*1.1,6.5,30);}
 });
 
 var tipEl=document.getElementById('partTip');
@@ -1467,7 +1501,7 @@ function enterGuideStep(){
   S.machine=step.machine;
   applyCameraPreset(step.camera);
   setPrincipleFocus(step.focusParts);
-  S.powered=step.id>=2;
+  S.powered=step.powered;
   setSpeed(step.id===3?0.25:1);
   setPlaybackState(true);
   guideElapsed=0;guidePulseBaseline=S.pulseCount;guideTimeBaseline=clockState.physicalTime;
@@ -1485,7 +1519,7 @@ function dispatchGuide(action){
   guideState=StudentGuideCore.guideReducer(guideState,action);
   if(guideState.step!==previousStep) enterGuideStep();
   if(action.type==='PAUSE'&&guideState.status==='paused') setPlaybackState(false);
-  if(action.type==='RESUME'&&guideState.status==='running') setPlaybackState(true);
+  if(action.type==='RESUME'&&guideState.status==='running') enterGuideStep();
   if(guideState.status==='completed'&&previousStatus!=='completed'){
     S.powered=false;setPlaybackState(false);
     g('powerToggle').setAttribute('aria-pressed','false');g('powerToggle').textContent='接通电源，观察周期打点';
@@ -1496,10 +1530,14 @@ function signalGuideComplete(){
   if(guideState.status!=='running')return;
   dispatchGuide({type:'SIGNAL_COMPLETE'});
 }
+function currentGuideScene(){
+  return {machine:S.machine,camera:S.cameraPreset,powered:S.powered,focusParts:Array.from(S.focusParts)};
+}
 function maybeAdvanceGuide(dt){
   if(guideState.status!=='running'||!S.playing)return;
+  if(!StudentGuideCore.sceneReadyForStep(guideState.step,currentGuideScene())){guideElapsed=0;return;}
   guideElapsed+=dt;
-  if(guideState.step===1&&guideElapsed>=1.0) signalGuideComplete();
+  if(guideState.step===1&&guideElapsed>=0.45) signalGuideComplete();
   else if(guideState.step===2&&S.pulseCount-guidePulseBaseline>=2) signalGuideComplete();
   else if((guideState.step===3||guideState.step===4)&&S.pulseCount-guidePulseBaseline>=1) signalGuideComplete();
   else if(guideState.step===5&&clockState.physicalTime-guideTimeBaseline>=0.08) signalGuideComplete();
@@ -1528,7 +1566,8 @@ function onDot(dotTime){
 function g(id){return document.getElementById(id);}
 function renderGuide(){
   var step=StudentGuideCore.GUIDE_STEPS[guideState.step-1];
-  g('lessonGuide').hidden=!guideVisible;
+  var guide=g('lessonGuide'),nextHidden=!guideVisible;
+  if(guide.hidden!==nextHidden){guide.hidden=nextHidden;requestAnimationFrame(resize);}
   g('guideCount').textContent='第 '+guideState.step+' / 5 步';
   g('guideTitle').textContent=guideState.status==='completed'?'演示完成：形成共同时间节拍':step.title;
   g('guideHappening').textContent=guideState.status==='completed'?'两种机型已经分别用真实时序完成留点。':step.happening;
@@ -1541,6 +1580,10 @@ function renderGuide(){
   g('guideNext').disabled=guideState.status!=='completed'&&(guideState.status!=='running'||step.requiresSignal);
   g('guideExplore').hidden=guideState.status!=='completed';
   g('startLessonGuide').textContent=guideState.status==='paused'||(guideState.status==='running'&&!guideVisible)?'继续演示':(guideState.status==='completed'?'重新播放':'分步演示');
+  var lockManual=!StudentGuideCore.manualControlsEnabled(guideState);
+  document.querySelectorAll('.machine-switch button,[data-view],#cutToggle,#powerToggle,.speed-control button').forEach(function(control){
+    control.disabled=lockManual;control.setAttribute('aria-disabled',lockManual?'true':'false');
+  });
   document.querySelectorAll('[data-guide-progress]').forEach(function(row){
     var n=+row.dataset.guideProgress;
     row.classList.toggle('active',guideState.status!=='idle'&&n===guideState.step);
@@ -1592,7 +1635,7 @@ function setPrincipleFocus(partIds){S.focusParts=new Set(partIds);S.picked=null;
 function applyCameraPreset(id){
   var next=TimerPrincipleLesson.viewForPreset({yaw:cam.yaw,pitch:cam.pitch,dist:cam.dist,cut:S.cut,machine:S.machine},id);
   if(!next)return false;
-  cam.yaw=next.yaw;cam.pitch=next.pitch;cam.dist=next.dist;S.cut=next.cut;S.machine=next.machine;
+  cam.yaw=next.yaw;cam.pitch=next.pitch;cam.dist=next.dist;S.cut=next.cut;S.machine=next.machine;S.cameraPreset=id;
   document.querySelectorAll('[data-view]').forEach(function(b){b.classList.toggle('active',b.dataset.view===id);});
   g('cutToggle').classList.toggle('on',S.cut);updateMachineCard();return true;
 }
@@ -1682,6 +1725,9 @@ g('guideNext').addEventListener('click',function(){
   if(guideState.status==='completed'){
     doReset();guideState=StudentGuideCore.guideReducer(StudentGuideCore.createGuideState(),{type:'REPLAY'});guideVisible=true;enterGuideStep();return;
   }
+  if(!StudentGuideCore.sceneReadyForStep(guideState.step,currentGuideScene())){
+    toast('当前场景已离开本步观察状态，点击“继续”恢复后再前进。');return;
+  }
   dispatchGuide({type:'NEXT'});
 });
 g('guideExplore').addEventListener('click',function(){guideState=StudentGuideCore.guideReducer(guideState,{type:'EXPLORE'});guideVisible=false;S.powered=false;setPlaybackState(true);setPrincipleFocus([]);renderGuide();});
@@ -1700,7 +1746,7 @@ document.querySelectorAll('#panelTabs [role="tab"]').forEach(function(tab){
 });
 g('reset').addEventListener('click',doReset);
 function doReset(){
-  S.machine='em';S.playing=true;S.speed=1;S.cut=false;S.labels=true;S.powered=false;
+  S.machine='em';S.cameraPreset='standard';S.playing=true;S.speed=1;S.cut=false;S.labels=true;S.powered=false;
   S.dots=[];S.picked=null;S.hover=null;S.vibPhase=0;S.sparkFlash=0;S.pulseCount=0;S.tapeTravel=0;S.focusParts=new Set(['tape','hole']);
   clockState=TimerPrincipleLesson.createClockState();teachingState=TimerPrincipleTeaching.createTeachingState('guided');autoElapsed=0;
   cam.yaw=camDefault.yaw;cam.pitch=camDefault.pitch;cam.dist=camDefault.dist;

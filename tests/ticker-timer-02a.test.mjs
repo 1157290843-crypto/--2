@@ -128,6 +128,32 @@ test('student guide advances only from real signals while running', () => {
   assert.equal(state.status, 'completed');
 });
 
+test('guide stages become ready only in their required real scene state', () => {
+  const G = loadStudentGuideCore();
+  const paperPath = { machine: 'em', camera: 'standard', powered: false, focusParts: ['tape', 'hole'] };
+  assert.equal(G.sceneReadyForStep(1, paperPath), true);
+  assert.equal(G.sceneReadyForStep(1, { ...paperPath, camera: 'emSection' }), false);
+  assert.equal(G.sceneReadyForStep(1, { ...paperPath, focusParts: ['tape'] }), false);
+
+  const emDrive = { machine: 'em', camera: 'emSection', powered: true, focusParts: ['coil', 'reed'] };
+  assert.equal(G.sceneReadyForStep(2, emDrive), true);
+  assert.equal(G.sceneReadyForStep(2, { ...emDrive, powered: false }), false);
+  assert.equal(G.sceneReadyForStep(2, { ...emDrive, machine: 'spark' }), false);
+});
+
+test('manual scene controls stay locked until the guide returns to exploration', () => {
+  const G = loadStudentGuideCore();
+  let state = G.createGuideState();
+  assert.equal(G.manualControlsEnabled(state), true);
+
+  state = G.guideReducer(state, { type: 'START' });
+  assert.equal(G.manualControlsEnabled(state), false);
+  state = G.guideReducer(state, { type: 'PAUSE' });
+  assert.equal(G.manualControlsEnabled(state), false);
+  state = G.guideReducer(state, { type: 'EXPLORE' });
+  assert.equal(G.manualControlsEnabled(state), true);
+});
+
 test('02A has five focused principle steps', () => {
   const T = loadTeachingCore();
   assert.deepEqual(Array.from(T.PRINCIPLE_STEPS, step => step.id), [1, 2, 3, 4, 5]);
