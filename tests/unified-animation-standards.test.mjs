@@ -10,7 +10,9 @@ const repoRoot = resolve(here, '..');
 const paths = {
   agents: resolve(repoRoot, 'AGENTS.md'),
   production: resolve(repoRoot, 'docs/物理动画统一制作规范-v1.md'),
-  visual: resolve(repoRoot, 'docs/物理动画视觉标准-v1.md')
+  visual: resolve(repoRoot, 'docs/物理动画视觉标准-v1.md'),
+  feedbackPlan: resolve(repoRoot, 'docs/superpowers/plans/2026-08-11-continuous-animation-standard-feedback.md'),
+  originalPlan: resolve(repoRoot, 'docs/superpowers/plans/2026-08-11-unified-physics-animation-production-standard.md')
 };
 
 function readStandard(name) {
@@ -96,8 +98,13 @@ test('视觉标准 owns the page shell, formula, focus glow and guide-card detai
   const narrowLayout = visual.split('### 5.1 窄屏')[1]?.split('### 5.2 短横屏')[0] ?? '';
   const shortLandscape = visual.split('### 5.2 短横屏')[1]?.split('### 5.3 面板状态要求')[0] ?? '';
   const layoutTemplate = visual.split('### 6.4 可直接复制的三栏与响应式模板')[1]?.split('模板中的类名')[0] ?? '';
+  const narrowTemplate = layoutTemplate.split('@media (max-width: 960px)')[1]
+    ?.split('@media (orientation: landscape)')[0] ?? '';
+  const shortLandscapeTemplate = layoutTemplate.split('@media (orientation: landscape)')[1] ?? '';
   const stageColumnStart = entrySection.indexOf('<section class="stage-column">');
   const mobileTabsStart = entrySection.indexOf('<div class="mobile-tabs" role="tablist"');
+  const conditionsPanelStart = entrySection.indexOf('<aside id="conditionsPanel"');
+  const observePanelStart = entrySection.indexOf('<aside id="observePanel"');
   const stageColumnFragment = stageColumnStart >= 0 && mobileTabsStart > stageColumnStart
     ? entrySection.slice(stageColumnStart, mobileTabsStart)
     : '';
@@ -109,7 +116,16 @@ test('视觉标准 owns the page shell, formula, focus glow and guide-card detai
   assert.match(visual, /--focus:\s*#9a83ff/i);
   assert.match(visual, /引导演示与实验指南入口/);
   assert.match(entrySection, /<main class="experiment-layout" data-panel="conditions">/);
-  assert.ok(stageColumnStart >= 0 && mobileTabsStart > stageColumnStart);
+  assert.ok(
+    stageColumnStart >= 0
+      && stageColumnStart < mobileTabsStart
+      && mobileTabsStart < conditionsPanelStart,
+    'narrow source order must be stage column, tabs, then conditions panel'
+  );
+  assert.ok(
+    mobileTabsStart >= 0 && mobileTabsStart < observePanelStart,
+    'narrow source order must place tabs before the observe panel'
+  );
   assert.match(stageColumnFragment, /<nav class="guide-entry-bar"/);
   assert.match(stageColumnFragment, /<section class="stage">/);
   assert.equal(tabButtons.length, 2);
@@ -151,16 +167,35 @@ test('视觉标准 owns the page shell, formula, focus glow and guide-card detai
     layoutTemplate,
     /\.guide-entry-bar\s*\{(?=[^}]*width:\s*100%)(?=[^}]*min-height:\s*44px)(?=[^}]*display:\s*flex)(?=[^}]*overflow-x:\s*auto)[^}]*\}/
   );
+  assert.match(
+    layoutTemplate,
+    /\.guide-entry\s*\{(?=[^}]*min-width:\s*44px)(?=[^}]*min-height:\s*44px)(?=[^}]*flex:\s*0 0 auto)(?=[^}]*border:\s*1px solid var\(--border\))(?=[^}]*border-radius:\s*12px)(?=[^}]*background:\s*var\(--surface-raised\))(?=[^}]*color:\s*var\(--text-strong\))[^}]*\}/
+  );
+  assert.match(
+    layoutTemplate,
+    /\.guide-entry\.is-active\s*,\s*\.guide-entry\[aria-pressed="true"\]\s*,\s*\.guide-entry\[aria-expanded="true"\]\s*\{(?=[^}]*border(?:-color)?:\s*var\(--action\))(?=[^}]*background:\s*var\(--action\))(?=[^}]*color:\s*var\(--on-action\))[^}]*\}/
+  );
+  assert.match(
+    layoutTemplate,
+    /\.guide-entry:focus-visible\s*\{[^}]*outline:\s*[^;}]*var\(--focus\)[^}]*\}/
+  );
   assert.match(layoutTemplate, /\.stage-column\s*\{[^}]*grid-column:\s*2/);
+  assert.match(layoutTemplate, /\.control-panel\s*\{[^}]*grid-column:\s*1/);
+  assert.match(layoutTemplate, /\.observe-panel\s*\{[^}]*grid-column:\s*3/);
   assert.match(layoutTemplate, /\.stage\s*\{(?=[^}]*min-height:\s*0)[^}]*\}/);
   assert.match(layoutTemplate, /\.mobile-tabs\s*\{\s*display:\s*none/);
+  assert.match(layoutTemplate, /\.mobile-tabs\s*>\s*button\s*\{[^}]*min-height:\s*44px/);
   assert.match(layoutTemplate, /@media \(max-width: 960px\)[\s\S]{0,500}\.guide-entry-bar\s*\{[^}]*width:\s*100%/);
   assert.match(layoutTemplate, /@media \(max-width: 960px\)[\s\S]{0,900}\.stage-column\s*\{[^}]*grid-column:\s*1[^}]*grid-row:\s*1/);
   assert.match(layoutTemplate, /@media \(max-width: 960px\)[\s\S]{0,1200}\.mobile-tabs\s*\{[^}]*display:\s*grid/);
+  assert.match(narrowTemplate, /\.brand-mark\s*\{(?=[^}]*width:\s*34px)(?=[^}]*height:\s*34px)(?=[^}]*flex:\s*0 0 34px)[^}]*\}/);
+  assert.match(narrowTemplate, /grid-template-rows:\s*minmax\(350px,\s*56svh\)\s*44px\s*minmax\(0,\s*1fr\)/);
   assert.match(layoutTemplate, /data-panel="conditions"[\s\S]{0,160}\.control-panel[\s\S]{0,160}data-panel="observe"[\s\S]{0,160}\.observe-panel/);
   assert.match(layoutTemplate, /@media \(orientation: landscape\) and \(max-width: 960px\) and \(max-height: 540px\)[\s\S]{0,500}\.guide-entry-bar\s*\{[^}]*width:\s*100%/);
   assert.match(layoutTemplate, /@media \(orientation: landscape\) and \(max-width: 960px\) and \(max-height: 540px\)[\s\S]{0,900}\.stage-column\s*\{[^}]*grid-column:\s*1[^}]*grid-row:\s*1 \/ 3/);
   assert.match(layoutTemplate, /@media \(orientation: landscape\) and \(max-width: 960px\) and \(max-height: 540px\)[\s\S]{0,1200}\.mobile-tabs\s*\{[^}]*grid-column:\s*2[^}]*grid-row:\s*1/);
+  assert.match(shortLandscapeTemplate, /\.brand-mark\s*\{(?=[^}]*width:\s*30px)(?=[^}]*height:\s*30px)(?=[^}]*flex:\s*0 0 30px)[^}]*\}/);
+  assert.match(shortLandscapeTemplate, /grid-template-rows:\s*44px\s*minmax\(0,\s*1fr\)/);
   assert.match(visual, /主舞台底部控制条/);
   assert.match(visual, /紫色重点观察光晕/);
   assert.match(visual, /由内向外/);
@@ -181,6 +216,8 @@ test('视觉标准 defines semantic and accessible formula output across rendere
   const visual = readStandard('visual');
   const correctExamples = visual.split('### 9.7 正确示例')[1]?.split('### 9.8 错误示例')[0] ?? '';
   const svgExample = correctExamples.split('SVG 标准分式')[1]?.split('Canvas 使用')[0] ?? '';
+  const fractionExample = correctExamples.split('原生 MathML 分式、矢量角标与复合底数：')[1]
+    ?.split('</math>')[0] ?? '';
   for (const required of [
     /数学除法语义[\s\S]*标准分式/,
     /普通斜杠只允许[\s\S]*单位字符串/,
@@ -201,6 +238,12 @@ test('视觉标准 defines semantic and accessible formula output across rendere
     /aria-labelledby/,
     /同一物理状态/
   ]) assert.match(visual, required);
+  assert.match(
+    visual,
+    /含标准分式、根式或多层脚本[^\n]*即使[^\n]*display="inline"[^\n]*T2 `16px`/
+  );
+  assert.match(visual, /\.formula-complex\s*\{[^}]*font-size:\s*var\(--type-16\)[^}]*\}/);
+  assert.match(fractionExample, /<math[^>]*class="formula-complex"[^>]*display="inline"[^>]*>[\s\S]*<mfrac>/);
   const beforeErrorExamples = visual.split('### 9.8 错误示例')[0];
   assert.doesNotMatch(beforeErrorExamples, /v_0|r_0/);
   assert.match(visual, /### 9\.8 错误示例[\s\S]*a=Δv\/Δt[\s\S]*v_0=5m\/s/);
@@ -219,7 +262,23 @@ test('the three standards have one owner per concern and no legacy prompt depend
   const agents = readStandard('agents');
   const production = readStandard('production');
   const visual = readStandard('visual');
+  const feedbackPlan = readStandard('feedbackPlan');
+  const originalPlan = readStandard('originalPlan');
+  const runtimeAuthorities = `${agents}\n${production}\n${visual}`;
+  const manualAuthorityCheck = feedbackPlan.split('- [ ] **Step 4: 人工核对入口效果**')[1]
+    ?.split('- [ ] **Step 5: 提交 AGENTS 红线**')[0] ?? '';
+  const executionHandoff = originalPlan.split('## Execution Handoff')[1] ?? '';
+  assert.doesNotMatch(agents, /没有反馈轮数限制|主流程冒烟|Pull Request|规则归属/);
+  assert.doesNotMatch(visual, /教师持续反馈与标准升级|默认只修改当前动画|全项目标准候选|主流程冒烟|v1\.1/);
+  assert.doesNotMatch(runtimeAuthorities, /\.codex\/attachments/);
   assert.doesNotMatch(`${agents}\n${production}\n${visual}`, /235181b3-b39e-4217-abf1-b37333008bab/);
   assert.match(production, /## 3\. 五阶段制作流程/);
   assert.doesNotMatch(production, /--surface-page|grid-template-columns/);
+  assert.match(manualAuthorityCheck, /两份仓库内权威/);
+  assert.match(manualAuthorityCheck, /统一制作规范/);
+  assert.match(manualAuthorityCheck, /视觉标准/);
+  assert.doesNotMatch(manualAuthorityCheck, /总提示词|\.codex\/attachments/);
+  assert.match(executionHandoff, /命名隔离工作树[^\n]*唯一可写/);
+  assert.match(executionHandoff, /主工作区[^\n]*只读迁移来源/);
+  assert.doesNotMatch(executionHandoff, /从当前工作树内容出发/);
 });
