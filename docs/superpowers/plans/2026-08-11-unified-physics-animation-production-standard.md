@@ -733,4 +733,4 @@ Expected: 每个目标路径的 `git log` 输出包含对应任务记录的 SHA�
 
 ## Execution Handoff
 
-实施时从当前工作树内容出发，保留教师已经加入 `AGENTS.md` 和视觉标准第8节的未提交草案。每次只暂存任务列出的文件，禁止使用重置或覆盖命令处理现有修改。
+实施时，命名隔离工作树 `/Users/luogaowei/Documents/代码保存仓库/动画制作/.worktrees/unified-animation-standards` 是唯一可写位置；主工作区草案仅作为只读迁移来源。每次只暂存任务列出的文件，禁止使用重置或覆盖命令处理现有修改。
