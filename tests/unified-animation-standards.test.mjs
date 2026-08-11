@@ -71,8 +71,42 @@ test('统一制作规范 contains the five-stage, risk-routed student workflow',
 
 test('视觉标准 owns the page shell, formula, focus glow and guide-card details', () => {
   const visual = readStandard('visual');
+  const entrySection = visual.split('### 2.4 引导演示与实验指南入口')[1]?.split('\n---')[0] ?? '';
+  const wideLayout = visual.split('### 4.1 信息职责')[1]?.split('### 4.2 栏宽标准')[0] ?? '';
+  const narrowLayout = visual.split('### 5.1 窄屏')[1]?.split('### 5.2 短横屏')[0] ?? '';
+  const shortLandscape = visual.split('### 5.2 短横屏')[1]?.split('### 5.3 面板状态要求')[0] ?? '';
+  const layoutTemplate = visual.split('### 6.4 可直接复制的三栏与响应式模板')[1]?.split('模板中的类名')[0] ?? '';
   assert.match(visual, /--focus:\s*#9a83ff/i);
   assert.match(visual, /引导演示与实验指南入口/);
+  assert.match(entrySection, /<main class="experiment-layout">[\s\S]{0,400}<aside class="control-panel"[\s\S]{0,500}<section class="stage-column"[\s\S]{0,300}<nav class="guide-entry-bar"[\s\S]{0,900}<section class="stage"[\s\S]{0,500}<aside class="observe-panel"/);
+  assert.match(entrySection, /<nav class="guide-entry-bar"[\s\S]{0,600}<button[\s\S]{0,400}<button/);
+  assert.doesNotMatch(visual, /experiment-shell/);
+  assert.match(wideLayout, /左侧参数区[^\n]*引导演示 \/ 实验指南入口[^\n]*右侧观察区/);
+  assert.match(narrowLayout, /入口栏.*单列.*全宽/);
+  assert.match(shortLandscape, /入口栏.*左侧主舞台列顶部/);
+  assert.match(shortLandscape, /右侧.*参数\/观察标签.*标题栏下/);
+  for (const responsiveSection of [narrowLayout, shortLandscape]) {
+    assert.match(responsiveSection, /不得.*(?:挤压|裁切).*主舞台.*底部控制条.*活动面板/);
+    assert.match(responsiveSection, /不得缩小核心字号/);
+  }
+  assert.match(
+    layoutTemplate,
+    /\.experiment-layout\s*\{(?=[^}]*height:\s*calc\(100dvh - var\(--header-height\)\))(?=[^}]*overflow:\s*hidden)[^}]*\}/
+  );
+  assert.match(
+    layoutTemplate,
+    /\.stage-column\s*\{(?=[^}]*min-height:\s*0)(?=[^}]*display:\s*grid)(?=[^}]*grid-template-rows:\s*auto minmax\(0,\s*1fr\))(?=[^}]*overflow:\s*hidden)[^}]*\}/
+  );
+  assert.match(
+    layoutTemplate,
+    /\.guide-entry-bar\s*\{(?=[^}]*width:\s*100%)(?=[^}]*min-height:\s*44px)(?=[^}]*display:\s*flex)(?=[^}]*overflow-x:\s*auto)[^}]*\}/
+  );
+  assert.match(layoutTemplate, /\.stage-column\s*\{[^}]*grid-column:\s*2/);
+  assert.match(layoutTemplate, /\.stage\s*\{(?=[^}]*min-height:\s*0)[^}]*\}/);
+  assert.match(layoutTemplate, /@media \(max-width: 960px\)[\s\S]{0,500}\.guide-entry-bar\s*\{[^}]*width:\s*100%/);
+  assert.match(layoutTemplate, /@media \(max-width: 960px\)[\s\S]{0,900}\.stage-column\s*\{[^}]*grid-column:\s*1[^}]*grid-row:\s*1/);
+  assert.match(layoutTemplate, /@media \(orientation: landscape\) and \(max-width: 960px\) and \(max-height: 540px\)[\s\S]{0,500}\.guide-entry-bar\s*\{[^}]*width:\s*100%/);
+  assert.match(layoutTemplate, /@media \(orientation: landscape\) and \(max-width: 960px\) and \(max-height: 540px\)[\s\S]{0,900}\.stage-column\s*\{[^}]*grid-column:\s*1[^}]*grid-row:\s*1 \/ 3/);
   assert.match(visual, /主舞台底部控制条/);
   assert.match(visual, /紫色重点观察光晕/);
   assert.match(visual, /由内向外/);
@@ -91,6 +125,8 @@ test('视觉标准 owns the page shell, formula, focus glow and guide-card detai
 
 test('视觉标准 defines semantic and accessible formula output across renderers', () => {
   const visual = readStandard('visual');
+  const correctExamples = visual.split('### 9.7 正确示例')[1]?.split('### 9.8 错误示例')[0] ?? '';
+  const svgExample = correctExamples.split('SVG 标准分式')[1]?.split('Canvas 使用')[0] ?? '';
   for (const required of [
     /数学除法语义[\s\S]*标准分式/,
     /普通斜杠只允许[\s\S]*单位字符串/,
@@ -116,6 +152,13 @@ test('视觉标准 defines semantic and accessible formula output across rendere
   assert.match(visual, /### 9\.8 错误示例[\s\S]*a=Δv\/Δt[\s\S]*v_0=5m\/s/);
   assert.doesNotMatch(visual, /sub\s*,\s*\n?\s*sup\s*\{\s*font-size:\s*1em\s*;?\s*\}/);
   assert.doesNotMatch(visual, /<mi>Δv<\/mi>|<mi>Δt<\/mi>/);
+  assert.match(svgExample, /<svg[^>]*aria-labelledby="acceleration-title"[\s\S]{0,240}<title id="acceleration-title">/);
+  assert.match(svgExample, /<text[^>]*>\s*<tspan class="formula-variable">a<\/tspan>\s*<tspan class="formula-operator">=<\/tspan>\s*<\/text>/);
+  assert.match(svgExample, /<text[^>]*>\s*<tspan class="formula-operator">Δ<\/tspan><tspan class="formula-variable">v<\/tspan>\s*<\/text>/);
+  assert.match(svgExample, /<text[^>]*>\s*<tspan class="formula-operator">Δ<\/tspan><tspan class="formula-variable">t<\/tspan>\s*<\/text>/);
+  assert.match(svgExample, /\.formula-variable\s*\{[^}]*font-style:\s*italic/);
+  assert.match(svgExample, /\.formula-operator\s*\{[^}]*font-style:\s*normal/);
+  assert.doesNotMatch(svgExample, /<text[^>]*>(?:a\s*=|Δ[vt])<\/text>/);
 });
 
 test('the three standards have one owner per concern and no legacy prompt dependency', () => {
