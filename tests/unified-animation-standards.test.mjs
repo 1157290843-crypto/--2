@@ -76,11 +76,41 @@ test('视觉标准 owns the page shell, formula, focus glow and guide-card detai
   const narrowLayout = visual.split('### 5.1 窄屏')[1]?.split('### 5.2 短横屏')[0] ?? '';
   const shortLandscape = visual.split('### 5.2 短横屏')[1]?.split('### 5.3 面板状态要求')[0] ?? '';
   const layoutTemplate = visual.split('### 6.4 可直接复制的三栏与响应式模板')[1]?.split('模板中的类名')[0] ?? '';
+  const stageColumnStart = entrySection.indexOf('<section class="stage-column">');
+  const mobileTabsStart = entrySection.indexOf('<div class="mobile-tabs" role="tablist"');
+  const stageColumnFragment = stageColumnStart >= 0 && mobileTabsStart > stageColumnStart
+    ? entrySection.slice(stageColumnStart, mobileTabsStart)
+    : '';
+  const tabList = mobileTabsStart >= 0
+    ? entrySection.slice(mobileTabsStart).split('</div>')[0]
+    : '';
+  const tabButtons = [...tabList.matchAll(/<button\b[^>]*>/g)].map(([tag]) => tag);
+  const panelTags = [...entrySection.matchAll(/<aside\b[^>]*>/g)].map(([tag]) => tag);
   assert.match(visual, /--focus:\s*#9a83ff/i);
   assert.match(visual, /引导演示与实验指南入口/);
-  assert.match(entrySection, /<main class="experiment-layout">[\s\S]{0,400}<aside class="control-panel"[\s\S]{0,500}<section class="stage-column"[\s\S]{0,300}<nav class="guide-entry-bar"[\s\S]{0,900}<section class="stage"[\s\S]{0,500}<aside class="observe-panel"/);
-  assert.match(entrySection, /<nav class="guide-entry-bar"[\s\S]{0,600}<button[\s\S]{0,400}<button/);
-  assert.doesNotMatch(visual, /experiment-shell/);
+  assert.match(entrySection, /<main class="experiment-layout" data-panel="conditions">/);
+  assert.ok(stageColumnStart >= 0 && mobileTabsStart > stageColumnStart);
+  assert.match(stageColumnFragment, /<nav class="guide-entry-bar"/);
+  assert.match(stageColumnFragment, /<section class="stage">/);
+  assert.equal(tabButtons.length, 2);
+  for (const [tag, attributes] of [
+    [tabButtons[0], ['id="conditionsTab"', 'type="button"', 'role="tab"', 'aria-controls="conditionsPanel"', 'aria-selected="true"', 'tabindex="0"']],
+    [tabButtons[1], ['id="observeTab"', 'type="button"', 'role="tab"', 'aria-controls="observePanel"', 'aria-selected="false"', 'tabindex="-1"']]
+  ]) {
+    for (const attribute of attributes) assert.match(tag, new RegExp(attribute));
+  }
+  for (const [id, className, labelledBy] of [
+    ['conditionsPanel', 'control-panel', 'conditionsTab'],
+    ['observePanel', 'observe-panel', 'observeTab']
+  ]) {
+    const panel = panelTags.find((tag) => tag.includes(`id="${id}"`));
+    assert.ok(panel, `missing panel ${id}`);
+    assert.match(panel, new RegExp(`class="${className}"`));
+    assert.match(panel, /role="tabpanel"/);
+    assert.match(panel, new RegExp(`aria-labelledby="${labelledBy}"`));
+    assert.doesNotMatch(panel, /\shidden(?:\s|=|>)/);
+  }
+  assert.match(entrySection, /脚本[\s\S]{0,120}data-panel[\s\S]{0,120}aria-selected[\s\S]{0,120}tabindex[\s\S]{0,160}不得重置.*实验状态/);
   assert.match(wideLayout, /左侧参数区[^\n]*引导演示 \/ 实验指南入口[^\n]*右侧观察区/);
   assert.match(narrowLayout, /入口栏.*单列.*全宽/);
   assert.match(shortLandscape, /入口栏.*左侧主舞台列顶部/);
@@ -103,10 +133,14 @@ test('视觉标准 owns the page shell, formula, focus glow and guide-card detai
   );
   assert.match(layoutTemplate, /\.stage-column\s*\{[^}]*grid-column:\s*2/);
   assert.match(layoutTemplate, /\.stage\s*\{(?=[^}]*min-height:\s*0)[^}]*\}/);
+  assert.match(layoutTemplate, /\.mobile-tabs\s*\{\s*display:\s*none/);
   assert.match(layoutTemplate, /@media \(max-width: 960px\)[\s\S]{0,500}\.guide-entry-bar\s*\{[^}]*width:\s*100%/);
   assert.match(layoutTemplate, /@media \(max-width: 960px\)[\s\S]{0,900}\.stage-column\s*\{[^}]*grid-column:\s*1[^}]*grid-row:\s*1/);
+  assert.match(layoutTemplate, /@media \(max-width: 960px\)[\s\S]{0,1200}\.mobile-tabs\s*\{[^}]*display:\s*grid/);
+  assert.match(layoutTemplate, /data-panel="conditions"[\s\S]{0,160}\.control-panel[\s\S]{0,160}data-panel="observe"[\s\S]{0,160}\.observe-panel/);
   assert.match(layoutTemplate, /@media \(orientation: landscape\) and \(max-width: 960px\) and \(max-height: 540px\)[\s\S]{0,500}\.guide-entry-bar\s*\{[^}]*width:\s*100%/);
   assert.match(layoutTemplate, /@media \(orientation: landscape\) and \(max-width: 960px\) and \(max-height: 540px\)[\s\S]{0,900}\.stage-column\s*\{[^}]*grid-column:\s*1[^}]*grid-row:\s*1 \/ 3/);
+  assert.match(layoutTemplate, /@media \(orientation: landscape\) and \(max-width: 960px\) and \(max-height: 540px\)[\s\S]{0,1200}\.mobile-tabs\s*\{[^}]*grid-column:\s*2[^}]*grid-row:\s*1/);
   assert.match(visual, /主舞台底部控制条/);
   assert.match(visual, /紫色重点观察光晕/);
   assert.match(visual, /由内向外/);
