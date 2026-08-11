@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>打点计时器：规范实验操作</title>
+<title>打点计时器｜按正确顺序完成实验</title>
 <style>
   :root{
     --bg:#f7f4ed;--panel:#f7f4ed;--panel2:#fffdf8;--line:#d8d6cf;
@@ -368,6 +368,127 @@
     #experimentLayout[data-layout-lock="three-column"]{height:calc(100dvh - 46px);grid-template-columns:216px minmax(0,1fr) 216px;grid-template-rows:minmax(0,1fr)}
   }
 </style>
+<style id="guidance-layout-refresh">
+  :root{--header-height:62px}
+  [hidden]{display:none!important}
+  header.topbar.template-header{
+    height:var(--header-height);min-height:var(--header-height);padding:0 18px;
+    display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:12px;
+  }
+  #headerBackSlot{width:42px;height:38px}
+  .template-header .brand{gap:11px}
+  .template-header .brand-mark{width:38px;height:38px;flex:0 0 38px;border-radius:12px;font-size:var(--type-16);font-weight:900}
+  .template-header .eyebrow{font-size:var(--type-11);font-weight:800;letter-spacing:.12em}
+  .template-header h1{font-size:var(--type-20);line-height:1.15}
+
+  #experimentLayout{
+    height:calc(100dvh - var(--header-height));min-width:0;min-height:0;
+    display:grid;grid-template-columns:clamp(220px,22vw,280px) minmax(0,1fr) clamp(240px,21vw,314px);
+    grid-template-rows:minmax(0,1fr);gap:10px;padding:10px;overflow:hidden;
+  }
+  #experimentLayout .control-panel,#experimentLayout .observe-panel{
+    min-width:0;min-height:0;height:auto;padding:0;overflow-y:auto;border:0;background:var(--surface-panel);
+  }
+  #experimentLayout .control-panel{grid-column:1;grid-row:1}
+  #experimentLayout .stage{grid-column:2;grid-row:1;min-width:0;min-height:0;margin:0}
+  #experimentLayout .observe-panel{grid-column:3;grid-row:1}
+  #experimentLayout .mobile-tabs{display:none}
+  #operationSteps .step{display:grid;grid-template-columns:28px minmax(0,1fr);align-items:start;gap:8px}
+  #operationSteps .step b{font-size:var(--type-12)}
+
+  .stage-entry-bar{
+    position:absolute;z-index:9;left:50%;top:12px;transform:translateX(-50%);
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;width:min(360px,58%);pointer-events:none;
+  }
+  .stage-hud,.legend{top:68px}
+  .stage-entry-bar button{
+    min-height:44px;padding:8px 14px;border:1px solid rgba(145,163,191,.5);
+    background:rgba(11,20,36,.9);color:var(--stage-text);font-size:var(--type-13);pointer-events:auto;
+  }
+  .stage-entry-bar .primary{background:var(--action);border-color:#6685ea;color:var(--on-action)}
+  .stage-entry-bar button:focus-visible,.guide-actions button:focus-visible,.mobile-tabs button:focus-visible{
+    outline:3px solid var(--viz-gravity);outline-offset:2px;
+  }
+  .lesson-guide{
+    position:absolute;z-index:10;left:50%;bottom:77px;transform:translateX(-50%);
+    width:min(72%,720px);padding:12px;border:1px solid rgba(145,163,191,.52);border-radius:14px;
+    background:rgba(11,20,36,.94);box-shadow:0 16px 36px rgba(0,0,0,.32);color:var(--stage-text);
+  }
+  .lesson-guide[hidden]{display:none!important}
+  .guide-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px}
+  .guide-count{font-size:var(--type-11);font-weight:800;color:var(--viz-gravity)}
+  .guide-head h2{font-size:var(--type-14);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .guide-close{width:44px;min-width:44px;height:44px;padding:0;border:1px solid var(--stage-line);background:#15233a;color:var(--stage-text);font-size:var(--type-16)}
+  .guide-copy{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .guide-copy p{padding:7px 8px;border-radius:8px;background:rgba(38,54,80,.58);font-size:var(--type-12);line-height:1.45}
+  .guide-copy b{display:block;margin-bottom:2px;color:var(--stage-muted);font-size:var(--type-11)}
+  .lesson-guide details{margin-top:7px;color:var(--stage-muted);font-size:var(--type-11);line-height:1.5}
+  .lesson-guide summary{min-height:28px;cursor:pointer;color:var(--stage-text);font-size:var(--type-12);font-weight:800}
+  .guide-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:9px}
+  .guide-actions button{min-height:44px;padding:7px;border:1px solid #31425d;background:#15233a;color:var(--stage-text);font-size:var(--type-11);white-space:normal}
+  .guide-actions button.primary{background:var(--action);border-color:#6685ea;color:var(--on-action)}
+  .guide-complete{display:none;margin-top:9px;padding:8px;border-radius:9px;background:rgba(39,122,81,.22);color:#dff7e9;font-size:var(--type-12);line-height:1.45}
+  .lesson-guide.is-complete .guide-complete{display:block}
+  .lesson-guide.is-complete #guideWhy,.lesson-guide.is-complete .guide-copy{display:none}
+
+  #experimentGuideDialog{
+    width:min(620px,calc(100vw - 32px));max-height:min(720px,calc(100dvh - 32px));padding:0;
+    border:1px solid var(--border);border-radius:16px;background:var(--surface-raised);color:var(--text-strong);
+    box-shadow:0 24px 64px rgba(20,33,61,.28);
+  }
+  #experimentGuideDialog::backdrop{background:rgba(11,20,36,.52)}
+  .guide-dialog-body{padding:18px}
+  .guide-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .guide-dialog-head h2{font-size:var(--type-16)}
+  .guide-dialog-head button{width:44px;height:44px;padding:0;border:1px solid var(--border);background:var(--surface-raised);font-size:var(--type-16)}
+  .guide-dialog-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .guide-dialog-grid section{padding:11px;border:1px solid var(--border);border-radius:10px;background:var(--surface-page)}
+  .guide-dialog-grid h3{margin-bottom:5px;font-size:var(--type-13)}
+  .guide-dialog-grid p,.guide-dialog-grid li{font-size:var(--type-12);line-height:1.65}
+  .guide-dialog-grid ol{padding-left:20px}
+
+  @media (max-width:960px){
+    :root{--header-height:56px}
+    header.topbar.template-header{height:var(--header-height);min-height:var(--header-height);padding:0 12px;grid-template-columns:34px minmax(0,1fr);gap:10px}
+    #headerBackSlot{width:34px;height:34px}
+    .template-header .brand-mark{width:34px;height:34px;flex-basis:34px}
+    .template-header h1{font-size:var(--type-16)}
+    #experimentLayout{
+      grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(350px,56svh) 42px minmax(0,1fr);
+      gap:6px;padding:6px;
+    }
+    #experimentLayout .stage{grid-column:1;grid-row:1;margin:0;width:auto;height:auto;order:initial;flex:none}
+    #experimentLayout .mobile-tabs{grid-column:1;grid-row:2;display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:0;order:initial}
+    #experimentLayout .mobile-tabs button{min-height:42px;font-size:var(--type-12)}
+    #experimentLayout .control-panel,#experimentLayout .observe-panel{grid-column:1;grid-row:3;display:none;width:auto;height:auto;padding:0;order:initial;border:0}
+    #experimentLayout.show-controls .control-panel,#experimentLayout.show-data .observe-panel{display:flex}
+    .stage-entry-bar{top:8px;width:min(390px,62%)}
+    .lesson-guide{width:min(88%,720px)}
+  }
+  @media (orientation:landscape) and (max-width:960px) and (max-height:540px){
+    :root{--header-height:46px}
+    header.topbar.template-header{height:var(--header-height);min-height:var(--header-height);grid-template-columns:30px minmax(0,1fr);padding:0 10px}
+    #headerBackSlot{width:30px;height:30px}
+    .template-header .brand-mark{width:30px;height:30px;flex-basis:30px;border-radius:9px;font-size:var(--type-14)}
+    .template-header h1{font-size:var(--type-14)}
+    #experimentLayout{
+      height:calc(100dvh - var(--header-height));grid-template-columns:minmax(0,1.55fr) minmax(250px,.8fr);
+      grid-template-rows:42px minmax(0,1fr);gap:6px;padding:6px;
+    }
+    #experimentLayout .stage{grid-column:1;grid-row:1/3;margin:0}
+    #experimentLayout .mobile-tabs{grid-column:2;grid-row:1}
+    #experimentLayout .control-panel,#experimentLayout .observe-panel{grid-column:2;grid-row:2}
+    .stage-entry-bar{left:8px;right:8px;top:7px;transform:none;width:auto}
+    .stage-entry-bar button{min-height:40px;padding:6px 8px;font-size:var(--type-12)}
+    .lesson-guide{left:8px;right:8px;bottom:56px;transform:none;width:auto;padding:8px}
+    .guide-copy{grid-template-columns:1fr;gap:5px}
+    .guide-copy p{padding:5px 7px;font-size:var(--type-11)}
+    .lesson-guide details{display:none}
+    .guide-actions{margin-top:6px}
+    .guide-actions button{min-height:40px}
+    .guide-dialog-grid{grid-template-columns:1fr}
+  }
+</style>
 </head>
 <body>
 <header class="topbar template-header">
@@ -376,17 +497,21 @@
     <div class="brand-mark" aria-hidden="true">罗</div>
     <div class="brand-copy">
       <p class="eyebrow">老罗物理 · 探究实验</p>
-      <h1>打点计时器：规范实验操作</h1>
+      <h1>打点计时器｜按正确顺序完成实验</h1>
     </div>
   </div>
 </header>
-<main id="experimentLayout" data-layout-lock="three-column">
+<main id="experimentLayout" class="show-controls" data-panel="conditions">
   <div class="mobile-tabs" role="tablist" aria-label="切换操作与观察面板">
-    <button type="button" id="tabControls" role="tab" aria-selected="true">参数设置</button>
-    <button type="button" id="tabData" role="tab" aria-selected="false">观察数据</button>
+    <button type="button" id="tabControls" role="tab" aria-selected="true" aria-controls="controlPanel" tabindex="0">参数设置</button>
+    <button type="button" id="tabData" role="tab" aria-selected="false" aria-controls="observePanel" tabindex="-1">观察数据</button>
   </div>
 
   <section class="stage" id="stage">
+    <div class="stage-entry-bar" aria-label="学习入口">
+      <button type="button" id="openExperimentGuide">实验指南</button>
+      <button type="button" id="startLessonGuide" class="primary">分步演示</button>
+    </div>
     <canvas id="cv" tabindex="0" aria-label="电磁打点计时器三维操作台，可拖拽旋转并用滚轮缩放"></canvas>
     <div id="hotspotLayer" aria-label="三维场景操作">
       <button type="button" data-scene-action="fixTimer" aria-label="固定打点计时器">固定</button>
@@ -425,10 +550,29 @@
       <button type="button" id="viewReset">标准视角</button>
       <button type="button" id="reset" class="toolbar-reset" title="重置实验" aria-label="重置实验">↺</button>
     </div>
+    <section class="lesson-guide" id="lessonGuide" aria-live="polite" hidden>
+      <div class="guide-head">
+        <span class="guide-count" id="guideCount">第 1 / 5 步</span>
+        <h2 id="guideTitle">固定并校正方向</h2>
+        <button type="button" class="guide-close" id="closeLessonGuide" aria-label="关闭分步演示">×</button>
+      </div>
+      <div class="guide-copy">
+        <p><b>正在发生</b><span id="guideHappening"></span></p>
+        <p><b>重点看</b><span id="guideWatch"></span></p>
+      </div>
+      <details id="guideWhy"><summary>为什么？</summary><p id="guideWhyText"></p></details>
+      <p class="guide-complete" id="guideComplete">正确顺序已完成：纸带起点完整，末端没有重复深点。</p>
+      <div class="guide-actions">
+        <button type="button" id="guidePrev">上一步</button>
+        <button type="button" id="guidePause" class="primary">暂停</button>
+        <button type="button" id="guideNext">等待完成</button>
+        <button type="button" id="guideExplore">现在自己试试</button>
+      </div>
+    </section>
   </section>
 
-  <aside class="control-panel" id="controlPanel">
-    <div class="card">
+  <aside class="control-panel" id="controlPanel" role="tabpanel" aria-labelledby="tabControls">
+    <div class="card" hidden>
       <h3><span>学习模式</span><span class="kicker">MODE</span></h3>
       <div class="mode-switch" role="group" aria-label="学习模式">
         <button type="button" id="modeAuto" data-mode="auto">自动演示</button>
@@ -457,7 +601,7 @@
     </div>
   </aside>
 
-  <aside class="observe-panel" id="observePanel">
+  <aside class="observe-panel" id="observePanel" role="tabpanel" aria-labelledby="tabData">
     <div class="card judgement-card">
       <h3><span>为什么这样做</span><span class="kicker">WHY</span></h3>
       <p id="operationReason">固定后纸带才能沿直线平稳通过，避免实验装置晃动。</p>
@@ -479,6 +623,20 @@
     </div>
   </aside>
 </main>
+<dialog id="experimentGuideDialog" aria-labelledby="experimentGuideTitle">
+  <div class="guide-dialog-body">
+    <div class="guide-dialog-head">
+      <h2 id="experimentGuideTitle">实验指南</h2>
+      <button type="button" id="closeExperimentGuide" aria-label="关闭实验指南">×</button>
+    </div>
+    <div class="guide-dialog-grid">
+      <section><h3>学习目标</h3><p>会按“固定→穿带→通电→放车→断电取带”的顺序完成实验。</p></section>
+      <section><h3>理想模型</h3><p>电磁式打点计时器接 50 Hz 交流电，小车从静止开始以 2.00 m/s² 加速。</p></section>
+      <section><h3>基本原理</h3><p>计时器以固定时间间隔在纸带上留点，点迹保存了小车的运动位置。</p></section>
+      <section><h3>操作方法</h3><ol><li>固定计时器并校正纸带方向。</li><li>穿好纸带，检查复写纸接触。</li><li>先通电，待打点稳定后放车。</li><li>停车后先断电，再取带。</li></ol></section>
+    </div>
+  </div>
+</dialog>
 <script data-operation-core>
 const STEP_IDS = Object.freeze(['fix', 'thread', 'power', 'release', 'finish']);
 
@@ -562,6 +720,105 @@ window.TimerOperationCore = Object.freeze({
   availableSceneActions,
   generateOperationTape,
   nextRecommendedAction
+});
+</script>
+<script data-student-guide-core>
+const GUIDE_STEPS = Object.freeze([
+  Object.freeze({
+    focus: 'fix', title: '固定并校正方向',
+    happening: '计时器被稳固在长木板末端。',
+    watch: '纸带通道要与木板平行。',
+    why: '固定和校正可以避免装置晃动或纸带跑偏。', requiresSignal: true
+  }),
+  Object.freeze({
+    focus: 'thread', title: '穿过纸带通道',
+    happening: '纸带从小车夹拖向限位孔。',
+    watch: '纸带穿过限位孔，并位于复写纸下方。',
+    why: '正确的耗材接触关系才能留下清晰直线点迹。', requiresSignal: true
+  }),
+  Object.freeze({
+    focus: 'power', title: '先通电并等待稳定',
+    happening: '电磁计时器已接通交流电源。',
+    watch: '视觉脉冲和原地点迹稳定后再放车。',
+    why: '先通电才能从运动起点开始完整记录。', requiresSignal: true
+  }),
+  Object.freeze({
+    focus: 'release', title: '后释放小车',
+    happening: '小车在已通电条件下拖动纸带。',
+    watch: '连续点迹间距随小车加速而增大。',
+    why: '计时器用等时点迹保留小车的运动记录。', requiresSignal: true
+  }),
+  Object.freeze({
+    focus: 'finish', title: '先断电，再取带',
+    happening: '小车已停止，将依次断电和取带。',
+    watch: '确认电源关闭后，纸带才离开计时器。',
+    why: '先断电可避免振针在纸带末端原地重复打点。', requiresSignal: true
+  })
+]);
+
+function createGuideState() {
+  return { status: 'idle', step: 0, open: false };
+}
+
+function operationCompletesGuideStep(step, operationState) {
+  if (!operationState) return false;
+  if (step === 1) return operationState.fixed === true;
+  if (step === 2) return operationState.threaded === true;
+  if (step === 3) return operationState.powered === true && operationState.markingStable === true;
+  if (step === 4) return operationState.carStopped === true;
+  return step === 5 && operationState.completed === true && operationState.powered === false && operationState.tapeRemoved === true;
+}
+
+function guideReducer(state, action) {
+  if (action.type === 'START' || action.type === 'REPLAY') return { status: 'running', step: 1, open: true };
+  if (action.type === 'EXPLORE') return { ...state, status: 'explore', open: false };
+  if (action.type === 'OPEN') return { ...state, open: true };
+  if (action.type === 'CLOSE') return { ...state, open: false };
+  if (action.type === 'PAUSE' && state.status === 'running') return { ...state, status: 'paused' };
+  if (action.type === 'RESUME' && state.status === 'paused') return { ...state, status: 'running' };
+  if (action.type === 'PREV' && state.step > 1) return { ...state, step: state.step - 1, status: 'running' };
+  if (action.type === 'NEXT') {
+    const current = GUIDE_STEPS[state.step - 1];
+    if (state.status !== 'running' || !current || current.requiresSignal) return state;
+    return { ...state, step: Math.min(GUIDE_STEPS.length, state.step + 1) };
+  }
+  if (action.type === 'SIGNAL_COMPLETE' && state.status === 'running' && operationCompletesGuideStep(state.step, action.operationState)) {
+    if (state.step === GUIDE_STEPS.length) return { ...state, status: 'completed' };
+    return { ...state, step: state.step + 1 };
+  }
+  return state;
+}
+
+function operationSnapshotForStep(step, operationCore) {
+  const beforeStep = [
+    [],
+    [{ type: 'FIX_TIMER', aligned: true }],
+    [{ type: 'FIX_TIMER', aligned: true }, { type: 'THREAD_TAPE', throughGuide: true, consumableReady: true }],
+    [{ type: 'FIX_TIMER', aligned: true }, { type: 'THREAD_TAPE', throughGuide: true, consumableReady: true }, { type: 'POWER_ON' }, { type: 'MARKING_STABLE' }],
+    [{ type: 'FIX_TIMER', aligned: true }, { type: 'THREAD_TAPE', throughGuide: true, consumableReady: true }, { type: 'POWER_ON' }, { type: 'MARKING_STABLE' }, { type: 'RELEASE_CAR' }, { type: 'CAR_STOP' }]
+  ];
+  const actions = beforeStep[Math.max(1, Math.min(5, step)) - 1];
+  return actions.reduce(operationCore.reduceOperation, operationCore.createOperationState());
+}
+
+function nextAutoOperationAction(operationState, operationCore) {
+  return operationCore.nextRecommendedAction(operationState);
+}
+
+function layoutForViewport(width, height) {
+  if (width <= 960 && height <= 540) return { kind: 'short-landscape', activePanels: 1 };
+  if (width <= 960) return { kind: 'narrow', activePanels: 1 };
+  return { kind: 'wide', activePanels: 2 };
+}
+
+window.StudentGuideCore = Object.freeze({
+  GUIDE_STEPS,
+  createGuideState,
+  guideReducer,
+  operationCompletesGuideStep,
+  operationSnapshotForStep,
+  nextAutoOperationAction,
+  layoutForViewport
 });
 </script>
 <script>
@@ -730,11 +987,13 @@ var PARTS={
 
 /* ---------- 全局状态 ---------- */
 var O=window.TimerOperationCore;
+var G=window.StudentGuideCore;
 var operationState=O.createOperationState();
+var guideState=G.createGuideState();
 var S={
   machine:'em',        // 02B 只使用电磁式打点计时器
   step:0,              // 0..4
-  mode:'guided',
+  mode:'explore',
   playing:true,
   speed:1,
   cut:false,
@@ -1710,6 +1969,36 @@ function clearAutoTimers(){
   if(autoPauseTimer)clearTimeout(autoPauseTimer);
   autoTimer=null;autoPauseTimer=null;
 }
+function updateGuideUI(){
+  var panel=el('lessonGuide'),entry=el('startLessonGuide');
+  panel.hidden=!guideState.open;
+  entry.textContent=guideState.status==='idle'||guideState.status==='explore'?'分步演示':'继续演示';
+  if(!guideState.step)return;
+  var step=G.GUIDE_STEPS[guideState.step-1];
+  el('guideCount').textContent='第 '+guideState.step+' / '+G.GUIDE_STEPS.length+' 步';
+  el('guideTitle').textContent=step.title;
+  el('guideHappening').textContent=step.happening;
+  el('guideWatch').textContent=step.watch;
+  el('guideWhyText').textContent=step.why;
+  panel.classList.toggle('is-complete',guideState.status==='completed');
+  el('guidePrev').disabled=guideState.step<=1;
+  el('guideNext').disabled=step.requiresSignal||guideState.status!=='running';
+  el('guideNext').textContent=step.requiresSignal?'等待完成':'下一步';
+  el('guidePause').textContent=guideState.status==='completed'?'重新播放':(guideState.status==='paused'?'继续':'暂停');
+}
+function signalGuideFromOperation(){
+  guideState=G.guideReducer(guideState,{type:'SIGNAL_COMPLETE',operationState:operationState});
+  updateGuideUI();
+}
+function restoreOperationForGuideStep(step){
+  operationState=G.operationSnapshotForStep(step,O);
+  S.step=phaseOrder.indexOf(operationState.phase);
+  S.powered=operationState.powered;S.running=operationState.running;S.err=null;S.tapeDone=operationState.carStopped;
+  S.t=operationState.carStopped?1.3:0;
+  S.dots=operationState.carStopped?Array.from(O.generateOperationTape({startDelay:0,endOverprint:false}).dots):[];
+  S.vibPhase=0;S.picked=null;S.hover=null;
+  updateOperationUI();
+}
 function syncPhysicalState(action,previous){
   S.step=phaseOrder.indexOf(operationState.phase);
   S.powered=operationState.powered;
@@ -1742,6 +2031,7 @@ function dispatchOperation(action,source){
   operationState=O.reduceOperation(operationState,action);
   syncPhysicalState(action,previous);
   updateOperationUI();
+  signalGuideFromOperation();
   if(operationState.lastError==='lateOn')toast('顺序错误：小车先运动，起始一段没有被记录。',5200);
   else if(operationState.lastError==='lateOff')toast('顺序错误：未断电就取带，末端出现原地重复打点。',5200);
   else if(operationState.completed)toast('五步操作完成：起点完整，末端没有重复打点。',4200);
@@ -1870,7 +2160,7 @@ function updateHotspotPositions(){
 
 function takeOverAuto(){
   if(S.mode!=='auto')return;
-  clearAutoTimers();S.mode='explore';setPlaybackState(true);updateOperationUI();
+  clearAutoTimers();S.mode='explore';guideState=G.guideReducer(guideState,{type:'EXPLORE'});setPlaybackState(true);updateOperationUI();updateGuideUI();
   toast('你已接管自动演示，可以自由完成或尝试顺序错误。');
 }
 function completePowerStability(){
@@ -1929,8 +2219,8 @@ threadButton.addEventListener('pointercancel',function(event){
 
 function scheduleAuto(){
   clearAutoTimers();
-  if(S.mode!=='auto'||operationState.completed||operationState.lastError||!S.playing)return;
-  var action=O.nextRecommendedAction(operationState);
+  if(S.mode!=='auto'||guideState.status!=='running'||operationState.completed||operationState.lastError||!S.playing)return;
+  var action=G.nextAutoOperationAction(operationState,O);
   if(!action||action.type==='CAR_STOP')return;
   if(action.type==='POWER_ON'||action.type==='POWER_OFF'){
     autoTimer=setTimeout(function(){
@@ -1948,22 +2238,42 @@ function scheduleAuto(){
 }
 function resetOperation(keepMode){
   clearAutoTimers();operationState=O.createOperationState();
-  if(!keepMode)S.mode='guided';
+  if(!keepMode)S.mode='explore';
   dispatchOperation({type:'RESET'},'system');
   cam.yaw=camDefault.yaw;cam.pitch=camDefault.pitch;cam.dist=camDefault.dist;
   setPlaybackState(true);updateOperationUI();
 }
+function startLessonGuide(replay){
+  clearAutoTimers();
+  if(replay||guideState.status==='idle'||guideState.status==='explore'){
+    guideState=G.guideReducer(guideState,{type:replay?'REPLAY':'START'});
+    S.mode='auto';resetOperation(true);S.mode='auto';
+  }else{
+    guideState=G.guideReducer(guideState,{type:'OPEN'});
+    if(guideState.status==='paused')guideState=G.guideReducer(guideState,{type:'RESUME'});
+    S.mode=guideState.status==='completed'?'guided':'auto';setPlaybackState(true);
+  }
+  updateOperationUI();updateGuideUI();scheduleAuto();
+}
 function setMode(mode){
   clearAutoTimers();S.mode=mode;
-  if(mode==='auto'){resetOperation(true);S.mode='auto';updateOperationUI();scheduleAuto();}
-  else{updateOperationUI();toast(mode==='guided'?'分步引导：只有满足当前完成条件后才会解锁下一步。':'自由尝试：红色操作点会触发并展示两种典型顺序错误。');}
+  if(mode==='auto'){startLessonGuide(true);}
+  else{
+    if(mode==='explore')guideState=G.guideReducer(guideState,{type:'EXPLORE'});
+    updateOperationUI();updateGuideUI();toast(mode==='guided'?'分步引导：只有满足当前完成条件后才会解锁下一步。':'自由尝试：红色操作点会触发并展示两种典型顺序错误。');
+  }
 }
 el('modeAuto').addEventListener('click',function(){setMode('auto');});
 el('modeGuided').addEventListener('click',function(){setMode('guided');});
 el('modeExplore').addEventListener('click',function(){setMode('explore');});
 el('continueGuide').addEventListener('click',function(){setMode('guided');});
 el('recoverAction').addEventListener('click',function(){dispatchOperation({type:'RECOVER_STEP'},'system');toast('已恢复到当前步骤，不需要刷新页面。');});
-el('playPause').addEventListener('click',function(){setPlaybackState(!S.playing);if(S.playing&&S.mode==='auto')scheduleAuto();else if(!S.playing)clearAutoTimers();});
+el('playPause').addEventListener('click',function(){
+  setPlaybackState(!S.playing);
+  if(S.mode==='auto')guideState=G.guideReducer(guideState,{type:S.playing?'RESUME':'PAUSE'});
+  updateGuideUI();
+  if(S.playing&&S.mode==='auto')scheduleAuto();else if(!S.playing)clearAutoTimers();
+});
 document.querySelectorAll('.speed-control button').forEach(function(button){
   button.addEventListener('click',function(){
     S.speed=+button.dataset.speed;
@@ -1972,16 +2282,55 @@ document.querySelectorAll('.speed-control button').forEach(function(button){
   });
 });
 el('viewReset').addEventListener('click',function(){cam.yaw=camDefault.yaw;cam.pitch=camDefault.pitch;cam.dist=camDefault.dist;toast('已恢复标准视角。');});
-el('reset').addEventListener('click',function(){resetOperation(false);toast('实验已重置，从“固定”开始。');});
+el('reset').addEventListener('click',function(){guideState=G.createGuideState();resetOperation(false);updateGuideUI();toast('实验已重置，从“固定”开始。');});
 el('tabControls').addEventListener('click',function(){switchOperationTab('controls');});
 el('tabData').addEventListener('click',function(){switchOperationTab('data');});
 function switchOperationTab(which){
   var layout=el('experimentLayout');layout.classList.toggle('show-controls',which==='controls');layout.classList.toggle('show-data',which==='data');
+  layout.dataset.panel=which==='controls'?'conditions':'observe';
   el('tabControls').setAttribute('aria-selected',which==='controls'?'true':'false');el('tabData').setAttribute('aria-selected',which==='data'?'true':'false');
+  el('tabControls').tabIndex=which==='controls'?0:-1;el('tabData').tabIndex=which==='data'?0:-1;
   if(which==='data')renderCurrentTape();
 }
 
-resize();updateOperationUI();renderCurrentTape();
+function onPanelTabKeydown(event){
+  var tabs=[el('tabControls'),el('tabData')],index=tabs.indexOf(event.currentTarget),next=index;
+  if(event.key==='ArrowRight')next=(index+1)%tabs.length;
+  else if(event.key==='ArrowLeft')next=(index-1+tabs.length)%tabs.length;
+  else if(event.key==='Home')next=0;
+  else if(event.key==='End')next=tabs.length-1;
+  else return;
+  event.preventDefault();switchOperationTab(next===0?'controls':'data');tabs[next].focus();
+}
+el('tabControls').addEventListener('keydown',onPanelTabKeydown);
+el('tabData').addEventListener('keydown',onPanelTabKeydown);
+
+el('startLessonGuide').addEventListener('click',function(){startLessonGuide(false);});
+el('closeLessonGuide').addEventListener('click',function(){
+  clearAutoTimers();
+  if(guideState.status==='running')guideState=G.guideReducer(guideState,{type:'PAUSE'});
+  guideState=G.guideReducer(guideState,{type:'CLOSE'});S.mode='explore';setPlaybackState(false);updateOperationUI();updateGuideUI();
+});
+el('guidePrev').addEventListener('click',function(){
+  clearAutoTimers();guideState=G.guideReducer(guideState,{type:'PREV'});restoreOperationForGuideStep(guideState.step);updateGuideUI();S.mode='auto';setPlaybackState(true);scheduleAuto();
+});
+el('guideNext').addEventListener('click',function(){guideState=G.guideReducer(guideState,{type:'NEXT'});updateGuideUI();});
+el('guidePause').addEventListener('click',function(){
+  if(guideState.status==='completed'){startLessonGuide(true);return;}
+  var resume=guideState.status==='paused';guideState=G.guideReducer(guideState,{type:resume?'RESUME':'PAUSE'});setPlaybackState(resume);updateGuideUI();
+  if(resume){S.mode='auto';scheduleAuto();}else clearAutoTimers();
+});
+el('guideExplore').addEventListener('click',function(){clearAutoTimers();guideState=G.guideReducer(guideState,{type:'EXPLORE'});S.mode='explore';setPlaybackState(true);updateOperationUI();updateGuideUI();toast('已转入自由操作，当前实验状态保留。');});
+
+var experimentGuideDialog=el('experimentGuideDialog');
+el('openExperimentGuide').addEventListener('click',function(){
+  if(guideState.status==='running'){guideState=G.guideReducer(guideState,{type:'PAUSE'});clearAutoTimers();setPlaybackState(false);updateGuideUI();}
+  experimentGuideDialog.showModal();
+});
+el('closeExperimentGuide').addEventListener('click',function(){experimentGuideDialog.close();});
+experimentGuideDialog.addEventListener('click',function(event){if(event.target===experimentGuideDialog)experimentGuideDialog.close();});
+
+resize();updateOperationUI();updateGuideUI();renderCurrentTape();
 requestAnimationFrame(function(time){lastMs=time;tick(time);});
 toast('从场景中的“固定”按钮开始，按五步完成规范操作。',4200);
 })();
