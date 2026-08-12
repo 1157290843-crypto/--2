@@ -119,6 +119,73 @@ test('统一制作规范 selects one carrier and one interaction type before app
   assert.doesNotMatch(decisionSection, /全项目无声音|浮动引导卡|#[0-9a-f]{6}/i);
 });
 
+test('统一制作规范 maps every carrier to an eight-type field state', () => {
+  const production = readStandard('production');
+  const decisionSection = production
+    .split('## 4. 教学目标、功能预算与主动做减法')[1]
+    ?.split('## 5. 物理模型、参数分类与唯一实验状态')[0] ?? '';
+
+  assert.match(decisionSection, /独立成品、同内核独立成品[\s\S]{0,100}必须[\s\S]{0,80}八类/);
+  assert.match(decisionSection, /嵌入教学步骤[\s\S]{0,180}真实动态交互[\s\S]{0,120}不适用/);
+  assert.match(decisionSection, /静态题卡、成版排除[\s\S]{0,80}不适用/);
+  assert.match(decisionSection, /暂缓待补[\s\S]{0,80}待定/);
+  assert.match(decisionSection, /不适用[\s\S]{0,80}待定[\s\S]{0,100}字段状态[\s\S]{0,80}不属于主类型/);
+});
+
+test('统一制作规范 gives all eight types mandatory controls and prohibited boundaries', () => {
+  const production = readStandard('production');
+  const decisionSection = production
+    .split('## 4. 教学目标、功能预算与主动做减法')[1]
+    ?.split('## 5. 物理模型、参数分类与唯一实验状态')[0] ?? '';
+  const expected = new Map([
+    ['过程演示型', ['播放', '关键节点', '大量参数']],
+    ['状态互动型', ['恢复默认', '前后对照', '结果量']],
+    ['参数探究型', ['预测记录', '结果对比', '多个自变量']],
+    ['图像联动型', ['双向同步游标', '坐标、单位', '多张主图']],
+    ['模型建构型', ['研究对象选择', '撤销', '自由白板']],
+    ['空间观察型', ['恢复标准视角', '考试视角', '自由漫游']],
+    ['虚拟实验型', ['原始数据表', '估读', '自动填满数据']],
+    ['题目推演型', ['阶段时间轴', '关键帧暂停', '完整题库']]
+  ]);
+  for (const [type, terms] of expected) {
+    const typeSection = decisionSection.split(`#### ${type}`)[1]?.split(/^#### /m)[0] ?? '';
+    assert.match(typeSection, /必备控制/);
+    assert.match(typeSection, /禁止边界/);
+    for (const term of terms) assert.match(typeSection, new RegExp(term));
+  }
+});
+
+test('统一制作规范 defines the ordered classification decision sequence', () => {
+  const production = readStandard('production');
+  const sequence = production.split('### 4.5 分类决策顺序')[1]?.split('### 4.6')[0] ?? '';
+  const ordered = ['学习障碍', '静态图无法替代', '建议载体', '主类型', '辅助机制', '单一主问题', '学生主要操作', '唯一观察焦点', '优先删除', '拆分', '物理风险'];
+  let previous = -1;
+  for (const term of ordered) {
+    const current = sequence.indexOf(term);
+    assert.ok(current > previous, `${term} must appear in classification order`);
+    previous = current;
+  }
+});
+
+test('统一制作规范 requires a compact per-item classification quality check', () => {
+  const production = readStandard('production');
+  const checklist = production.split('### 4.6 逐项分类质量检查')[1]?.split('## 5.')[0] ?? '';
+  for (const term of [
+    '一个问句', '载体与主类型', '十秒', '一个观察焦点',
+    '不超过四个', '系统计算结果', '结果量', '图像', '3D',
+    '动态、交互或操作价值', '适用范围', '底层复用'
+  ]) assert.match(checklist, new RegExp(term));
+});
+
+test('统一制作规范 decision record distinguishes conditions, results and animation priority', () => {
+  const production = readStandard('production');
+  const decisionSection = production
+    .split('### 4.4 辅助机制与制作决策单')[1]
+    ?.split('### 4.5')[0] ?? '';
+  assert.match(decisionSection, /可编辑条件[\s\S]{0,100}锁定条件[\s\S]{0,100}系统计算结果/);
+  assert.match(decisionSection, /动画化优先级[\s\S]{0,40}理由/);
+});
+
 test('视觉标准 owns the page shell, formula, focus glow and guide-card details', () => {
   const visual = readStandard('visual');
   const entrySection = visual.split('### 2.4 引导演示与实验指南入口')[1]?.split('\n---')[0] ?? '';
