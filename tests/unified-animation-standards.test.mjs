@@ -58,8 +58,8 @@ test('统一制作规范 contains the five-stage, risk-routed student workflow',
   assert.match(feedbackSection, /项目红线[^\n]*冲突[^\n]*明确确认/);
   assert.match(feedbackSection, /合并[^\n]*main[^\n]*正式生效/);
   assert.match(feedbackSection, /不[^\n]*批量[^\n]*旧动画/);
-  assert.match(production, /^# 物理动画统一制作规范 v1\.1$/m);
-  assert.match(production, /本文当前版本为 v1\.1/);
+  assert.match(production, /^# 物理动画统一制作规范 v1\.2$/m);
+  assert.match(production, /本文当前版本为 v1\.2/);
   for (const heading of ['任务审查', '制作决策', '模型与原型', '正式制作', '验证交付']) {
     assert.match(production, new RegExp(`### .*${heading}`));
   }
@@ -89,6 +89,34 @@ test('统一制作规范 contains the five-stage, risk-routed student workflow',
   assert.doesNotMatch(production, /自动演示/);
   assert.doesNotMatch(production, /\.codex\/attachments/);
   assert.doesNotMatch(production, /#[0-9a-f]{6}/i);
+});
+
+test('统一制作规范 selects one carrier and one interaction type before applying split rules', () => {
+  const production = readStandard('production');
+  const decisionSection = production
+    .split('## 4. 教学目标、功能预算与主动做减法')[1]
+    ?.split('## 5. 物理模型、参数分类与唯一实验状态')[0] ?? '';
+
+  for (const carrier of [
+    '独立成品', '同内核独立成品', '嵌入教学步骤',
+    '静态题卡', '暂缓待补', '成版排除'
+  ]) assert.match(decisionSection, new RegExp(carrier));
+
+  for (const type of [
+    '过程演示型', '状态互动型', '参数探究型', '图像联动型',
+    '模型建构型', '空间观察型', '虚拟实验型', '题目推演型'
+  ]) assert.match(decisionSection, new RegExp(type));
+
+  assert.match(decisionSection, /八类主类型[\s\S]{0,120}不设置第九类/);
+  assert.match(decisionSection, /非独立动画[\s\S]{0,120}不是第九种/);
+  assert.match(decisionSection, /两个不同主问题[\s\S]{0,100}必须拆分/);
+  assert.match(decisionSection, /两种不同主交互[\s\S]{0,100}必须拆分/);
+  assert.match(decisionSection, /两套不同物理状态机[\s\S]{0,260}四个以上主要参数[\s\S]{0,260}两张以上[\s\S]{0,260}任意两项[\s\S]{0,100}原则上必须拆分/);
+  assert.match(decisionSection, /每个成品最多选择一个辅助机制/);
+  assert.match(decisionSection, /主类型[\s\S]{0,120}必备闭环[\s\S]{0,120}不得重复登记/);
+  assert.match(decisionSection, /物理过程自动播放[\s\S]{0,180}当前教学步骤内[\s\S]{0,180}不得自动[\s\S]{0,80}教学步骤/);
+  assert.match(decisionSection, /建议载体[\s\S]{0,180}主类型[\s\S]{0,180}学生主要操作[\s\S]{0,180}唯一观察焦点/);
+  assert.doesNotMatch(decisionSection, /全项目无声音|浮动引导卡|#[0-9a-f]{6}/i);
 });
 
 test('视觉标准 owns the page shell, formula, focus glow and guide-card details', () => {
