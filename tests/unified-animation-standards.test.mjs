@@ -200,13 +200,15 @@ test('统一制作规范 resolves editable and locked parameter budgets', () => 
 test('统一制作规范 defines exactly eight auxiliary mechanisms with boundaries', () => {
   const production = readStandard('production');
   const auxiliary = production.split('#### 辅助机制目录')[1]?.split('#### 主从组合边界')[0] ?? '';
-  const mechanisms = [
+  const expectedMechanisms = [
     '时间控制', '预测验证', '临界事件', '对比辨析',
     '图像游标', '二维模型转化', '数据采集', '研究对象切换'
   ];
-  for (const mechanism of mechanisms) assert.match(auxiliary, new RegExp(`\\| ${mechanism} \\|[^\\n]+\\|[^\\n]+\\|`));
-  const mechanismRows = auxiliary.split('\n').filter((line) => mechanisms.some((mechanism) => line.startsWith(`| ${mechanism} |`)));
-  assert.equal(mechanismRows.length, 8);
+  const table = auxiliary.split('| 辅助机制 | 用途 | 使用边界 |')[1]?.split('\n\n')[0] ?? '';
+  const dataRows = table.split('\n').filter((line) => /^\|[^-][^|]*\|[^|]+\|[^|]+\|$/.test(line));
+  const actualMechanisms = dataRows.map((line) => line.split('|')[1].trim());
+  assert.equal(dataRows.length, 8, 'auxiliary mechanism table must contain exactly eight data rows');
+  assert.deepEqual(actualMechanisms, expectedMechanisms);
   assert.match(auxiliary, /时间控制[\s\S]{0,180}教学步骤[\s\S]{0,180}过程演示型[\s\S]{0,120}不重复登记/);
   assert.match(auxiliary, /主类型[\s\S]{0,120}必备[\s\S]{0,120}不得重复/);
 });
@@ -244,7 +246,7 @@ test('统一制作规范 defines directory granularity and bad-source handling',
   assert.match(checklist, /最低层[^\r\n]*可独立教学[^\r\n]*目录叶子/);
   assert.match(checklist, /父级[^\r\n]*不自动立项/);
   assert.match(checklist, /同内核[^\r\n]*独立标题[^\r\n]*独立[^\r\n]*脚本/);
-  assert.match(checklist, /残缺[\s\S]{0,80}编号断裂[\s\S]{0,80}物理表述错误/);
+  assert.match(checklist, /无效输入[\s\S]{0,80}残缺[\s\S]{0,80}编号断裂[\s\S]{0,80}物理表述错误/);
   assert.match(checklist, /暂缓待补[\s\S]{0,80}修正建议[\s\S]{0,100}不得[^\r\n]*猜测[^\r\n]*制作/);
 });
 
