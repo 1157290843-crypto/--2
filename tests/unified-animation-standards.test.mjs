@@ -58,8 +58,8 @@ test('统一制作规范 contains the five-stage, risk-routed student workflow',
   assert.match(feedbackSection, /项目红线[^\n]*冲突[^\n]*明确确认/);
   assert.match(feedbackSection, /合并[^\n]*main[^\n]*正式生效/);
   assert.match(feedbackSection, /不[^\n]*批量[^\n]*旧动画/);
-  assert.match(production, /^# 物理动画统一制作规范 v1\.1$/m);
-  assert.match(production, /本文当前版本为 v1\.1/);
+  assert.match(production, /^# 物理动画统一制作规范 v1\.2$/m);
+  assert.match(production, /本文当前版本为 v1\.2/);
   for (const heading of ['任务审查', '制作决策', '模型与原型', '正式制作', '验证交付']) {
     assert.match(production, new RegExp(`### .*${heading}`));
   }
@@ -89,6 +89,174 @@ test('统一制作规范 contains the five-stage, risk-routed student workflow',
   assert.doesNotMatch(production, /自动演示/);
   assert.doesNotMatch(production, /\.codex\/attachments/);
   assert.doesNotMatch(production, /#[0-9a-f]{6}/i);
+});
+
+test('统一制作规范 selects one carrier and one interaction type before applying split rules', () => {
+  const production = readStandard('production');
+  const decisionSection = production
+    .split('## 4. 教学目标、功能预算与主动做减法')[1]
+    ?.split('## 5. 物理模型、参数分类与唯一实验状态')[0] ?? '';
+
+  for (const carrier of [
+    '独立成品', '同内核独立成品', '嵌入教学步骤',
+    '静态题卡', '暂缓待补', '成版排除'
+  ]) assert.match(decisionSection, new RegExp(carrier));
+
+  for (const type of [
+    '过程演示型', '状态互动型', '参数探究型', '图像联动型',
+    '模型建构型', '空间观察型', '虚拟实验型', '题目推演型'
+  ]) assert.match(decisionSection, new RegExp(type));
+
+  assert.match(decisionSection, /八类主类型[\s\S]{0,120}不设置第九类/);
+  assert.match(decisionSection, /非独立动画[\s\S]{0,120}不是第九种/);
+  assert.match(decisionSection, /两个不同主问题[\s\S]{0,100}必须拆分/);
+  assert.match(decisionSection, /两种不同主交互[\s\S]{0,100}必须拆分/);
+  assert.match(decisionSection, /两套不同物理状态机[\s\S]{0,260}四个以上主要参数[\s\S]{0,260}两张以上[\s\S]{0,260}任意两项[\s\S]{0,100}原则上必须拆分/);
+  assert.match(decisionSection, /每个成品最多选择一个辅助机制/);
+  assert.match(decisionSection, /主类型[\s\S]{0,120}必备闭环[\s\S]{0,120}不得重复登记/);
+  assert.match(decisionSection, /物理过程自动播放[\s\S]{0,180}当前教学步骤内[\s\S]{0,180}不得自动[\s\S]{0,80}教学步骤/);
+  assert.match(decisionSection, /建议载体[\s\S]{0,180}主类型[\s\S]{0,180}学生主要操作[\s\S]{0,180}唯一观察焦点/);
+  assert.doesNotMatch(decisionSection, /全项目无声音|浮动引导卡|#[0-9a-f]{6}/i);
+});
+
+test('统一制作规范 maps every carrier to an eight-type field state', () => {
+  const production = readStandard('production');
+  const decisionSection = production
+    .split('## 4. 教学目标、功能预算与主动做减法')[1]
+    ?.split('## 5. 物理模型、参数分类与唯一实验状态')[0] ?? '';
+
+  assert.match(decisionSection, /独立成品、同内核独立成品[\s\S]{0,100}必须[\s\S]{0,80}八类/);
+  assert.match(decisionSection, /嵌入教学步骤[\s\S]{0,180}真实动态交互[\s\S]{0,120}不适用/);
+  assert.match(decisionSection, /静态题卡、成版排除[\s\S]{0,80}不适用/);
+  assert.match(decisionSection, /暂缓待补[\s\S]{0,80}待定/);
+  assert.match(decisionSection, /不适用[\s\S]{0,80}待定[\s\S]{0,100}字段状态[\s\S]{0,80}不属于主类型/);
+});
+
+test('统一制作规范 gives all eight types mandatory controls and prohibited boundaries', () => {
+  const production = readStandard('production');
+  const decisionSection = production
+    .split('## 4. 教学目标、功能预算与主动做减法')[1]
+    ?.split('## 5. 物理模型、参数分类与唯一实验状态')[0] ?? '';
+  const expected = new Map([
+    ['过程演示型', ['播放', '关键节点', '大量参数']],
+    ['状态互动型', ['恢复默认', '前后对照', '结果量']],
+    ['参数探究型', ['预测记录', '结果对比', '多个自变量']],
+    ['图像联动型', ['双向同步游标', '坐标、单位', '多张主图']],
+    ['模型建构型', ['研究对象选择', '撤销', '自由白板']],
+    ['空间观察型', ['恢复标准视角', '考试视角', '自由漫游']],
+    ['虚拟实验型', ['原始数据表', '估读', '自动填满数据']],
+    ['题目推演型', ['阶段时间轴', '关键帧暂停', '完整题库']]
+  ]);
+  for (const [type, terms] of expected) {
+    const typeSection = decisionSection.split(`#### ${type}`)[1]?.split(/^#### /m)[0] ?? '';
+    assert.match(typeSection, /必备控制/);
+    assert.match(typeSection, /禁止边界/);
+    for (const term of terms) assert.match(typeSection, new RegExp(term));
+  }
+});
+
+test('统一制作规范 defines the ordered classification decision sequence', () => {
+  const production = readStandard('production');
+  const sequence = production.split('### 4.5 分类决策顺序')[1]?.split('### 4.6')[0] ?? '';
+  const ordered = ['学习障碍', '静态图无法替代', '建议载体', '主类型', '辅助机制', '单一主问题', '学生主要操作', '唯一观察焦点', '优先删除', '拆分', '物理风险'];
+  let previous = -1;
+  for (const term of ordered) {
+    const current = sequence.indexOf(term);
+    assert.ok(current > previous, `${term} must appear in classification order`);
+    previous = current;
+  }
+});
+
+test('统一制作规范 requires a compact per-item classification quality check', () => {
+  const production = readStandard('production');
+  const checklist = production.split('### 4.6 逐项分类质量检查')[1]?.split('## 5.')[0] ?? '';
+  for (const term of [
+    '一个问句', '载体与主类型', '十秒', '一个观察焦点',
+    '不超过四个', '系统计算结果', '结果量', '图像', '3D',
+    '动态、交互或操作价值', '适用范围', '底层复用'
+  ]) assert.match(checklist, new RegExp(term));
+});
+
+test('统一制作规范 decision record distinguishes conditions, results and animation priority', () => {
+  const production = readStandard('production');
+  const decisionSection = production
+    .split('### 4.4 辅助机制与制作决策单')[1]
+    ?.split('### 4.5')[0] ?? '';
+  assert.match(decisionSection, /可编辑条件[\s\S]{0,100}锁定条件[\s\S]{0,100}系统计算结果/);
+  assert.match(decisionSection, /动画化优先级[\s\S]{0,40}理由/);
+});
+
+test('统一制作规范 resolves editable and locked parameter budgets', () => {
+  const production = readStandard('production');
+  const decisionSection = production
+    .split('## 4. 教学目标、功能预算与主动做减法')[1]
+    ?.split('## 5. 物理模型、参数分类与唯一实验状态')[0] ?? '';
+  assert.match(decisionSection, /零至四个可编辑条件[\s\S]{0,80}优先[\s\S]{0,40}一至两个/);
+  assert.doesNotMatch(decisionSection, /默认[^\r\n]{0,80}二至四个主要参数/);
+  const parameterType = decisionSection.split('#### 参数探究型')[1]?.split(/^#### /m)[0] ?? '';
+  assert.match(parameterType, /一个[^\r\n]*自变量[\s\S]{0,100}零至三个[^\r\n]*锁定条件/);
+});
+
+test('统一制作规范 defines exactly eight auxiliary mechanisms with boundaries', () => {
+  const production = readStandard('production');
+  const auxiliary = production.split('#### 辅助机制目录')[1]?.split('#### 主从组合边界')[0] ?? '';
+  const expectedMechanisms = [
+    '时间控制', '预测验证', '临界事件', '对比辨析',
+    '图像游标', '二维模型转化', '数据采集', '研究对象切换'
+  ];
+  const table = auxiliary.split('| 辅助机制 | 用途 | 使用边界 |')[1]?.split('\n\n')[0] ?? '';
+  const dataRows = table.split('\n').filter((line) => /^\|[^-][^|]*\|[^|]+\|[^|]+\|$/.test(line));
+  const actualMechanisms = dataRows.map((line) => line.split('|')[1].trim());
+  assert.equal(dataRows.length, 8, 'auxiliary mechanism table must contain exactly eight data rows');
+  assert.deepEqual(actualMechanisms, expectedMechanisms);
+  assert.match(auxiliary, /时间控制[\s\S]{0,180}教学步骤[\s\S]{0,180}过程演示型[\s\S]{0,120}不重复登记/);
+  assert.match(auxiliary, /主类型[\s\S]{0,120}必备[\s\S]{0,120}不得重复/);
+});
+
+test('统一制作规范 gives safe and disallowed main-type combinations', () => {
+  const production = readStandard('production');
+  const combinations = production.split('#### 主从组合边界')[1]?.split('### 4.5')[0] ?? '';
+  for (const pattern of [
+    /参数探究型[^\r\n]*图像游标/,
+    /空间观察型[^\r\n]*二维模型转化/,
+    /题目推演型[^\r\n]*临界事件/,
+    /状态互动型[^\r\n]*对比辨析/,
+    /虚拟实验型[^\r\n]*二维模型转化/
+  ]) assert.match(combinations, pattern);
+  assert.match(combinations, /多套实验方法[^\r\n]*不得[^\r\n]*并列|不得[^\r\n]*多套实验方法[^\r\n]*并列/);
+  assert.match(combinations, /多个临界条件[^\r\n]*不得[^\r\n]*扫描|不得[^\r\n]*多个临界条件[^\r\n]*扫描/);
+});
+
+test('统一制作规范 preserves non-independent handling priority', () => {
+  const production = readStandard('production');
+  const carrier = production.split('#### 非独立内容处置顺序')[1]?.split('### 4.2')[0] ?? '';
+  const ordered = ['嵌入已有动画', '静态题卡', '轻量可拖动示意', '可跳过的折叠验证', '暂缓待补'];
+  let previous = -1;
+  for (const term of ordered) {
+    const current = carrier.indexOf(term);
+    assert.ok(current > previous, `${term} must appear in non-independent priority order`);
+    previous = current;
+  }
+  assert.match(carrier, /不得[^\r\n]*强行立项|不强行立项/);
+});
+
+test('统一制作规范 defines directory granularity and bad-source handling', () => {
+  const production = readStandard('production');
+  const checklist = production.split('### 4.6 逐项分类质量检查')[1]?.split('## 5.')[0] ?? '';
+  assert.match(checklist, /最低层[^\r\n]*可独立教学[^\r\n]*目录叶子/);
+  assert.match(checklist, /父级[^\r\n]*不自动立项/);
+  assert.match(checklist, /同内核[^\r\n]*独立标题[^\r\n]*独立[^\r\n]*脚本/);
+  assert.match(checklist, /无效输入[\s\S]{0,80}残缺[\s\S]{0,80}编号断裂[\s\S]{0,80}物理表述错误/);
+  assert.match(checklist, /暂缓待补[\s\S]{0,80}修正建议[\s\S]{0,100}不得[^\r\n]*猜测[^\r\n]*制作/);
+});
+
+test('统一制作规范 preserves spatial pause and virtual-experiment authenticity boundaries', () => {
+  const production = readStandard('production');
+  const spatial = production.split('#### 空间观察型')[1]?.split(/^#### /m)[0] ?? '';
+  assert.match(spatial, /物理时间暂停[\s\S]{0,100}旋转[\s\S]{0,80}切换[^\r\n]*视角/);
+  const experiment = production.split('#### 虚拟实验型')[1]?.split(/^#### /m)[0] ?? '';
+  assert.match(experiment, /操作错误[\s\S]{0,100}不得[\s\S]{0,80}正常测量误差/);
+  assert.match(experiment, /补充[\s\S]{0,60}演练[\s\S]{0,100}不得[\s\S]{0,80}取代真实实验/);
 });
 
 test('视觉标准 owns the page shell, formula, focus glow and guide-card details', () => {
