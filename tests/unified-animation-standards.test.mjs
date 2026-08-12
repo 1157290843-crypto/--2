@@ -11,6 +11,7 @@ const paths = {
   agents: resolve(repoRoot, 'AGENTS.md'),
   production: resolve(repoRoot, 'docs/物理动画统一制作规范-v1.md'),
   visual: resolve(repoRoot, 'docs/物理动画视觉标准-v1.md'),
+  retiredInteractionStandard: resolve(repoRoot, 'docs/物理动画类型与交互逻辑标准-v1.md'),
   feedbackPlan: resolve(repoRoot, 'docs/superpowers/plans/2026-08-11-continuous-animation-standard-feedback.md'),
   originalPlan: resolve(repoRoot, 'docs/superpowers/plans/2026-08-11-unified-physics-animation-production-standard.md')
 };
@@ -102,10 +103,20 @@ test('统一制作规范 selects one carrier and one interaction type before app
     '静态题卡', '暂缓待补', '成版排除'
   ]) assert.match(decisionSection, new RegExp(carrier));
 
-  for (const type of [
+  const expectedTypes = [
     '过程演示型', '状态互动型', '参数探究型', '图像联动型',
     '模型建构型', '空间观察型', '虚拟实验型', '题目推演型'
-  ]) assert.match(decisionSection, new RegExp(type));
+  ];
+  for (const type of expectedTypes) assert.match(decisionSection, new RegExp(type));
+
+  const primaryTypeSection = decisionSection.split('### 4.2 八类主类型与主交互闭环')[1]?.split('各类的必备控制')[0] ?? '';
+  const primaryTypeTable = primaryTypeSection.split('| 主类型 | 主要学习障碍与唯一主操作 | 主交互闭环 | 拆分边界 |')[1]
+    ?.split('\n\n')[0] ?? '';
+  const primaryTypeRows = primaryTypeTable.split('\n')
+    .filter((line) => /^\|[^-][^|]*\|[^|]+\|[^|]+\|[^|]+\|$/.test(line));
+  const actualTypes = primaryTypeRows.map((line) => line.split('|')[1].trim());
+  assert.equal(primaryTypeRows.length, 8, 'primary-type table must contain exactly eight data rows');
+  assert.deepEqual(actualTypes, expectedTypes);
 
   assert.match(decisionSection, /八类主类型[\s\S]{0,120}不设置第九类/);
   assert.match(decisionSection, /非独立动画[\s\S]{0,120}不是第九种/);
@@ -427,6 +438,11 @@ test('视觉标准 defines semantic and accessible formula output across rendere
 });
 
 test('the three standards have one owner per concern and no legacy prompt dependency', () => {
+  assert.equal(
+    existsSync(paths.retiredInteractionStandard),
+    false,
+    `retired interaction standard must stay absent: ${paths.retiredInteractionStandard}`
+  );
   const agents = readStandard('agents');
   const production = readStandard('production');
   const visual = readStandard('visual');
